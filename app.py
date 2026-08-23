@@ -1,1142 +1,1129 @@
 from __future__ import annotations
 
 import io
+import json
+import math
 import os
+import re
+import statistics
+import time
+import urllib.parse
+import xml.etree.ElementTree as ET
+from collections import Counter, defaultdict, deque
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
 
+try:
+    import plotly.graph_objects as go
+except Exception:
+    go = None
+
+try:
+    import networkx as nx
+except Exception:
+    nx = None
+
+try:
+    import yfinance as yf
+except Exception:
+    yf = None
+
 # ============================================================
-# MACRO INTELLIGENCE — LANDING PAGE 1 / COMPACT V3
+# OPPORTUNITY INTELLIGENCE ENGINE v1
+# ------------------------------------------------------------
+# Goal: high-recall discovery of exceptional opportunities, then
+# high-precision confirmation. No classic technical indicators.
+# Price history is used only for valuation context, policy-relevant
+# speed/volatility and realized outcome/replay — never RSI/MACD/etc.
+# ------------------------------------------------------------
+# IMPORTANT RESEARCH GATES
+# - Scenario discovery can generate hypotheses automatically.
+# - LLM-style narrative is not allowed to assign numeric probability.
+# - Historical acceptance cases are NEVER used to tune thresholds.
+# - Action labels are research states until PIT/OOS validation passes.
+# - Fair-value bands are transparent scenario estimates, not guarantees.
 # ============================================================
-# This page intentionally separates:
-#   1) current economic state,
-#   2) projected macro path,
-#   3) market/crash vulnerabilities,
-#   4) world/event scenarios and constraints.
-# Exact proprietary macro/crash/event probabilities remain gated until
-# point-in-time out-of-sample validation is complete.
-# ============================================================
+
+ROOT = Path(__file__).resolve().parent
+DATA = ROOT / "data"
+STATE = ROOT / "state"
+STATE.mkdir(exist_ok=True)
 
 st.set_page_config(
-    page_title="Macro Intelligence",
-    page_icon="◉",
+    page_title="Opportunity Intelligence",
+    page_icon="◎",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
-FRED_GRAPH_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv"
-FRED_API_URL = "https://api.stlouisfed.org/fred/series/observations"
-FED_EBP_URL = "https://www.federalreserve.gov/econres/notes/feds-notes/ebp_csv.csv"
-FED_FCIG_URL = "https://www.federalreserve.gov/econres/notes/feds-notes/fci_g_public_monthly_3yr.csv"
-TREASURY_DEBT_URL = "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny"
-AI_GPR_MONTHLY_URL = "https://www.matteoiacoviello.com/ai_gpr_files/ai_gpr_data_monthly.csv"
-
-# Current-law reference, not a fitted model input.
-# P.L. 119-21 set the statutory limit at $41.104tn on 2025-07-04.
-STATUTORY_DEBT_LIMIT_TN = 41.104
-DEBT_LIMIT_REFERENCE_DATE = "04 Jul 2025"
-CBO_BASELINE_LIMIT_TIMING = "sometime in 2027"
-
-PROJECTION_MODEL_VALIDATED = False
-CRASH_MODEL_VALIDATED = False
-EVENT_PROBABILITY_MODEL_VALIDATED = False
-EXPECTATION_GAP_VALIDATED = False
-
-
-def _secret(name: str, default: Optional[str] = None) -> Optional[str]:
-    try:
-        value = st.secrets.get(name, None)
-        if value:
-            return str(value)
-    except Exception:
-        pass
-    return os.getenv(name, default)
-
-
-FRED_API_KEY = _secret("FRED_API_KEY")
-
-
-@dataclass(frozen=True)
-class SeriesSpec:
-    label: str
-    start: str
-    unit: str
-
-
-SERIES: Dict[str, SeriesSpec] = {
-    # Growth
-    "BBKMGDP": SeriesSpec("BBK Monthly GDP Growth", "1960-01-01", "% annualized"),
-    "BBKMCOIX": SeriesSpec("BBK Coincident Index", "1960-01-01", "σ"),
-    "BBKMLEIX": SeriesSpec("BBK Leading Index", "1960-01-01", "σ"),
-    "WEI": SeriesSpec("Weekly Economic Index", "2008-01-01", "%"),
-    # Inflation
-    "PCETRIM12M159SFRBDAL": SeriesSpec("Dallas Fed Trimmed Mean PCE", "1977-01-01", "% y/y"),
-    "PCEPILFE": SeriesSpec("Core PCE Price Index", "1959-01-01", "index"),
-    # Labor / credit
-    "SAHMREALTIME": SeriesSpec("Real-time Sahm Rule", "1959-12-01", "pp"),
-    "ICSA": SeriesSpec("Initial Jobless Claims", "1967-01-01", "claims"),
-    "DRTSCILM": SeriesSpec("SLOOS C&I Tightening", "1990-01-01", "net %"),
-    # Market / stress
-    "NFCIRISK": SeriesSpec("NFCI Risk", "1971-01-01", "index"),
-    "VIXCLS": SeriesSpec("VIX", "1990-01-01", "index"),
-    "BAMLH0A0HYM2": SeriesSpec("HY OAS", "1996-01-01", "%"),
-    "SP500": SeriesSpec("S&P 500", "2016-01-01", "index"),
-    # Rates / pricing
-    "T5YIE": SeriesSpec("5Y Breakeven", "2003-01-01", "%"),
-    "DGS10": SeriesSpec("10Y Treasury", "1962-01-01", "%"),
-    "DGS2": SeriesSpec("2Y Treasury", "1976-06-01", "%"),
-    "FEDFUNDS": SeriesSpec("Fed Funds", "1954-07-01", "%"),
-    "THREEFYTP10": SeriesSpec("10Y Term Premium", "1990-01-01", "%"),
-    # Energy
-    "DCOILWTICO": SeriesSpec("WTI Oil", "1986-01-02", "$/bbl"),
-    # Fiscal constraints
-    "GFDEGDQ188S": SeriesSpec("Federal Debt / GDP", "1966-01-01", "% GDP"),
-    "FYFSGDA188S": SeriesSpec("Federal Deficit / GDP", "1940-01-01", "% GDP"),
-    "FYOIGDA188S": SeriesSpec("Federal Interest Outlays / GDP", "1940-01-01", "% GDP"),
-    # Event / supply / uncertainty context
-    "GSCPI": SeriesSpec("Global Supply Chain Pressure Index", "1997-01-01", "σ"),
-    "USEPUINDXD": SeriesSpec("US Economic Policy Uncertainty", "1985-01-01", "index"),
-}
-
-# Scenario library is intentionally broad. Inclusion here is NOT proof.
-SCENARIO_LIBRARY = [
-    ("Macro", "Disinflationary slowdown", "Growth cools while inflation falls", "Growth, labor, credit, inflation"),
-    ("Macro", "Reacceleration", "Leading growth and breadth recover", "BBK lead, WEI, breadth, credit"),
-    ("Macro", "Recession / credit crack", "Labor and credit weaken together", "Sahm, claims, EBP, HY OAS"),
-    ("Geopolitical", "War continues / financing manageable", "Conflict spending rises but financing remains absorbable", "Fiscal capacity, auctions, rates, energy"),
-    ("Geopolitical", "War + energy stagflation", "Supply shock lifts inflation while growth weakens", "Oil, breakevens, rates, growth"),
-    ("Geopolitical", "Fiscal-forced de-escalation", "Fiscal/rate constraints materially raise pressure to shrink conflict", "Debt headroom, deficit, interest burden, term premium"),
-    ("Geopolitical", "Diplomatic ceasefire / peace dividend", "Risk premium and supply stress normalize", "Diplomacy feed, oil, freight, rates"),
-    ("Geopolitical", "Crisis-forced ceasefire", "De-escalation occurs because fiscal/economic stress becomes binding", "Fiscal stress, credit, growth, political funding"),
-    ("Fiscal", "Debt-limit confrontation", "Legal borrowing constraint becomes binding", "Debt subject to limit, X-date, extraordinary measures"),
-    ("Fiscal", "Treasury term-premium shock", "Heavy issuance / fiscal concern lifts long-end compensation", "10Y, term premium, auction metrics"),
-    ("Fiscal", "Fiscal crowding-out", "Government financing raises private borrowing costs", "Yields, term premium, housing/capex"),
-    ("Credit", "Private-credit stress", "Opaque/illiquid credit losses transmit to broader credit", "BDC/private-credit data, HY, banks"),
-    ("Credit", "Bank / CRE stress", "CRE losses and funding stress tighten lending", "CRE delinquencies, bank funding, SLOOS"),
-    ("Liquidity", "Dollar funding squeeze", "Funding stress forces deleveraging", "Funding spreads, basis, FX swaps, NFCI"),
-    ("Market", "Broad ATH / healthy broadening", "Large, small and equal-weight markets confirm", "SPY/IWM/RSP, breadth"),
-    ("Market", "Narrow ATH / concentration fragility", "Headline index rises while participation deteriorates", "Breadth, concentration, earnings"),
-    ("Market", "ATH + credit divergence", "Price remains strong while credit weakens", "Index ATH, EBP, HY OAS"),
-    ("Market", "Low-vol + leverage unwind", "Calm conditions encourage leverage then amplify shock", "VIX, leverage, funding, liquidity"),
-    ("Market", "Correlation spike + falling liquidity", "Diversification disappears while market depth falls", "Cross-asset correlation, depth, funding"),
-    ("Energy", "Oil supply shock", "Physical disruption transmits into inflation and growth", "Oil curve, shipping, shortages"),
-    ("China", "China stimulus / credit impulse", "China demand impulse lifts global cyclicals", "TSF, credit impulse, PMI, property"),
-    ("China", "China property relapse", "Property weakness drags credit and global demand", "Property sales, defaults, TSF"),
-    ("Japan", "BOJ / yen-carry unwind", "Rates and FX force global deleveraging", "JGB, USDJPY, cross-asset vol"),
-    ("Trade", "Tariff / sanctions escalation", "Trade barriers raise costs and weaken volumes", "Tariffs, trade, freight, prices"),
-    ("Cyber", "Critical financial infrastructure shock", "Payments/clearing outage creates liquidity stress", "Operational/event feed, funding, vol"),
-    ("Technology", "AI productivity boom", "Productivity offsets wage/inflation pressure", "Productivity, capex, margins"),
-    ("Technology", "AI capex / debt unwind", "Capex expectations and financing reverse", "Capex, credit, earnings revisions"),
-    ("Policy", "Fed too tight", "Policy stays restrictive after underlying economy weakens", "FCI-G, labor, inflation, rates"),
-    ("Policy", "Inflation-forced tightening", "Inflation resurgence prevents easing", "PCE, breakevens, oil, wages"),
-]
-
-SCENARIO_SCREEN = [
-    ("ATH alone", "REJECT STANDALONE", "HIGH", "ATH is context, not a crash trigger."),
-    ("Russell / IWM ATH alone", "REJECT STANDALONE", "MEDIUM", "Condition on breadth, rates, credit and earnings."),
-    ("Breadth strength / failure", "KEEP CORE STATE", "HIGH", "Use as market-state confirmation."),
-    ("Credit widening / EBP", "KEEP CORE", "HIGH", "Forward downturn / transmission information."),
-    ("ATH + credit deterioration", "KEEP CONDITIONAL", "MED-HIGH", "High-priority divergence; bespoke OOS test still required."),
-    ("Rate / term-premium shock + rich valuation", "KEEP CORE", "HIGH", "Fragility through discount rates and liquidity."),
-    ("Low VIX alone", "REJECT STANDALONE", "HIGH", "Calm volatility alone is not a crash signal."),
-    ("Low VIX + high leverage", "KEEP FRAGILITY", "HIGH", "Volatility-paradox / deleveraging vulnerability."),
-    ("High leverage alone", "SUPPORTING ONLY", "HIGH", "Vulnerability, not timing."),
-    ("Funding stress + leverage", "KEEP CORE", "HIGH", "Key crash-amplification channel."),
-    ("Momentum melt-up -> crash", "REVISE", "HIGH", "Simple ATH melt-up formulation is not supported."),
-    ("Failed ATH breakout", "RESEARCH ONLY", "LOW-MED", "Do not promote without stronger evidence."),
-    ("Concentration + narrowing breadth", "KEEP CONDITIONAL", "MED-HIGH", "Needs credit/liquidity/earnings context."),
-    ("Energy shock + sticky inflation + yields", "KEEP EVENT", "HIGH", "Clear macro transmission channel."),
-    ("Fiscal-forced de-escalation", "KEEP AS CONDITIONAL SCENARIO", "MEDIUM", "Economic constraint can raise de-escalation pressure, but cannot determine political choice alone."),
-]
-
 HEADERS = {
-    "User-Agent": "MacroIntelligence/3.0 (+Streamlit; research dashboard)",
-    "Accept": "text/csv,application/json,text/plain,*/*",
+    "User-Agent": "OpportunityIntelligence/1.0 research-dashboard contact=local-user",
+    "Accept": "application/json,text/csv,text/xml,application/xml,text/plain,*/*",
 }
 
+NO_TECHNICALS = True
+PRODUCTION_ACTION_MODEL_VALIDATED = False
+PRODUCTION_FAIR_VALUE_MODEL_VALIDATED = False
+PRODUCTION_EVENT_PROBABILITY_VALIDATED = False
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def fetch_fred(series_id: str, start: str) -> pd.Series:
-    if FRED_API_KEY:
-        params = {
-            "series_id": series_id,
-            "api_key": FRED_API_KEY,
-            "file_type": "json",
-            "observation_start": start,
-            "sort_order": "asc",
-        }
-        r = requests.get(FRED_API_URL, params=params, headers=HEADERS, timeout=20)
-        r.raise_for_status()
-        obs = r.json().get("observations", [])
-        if not obs:
-            raise ValueError(f"No observations returned for {series_id}")
-        df = pd.DataFrame(obs)[["date", "value"]]
-        df["date"] = pd.to_datetime(df["date"], errors="coerce")
-        df["value"] = pd.to_numeric(df["value"].replace(".", np.nan), errors="coerce")
-        s = df.dropna().set_index("date")["value"].sort_index()
-    else:
-        r = requests.get(
-            FRED_GRAPH_URL,
-            params={"id": series_id, "cosd": start},
-            headers=HEADERS,
-            timeout=20,
-        )
-        r.raise_for_status()
-        df = pd.read_csv(io.StringIO(r.text))
-        if df.shape[1] < 2:
-            raise ValueError(f"Unexpected FRED response for {series_id}")
-        dcol = df.columns[0]
-        vcol = series_id if series_id in df.columns else df.columns[-1]
-        df[dcol] = pd.to_datetime(df[dcol], errors="coerce")
-        df[vcol] = pd.to_numeric(df[vcol].replace(".", np.nan), errors="coerce")
-        s = df.dropna(subset=[dcol, vcol]).set_index(dcol)[vcol].sort_index()
-    if s.empty:
-        raise ValueError(f"Empty series: {series_id}")
-    s.name = series_id
-    return s
-
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def fetch_research_csv(url: str) -> pd.DataFrame:
-    r = requests.get(url, headers=HEADERS, timeout=20)
-    r.raise_for_status()
-    df = pd.read_csv(io.StringIO(r.text))
-    if "date" not in df.columns:
-        raise ValueError("Expected date column")
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    return df.dropna(subset=["date"]).sort_values("date")
-
-
-@st.cache_data(ttl=1800, show_spinner=False)
-def fetch_treasury_debt() -> Tuple[float, Optional[pd.Timestamp]]:
-    params = {"sort": "-record_date", "page[size]": 1}
-    r = requests.get(TREASURY_DEBT_URL, params=params, headers=HEADERS, timeout=20)
-    r.raise_for_status()
-    data = r.json().get("data", [])
-    if not data:
-        raise ValueError("No Treasury debt data")
-    row = data[0]
-    debt = float(row["tot_pub_debt_out_amt"]) / 1e12
-    return debt, pd.Timestamp(row["record_date"])
-
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def fetch_yahoo(symbol: str, start: str = "2000-01-01") -> pd.Series:
-    p1 = int(pd.Timestamp(start, tz="UTC").timestamp())
-    p2 = int((pd.Timestamp.now(tz="UTC") + pd.Timedelta(days=1)).timestamp())
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
-    params = {
-        "period1": p1,
-        "period2": p2,
-        "interval": "1d",
-        "events": "history",
-        "includeAdjustedClose": "true",
-    }
-    r = requests.get(url, params=params, headers=HEADERS, timeout=20)
-    r.raise_for_status()
-    result = r.json()["chart"]["result"][0]
-    idx = pd.to_datetime(result["timestamp"], unit="s", utc=True).tz_convert(None)
-    adj = result["indicators"].get("adjclose", [{}])[0].get("adjclose")
-    if adj is None:
-        adj = result["indicators"]["quote"][0]["close"]
-    s = pd.Series(pd.to_numeric(adj, errors="coerce"), index=idx, name=symbol).dropna().sort_index()
-    if s.empty:
-        raise ValueError(f"Empty Yahoo series {symbol}")
-    return s
-
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def fetch_ai_gpr_monthly() -> pd.DataFrame:
-    """Optional public geopolitical-risk feed. It informs event activity, not political intent."""
-    r = requests.get(AI_GPR_MONTHLY_URL, headers=HEADERS, timeout=20)
-    r.raise_for_status()
-    df = pd.read_csv(io.StringIO(r.text))
-    if df.empty:
-        raise ValueError("Empty AI-GPR data")
-    date_col = next((c for c in df.columns if "date" in c.lower()), df.columns[0])
-    df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
-    df = df.dropna(subset=[date_col]).sort_values(date_col).set_index(date_col)
-    for c in df.columns:
-        df[c] = pd.to_numeric(df[c], errors="ignore")
-    return df
-
-
-def load_all():
-    data, research, market, errors = {}, {}, {}, {}
-    for sid, spec in SERIES.items():
-        try:
-            data[sid] = fetch_fred(sid, spec.start)
-        except Exception as exc:
-            errors[sid] = str(exc)
-    for name, url in {"EBP": FED_EBP_URL, "FCIG": FED_FCIG_URL}.items():
-        try:
-            research[name] = fetch_research_csv(url)
-        except Exception as exc:
-            errors[name] = str(exc)
-    for sym in ["SPY", "IWM", "RSP"]:
-        try:
-            market[sym] = fetch_yahoo(sym)
-        except Exception as exc:
-            errors[f"Yahoo:{sym}"] = str(exc)
+# -----------------------------
+# Utility
+# -----------------------------
+def safe_float(x: Any) -> float:
     try:
-        debt_now, debt_date = fetch_treasury_debt()
-    except Exception as exc:
-        debt_now, debt_date = np.nan, None
-        errors["TreasuryDebt"] = str(exc)
-    try:
-        gpr = fetch_ai_gpr_monthly()
-    except Exception as exc:
-        gpr = pd.DataFrame()
-        errors["AI-GPR"] = str(exc)
-    return data, research, market, gpr, debt_now, debt_date, errors
-
-
-# ----------------------------- helpers -----------------------------
-def latest(s: Optional[pd.Series]) -> Tuple[float, Optional[pd.Timestamp]]:
-    if s is None or s.empty:
-        return np.nan, None
-    x = s.dropna()
-    return (float(x.iloc[-1]), pd.Timestamp(x.index[-1])) if len(x) else (np.nan, None)
-
-
-def lag_value(s: Optional[pd.Series], n: int = 1) -> float:
-    if s is None:
+        v = float(x)
+        return v if np.isfinite(v) else np.nan
+    except Exception:
         return np.nan
-    x = s.dropna()
-    return float(x.iloc[-1 - n]) if len(x) > n else np.nan
 
 
-def months_ago(s: Optional[pd.Series], months: int) -> float:
-    if s is None or s.empty:
-        return np.nan
-    x = s.dropna()
-    target = x.index[-1] - pd.DateOffset(months=months)
-    y = x[x.index <= target]
-    return float(y.iloc[-1]) if len(y) else np.nan
+def fmt_num(x: float, digits: int = 1, suffix: str = "") -> str:
+    return "—" if not np.isfinite(x) else f"{x:,.{digits}f}{suffix}"
 
 
-def yoy_from_index(s: Optional[pd.Series]) -> float:
-    if s is None:
-        return np.nan
-    x = s.dropna()
-    return float((x.iloc[-1] / x.iloc[-13] - 1) * 100) if len(x) >= 13 else np.nan
-
-
-def yoy_at_lag(s: Optional[pd.Series], lag: int) -> float:
-    if s is None:
-        return np.nan
-    x = s.dropna()
-    end = len(x) - 1 - lag
-    start = end - 12
-    return float((x.iloc[end] / x.iloc[start] - 1) * 100) if start >= 0 else np.nan
-
-
-def hist_pct(s: Optional[pd.Series], years: int = 10) -> float:
-    if s is None or s.empty:
-        return np.nan
-    x = s.dropna()
-    x = x[x.index >= x.index[-1] - pd.DateOffset(years=years)]
-    if len(x) < 20:
-        return np.nan
-    return float((x <= x.iloc[-1]).mean() * 100)
-
-
-def dist_to_ath(s: Optional[pd.Series]) -> float:
-    if s is None or s.empty:
-        return np.nan
-    x = s.dropna()
-    return float((x.iloc[-1] / x.max() - 1) * 100)
-
-
-def relative_change(a: Optional[pd.Series], b: Optional[pd.Series], months: int = 3) -> float:
-    if a is None or b is None or a.empty or b.empty:
-        return np.nan
-    df = pd.concat([a.rename("a"), b.rename("b")], axis=1).dropna()
-    if df.empty:
-        return np.nan
-    r = df["a"] / df["b"]
-    old = r[r.index <= r.index[-1] - pd.DateOffset(months=months)]
-    if old.empty or old.iloc[-1] == 0:
-        return np.nan
-    return float((r.iloc[-1] / old.iloc[-1] - 1) * 100)
-
-
-def fmt(x: float, digits: int = 1, suffix: str = "") -> str:
-    return "—" if not np.isfinite(x) else f"{x:.{digits}f}{suffix}"
-
-
-def signed(x: float, digits: int = 1, suffix: str = "") -> str:
-    return "—" if not np.isfinite(x) else f"{x:+.{digits}f}{suffix}"
-
-
-def growth_state(gdp: float, coincident: float, wei: float):
-    if not np.isfinite(gdp) or not np.isfinite(coincident):
-        return "UNKNOWN", "gray"
-    if coincident <= -1:
-        return "RECESSION-LIKE", "red"
-    if gdp < 0:
-        return "CONTRACTING", "red"
-    if np.isfinite(wei) and wei < 0 < gdp:
-        return "MIXED", "amber"
-    if coincident < 0:
-        return "POSITIVE · BELOW TREND", "amber"
-    return "POSITIVE · ABOVE TREND", "green"
-
-
-def lead_state(x: float):
+def fmt_money(x: float, currency: str = "$", digits: int = 2) -> str:
     if not np.isfinite(x):
-        return "UNKNOWN", "gray"
-    if x <= -1:
-        return "DOWNTURN LEAD", "red"
-    if x < 0:
-        return "BELOW-TREND LEAD", "amber"
-    return "ABOVE-TREND LEAD", "green"
+        return "—"
+    if abs(x) >= 1e12:
+        return f"{currency}{x/1e12:,.2f}T"
+    if abs(x) >= 1e9:
+        return f"{currency}{x/1e9:,.2f}B"
+    if abs(x) >= 1e6:
+        return f"{currency}{x/1e6:,.2f}M"
+    return f"{currency}{x:,.{digits}f}"
 
 
-def inflation_state(trimmed: float, core: float, t3: float, c3: float):
-    vals = [x for x in [trimmed, core] if np.isfinite(x)]
-    if not vals:
-        return "UNKNOWN", "gray", "UNKNOWN"
-    if all(x > 2 for x in vals):
-        level, tone = "ABOVE TARGET", "amber"
-    elif all(x <= 2 for x in vals):
-        level, tone = "AT / BELOW TARGET", "green"
-    else:
-        level, tone = "MIXED", "amber"
-    dirs = []
-    if np.isfinite(trimmed) and np.isfinite(t3):
-        dirs.append(np.sign(trimmed - t3))
-    if np.isfinite(core) and np.isfinite(c3):
-        dirs.append(np.sign(core - c3))
-    direction = "COOLING" if dirs and all(d < 0 for d in dirs) else ("HEATING" if dirs and all(d > 0 for d in dirs) else "MIXED")
-    return level, tone, direction
+def pct(x: float, digits: int = 1) -> str:
+    return "—" if not np.isfinite(x) else f"{x*100:,.{digits}f}%"
 
 
-def labor_state(sahm: float):
-    if not np.isfinite(sahm):
-        return "UNKNOWN", "gray"
-    return ("RECESSION SIGNAL", "red") if sahm >= 0.50 else ("NO SAHM SIGNAL", "green")
-
-
-def fcig_state(x: float):
+def clamp(x: float, lo: float, hi: float) -> float:
     if not np.isfinite(x):
-        return "UNKNOWN", "gray"
-    return ("HEADWIND", "red") if x > 0 else (("TAILWIND", "green") if x < 0 else ("NEUTRAL", "blue"))
-
-
-def regime_name(growth: str, infl_dir: str):
-    weak = any(k in growth for k in ["BELOW", "CONTRACT", "RECESSION", "MIXED"])
-    if weak and infl_dir == "COOLING":
-        return "DISINFLATIONARY SLOWDOWN"
-    if weak and infl_dir == "HEATING":
-        return "STAGFLATION RISK"
-    if not weak and infl_dir == "COOLING":
-        return "GOLDILOCKS / DISINFLATION"
-    if not weak and infl_dir == "HEATING":
-        return "REFLATION"
-    return "MIXED / TRANSITION"
-
-
-def tone_from_score(x: float):
-    if not np.isfinite(x):
-        return "gray"
-    if x < 40:
-        return "green"
-    if x < 65:
-        return "amber"
-    return "red"
-
-
-def fiscal_constraint_score(debt_gdp: float, deficit_gdp: float, interest_gdp: float, term_premium: float) -> float:
-    """Descriptive pressure proxy, NOT a validated fiscal-crisis probability."""
-    pieces = []
-    if np.isfinite(debt_gdp):
-        pieces.append(np.clip((debt_gdp - 70) / 70 * 100, 0, 100))
-    if np.isfinite(deficit_gdp):
-        pieces.append(np.clip((abs(min(deficit_gdp, 0)) - 2) / 8 * 100, 0, 100))
-    if np.isfinite(interest_gdp):
-        pieces.append(np.clip((interest_gdp - 1) / 4 * 100, 0, 100))
-    if np.isfinite(term_premium):
-        pieces.append(np.clip((term_premium + 0.25) / 2.0 * 100, 0, 100))
-    return float(np.mean(pieces)) if pieces else np.nan
-
-
-def energy_pressure_score(oil_pctile: float, oil_3m: float, breakeven_pctile: float) -> float:
-    parts = []
-    if np.isfinite(oil_pctile):
-        parts.append(oil_pctile)
-    if np.isfinite(oil_3m):
-        parts.append(np.clip(50 + oil_3m * 2, 0, 100))
-    if np.isfinite(breakeven_pctile):
-        parts.append(breakeven_pctile)
-    return float(np.mean(parts)) if parts else np.nan
-
-
-
-
-def pct_change_over(s: Optional[pd.Series], months: int = 3) -> float:
-    if s is None or s.empty:
         return np.nan
-    x = s.dropna()
-    old = x[x.index <= x.index[-1] - pd.DateOffset(months=months)]
-    if old.empty or old.iloc[-1] == 0:
+    return max(lo, min(hi, x))
+
+
+def percentile_rank(s: pd.Series, value: float) -> float:
+    x = pd.to_numeric(s, errors="coerce").dropna()
+    if not np.isfinite(value) or x.empty:
         return np.nan
-    return float((x.iloc[-1] / old.iloc[-1] - 1) * 100)
+    return float((x <= value).mean())
 
 
-def level_change_over(s: Optional[pd.Series], months: int = 3) -> float:
-    if s is None or s.empty:
-        return np.nan
-    x = s.dropna()
-    old = x[x.index <= x.index[-1] - pd.DateOffset(months=months)]
-    if old.empty:
-        return np.nan
-    return float(x.iloc[-1] - old.iloc[-1])
+def robust_quantiles(values: Sequence[float]) -> Tuple[float, float, float]:
+    x = pd.Series(values, dtype="float64").replace([np.inf, -np.inf], np.nan).dropna()
+    if len(x) < 2:
+        return (np.nan, np.nan, np.nan)
+    return tuple(float(v) for v in x.quantile([0.25, 0.50, 0.75]).tolist())
 
 
-def first_numeric_col(df: pd.DataFrame, includes: tuple[str, ...], excludes: tuple[str, ...] = ()) -> Optional[str]:
-    for c in df.columns:
-        low = c.lower().replace("-", "_")
-        if all(k.lower() in low for k in includes) and not any(k.lower() in low for k in excludes):
-            if pd.api.types.is_numeric_dtype(df[c]):
-                return c
-    return None
+def read_csv(name: str) -> pd.DataFrame:
+    p = DATA / name
+    return pd.read_csv(p) if p.exists() else pd.DataFrame()
 
 
-def gpr_readings(gpr: pd.DataFrame) -> dict:
-    out = {"gpr": np.nan, "gpr_pct": np.nan, "gpr_change": np.nan, "oil_gpr": np.nan, "acts": np.nan, "threats": np.nan}
-    if gpr is None or gpr.empty:
-        return out
-    numeric = gpr.select_dtypes(include=[np.number])
-    if numeric.empty:
-        return out
-    main_col = first_numeric_col(gpr, ("gpr", "ai"), ("oil", "non", "threat", "act", "orig"))
-    if main_col is None:
-        main_col = first_numeric_col(gpr, ("gpr",), ("oil", "non", "threat", "act", "orig"))
-    oil_col = first_numeric_col(gpr, ("oil", "gpr"))
-    act_col = first_numeric_col(gpr, ("act", "gpr")) or first_numeric_col(gpr, ("gpr", "act"))
-    threat_col = first_numeric_col(gpr, ("threat", "gpr")) or first_numeric_col(gpr, ("gpr", "threat"))
-    if main_col:
-        x = pd.to_numeric(gpr[main_col], errors="coerce").dropna()
-        if len(x):
-            out["gpr"] = float(x.iloc[-1])
-            hist = x[x.index >= x.index[-1] - pd.DateOffset(years=10)]
-            if len(hist) >= 12:
-                out["gpr_pct"] = float((hist <= hist.iloc[-1]).mean() * 100)
-            old = x[x.index <= x.index[-1] - pd.DateOffset(months=3)]
-            if len(old):
-                out["gpr_change"] = float(x.iloc[-1] - old.iloc[-1])
-    for key, col in [("oil_gpr", oil_col), ("acts", act_col), ("threats", threat_col)]:
-        if col:
-            x = pd.to_numeric(gpr[col], errors="coerce").dropna()
-            if len(x): out[key] = float(x.iloc[-1])
-    return out
+UNIVERSE = read_csv("universe.csv")
+EDGES = read_csv("causal_edges.csv")
+FAMILIES = read_csv("opportunity_families.csv")
+TEMPLATES = read_csv("scenario_templates.csv")
+ACCEPTANCE = read_csv("acceptance_tests.csv")
+REPLAY = read_csv("replay_phases.csv")
+DISCOVERY_QUERIES = read_csv("scenario_discovery_queries.csv")
+SOURCE_REGISTRY = read_csv("source_registry.csv")
 
-
-def crash_state_name(stress: float, fragility: float) -> tuple[str, str, str]:
-    if stress >= 65 and fragility >= 65:
-        return "CRASH DANGER", "red", "Stress is active while the system is already fragile."
-    if stress < 50 and fragility >= 65:
-        return "POWDER KEG", "amber", "Fragile, but the active-stress cascade is not yet present."
-    if stress >= 65 and fragility < 65:
-        return "SHOCK / STRESS", "red", "Stress is high, but structural fragility is less extreme."
-    if stress >= 45 or fragility >= 50:
-        return "WATCH", "amber", "Some vulnerability is present; no full crash configuration."
-    return "RESILIENT", "green", "Low stress and lower structural fragility."
-
-
-def plain_regime(growth: str, lead: str, credit_tone: str, stress_score: float) -> tuple[str, str]:
-    if "RECESSION" in growth or "CONTRACT" in growth:
-        return "ECONOMY CONTRACTING", "Growth has crossed into contractionary territory."
-    if "BELOW" in growth or "BELOW" in lead:
-        if credit_tone == "red" or stress_score >= 65:
-            return "SLOWING · STRESS BUILDING", "Growth momentum is weak and financial stress is reinforcing it."
-        return "GROWING · LOSING MOMENTUM", "The economy is still expanding, but leading growth is softer."
-    if "ABOVE" in growth and "ABOVE" in lead:
-        return "EXPANDING · MOMENTUM HEALTHY", "Growth and leading activity are both above trend."
-    return "TRANSITION · NEED CONFIRMATION", "The data do not yet agree on a single clean path."
-
-
-def adaptive_scenarios(*, growth: str, lead_value: float, lead_delta: float, wei: float, inflation_dir: str,
-                       claims: float, claims_3m: float, ebp_prob: float, hy: float, hy_3m: float,
-                       fcig: float, market_structure: str, fiscal_score: float, rates_score: float,
-                       energy_score: float, funding_score: float, gpr_pct: float, gpr_change: float,
-                       gscpi: float, gscpi_delta: float, epu_pct: float, spy_ath: float) -> list[dict]:
-    """Heuristic evidence ranking only. score is NOT probability."""
-    scenarios = []
-    def add(name, family, impact, rules, confirms, invalidates, transmission, confidence="SCREENED"):
-        hits = [r for r in rules if r[0]]
-        total = len(rules)
-        score = int(round(100 * len(hits) / total)) if total else 0
-        direction = "↑" if len(hits) >= max(1, total//2) else "→"
-        tone = "red" if impact == "SEVERE" and score >= 50 else ("amber" if score >= 40 else ("green" if family in ["Positive", "Market"] and score >= 50 else "blue"))
-        scenarios.append({"name":name,"family":family,"impact":impact,"score":score,"hits":[r[1] for r in hits],"total":total,"direction":direction,"tone":tone,"confirms":confirms,"invalidates":invalidates,"transmission":transmission,"confidence":confidence})
-    weak_growth = any(k in growth for k in ["BELOW","MIXED","CONTRACT","RECESSION"])
-    claims_worse = np.isfinite(claims) and np.isfinite(claims_3m) and claims > claims_3m
-    hy_worse = np.isfinite(hy) and np.isfinite(hy_3m) and hy > hy_3m
-    lead_improving = np.isfinite(lead_delta) and lead_delta > 0
-    gpr_high = np.isfinite(gpr_pct) and gpr_pct >= 70
-    gpr_rising = np.isfinite(gpr_change) and gpr_change > 0
-    supply_stress = (np.isfinite(gscpi) and gscpi > 1) or (np.isfinite(gscpi_delta) and gscpi_delta > .5)
-    epu_high = np.isfinite(epu_pct) and epu_pct >= 75
-    near_ath = np.isfinite(spy_ath) and spy_ath >= -2
-    add("Disinflationary slowdown","Macro","MEDIUM",[(weak_growth,"growth below/near trend"),(inflation_dir=="COOLING","inflation cooling"),(np.isfinite(lead_value) and lead_value<0,"leading growth below trend"),(fcig<0,"financial conditions still cushion growth")],"Claims/lead stay soft while inflation keeps cooling.","Leading growth reaccelerates and labor breadth improves.","Growth ↓ + inflation ↓; duration support can coexist with weaker cyclicals.")
-    add("Reacceleration","Positive","POSITIVE",[(lead_improving,"leading growth improving"),(np.isfinite(wei) and wei>0,"high-frequency activity positive"),("IMPROVING" in market_structure or "BROAD" in market_structure,"market breadth improving"),(fcig<0,"financial conditions supportive")],"Lead/WEI/breadth improve together.","Credit widens or inflation re-heats before growth confirms.","Growth breadth ↑ → earnings breadth ↑ → cyclicals/small caps can catch up.")
-    add("Recession / credit crack","Macro","SEVERE",[(np.isfinite(lead_value) and lead_value<=-1,"BBK lead at recession-risk zone"),(claims_worse,"claims worsening"),(np.isfinite(ebp_prob) and ebp_prob>=25,"EBP recession benchmark elevated"),(hy_worse,"HY spreads widening"),(funding_score>=65,"funding stress elevated")],"Labor + credit + funding deteriorate together.","Credit calms and claims/leading growth stabilize.","Credit ↓ → hiring/capex ↓ → earnings ↓ → broader drawdown risk.")
-    add("Inflation resurgence / policy bind","Macro","HIGH",[(inflation_dir=="HEATING","underlying inflation heating"),(energy_score>=65,"energy pressure elevated"),(supply_stress,"global supply pressure elevated"),(rates_score>=65,"rates/term premium elevated")],"Core/trimmed PCE, oil/supply and breakevens rise together.","Energy/supply normalize and underlying inflation keeps falling.","Inflation ↑ → easing delayed → yields/discount rates ↑ → growth/valuation pressure.")
-    add("Rates / term-premium shock","Fiscal","HIGH",[(rates_score>=65,"long-rate/term-premium pressure elevated"),(fiscal_score>=65,"fiscal pressure elevated"),(epu_high,"policy uncertainty elevated"),(near_ath,"risk assets near highs")],"Term premium and long yields rise while funding/credit begin to weaken.","Long yields/term premium reverse without credit damage.","Long yields ↑ → mortgage/capex/valuation pressure ↑ → fragility rises.")
-    add("War / energy stagflation","Geopolitical","SEVERE",[(gpr_high,"geopolitical risk high"),(gpr_rising,"geopolitical risk rising"),(energy_score>=65,"energy pressure elevated"),(supply_stress,"supply-chain pressure elevated")],"GPR + oil-GPR/energy + supply pressure rise together.","GPR/energy/supply stress normalize.","Conflict → energy/supply shock → inflation ↑ + growth ↓ → policy bind.", confidence="EVENT FEED")
-    add("Fiscal crowding-out","Fiscal","HIGH",[(fiscal_score>=65,"fiscal pressure elevated"),(rates_score>=65,"rates/term premium elevated"),(np.isfinite(interest_gdp) and interest_gdp>=3,"interest burden high"),(epu_high,"policy uncertainty elevated")],"Issuance/term premium and private borrowing costs rise together.","Funding demand absorbs issuance and term premium falls.","Fiscal financing ↑ → long rates ↑ → housing/capex/private credit ↓.")
-    add("Fiscal pressure → de-escalation incentive","Geopolitical","HIGH",[(fiscal_score>=65,"fiscal constraint elevated"),(rates_score>=65,"rates pressure elevated"),(gpr_high,"geopolitical conflict risk elevated"),(energy_score>=65,"war/energy cost channel elevated")],"Conflict feed confirms an active costly conflict while fiscal/rate constraints tighten.","Conflict de-escalates for diplomatic reasons or financing/rates normalize.","War cost + interest/funding burden ↑ → economic/political incentive to shrink conflict ↑.", confidence="CONDITIONAL — NOT POLITICAL PREDICTION")
-    add("ATH + credit divergence","Market","HIGH",[(near_ath,"SPY near ATH"),(hy_worse,"HY widening"),(np.isfinite(ebp_prob) and ebp_prob>=20,"EBP recession benchmark non-trivial"),("DETERIORATING" in market_structure or "NARROW" in market_structure,"breadth/leadership fragile")],"Price stays high while credit/breadth deteriorate.","Credit tightens and breadth broadens.","Price optimism vs financing deterioration → fragile breakout / repricing risk.")
-    add("Funding / deleveraging cascade","Market","SEVERE",[(funding_score>=65,"funding/stress elevated"),(stress_score>=65,"market stress elevated"),(fragility_score>=65,"system fragility elevated"),(credit_score>=65,"credit pressure elevated")],"Stress, credit and funding rise together.","Funding/stress normalize quickly.","Volatility ↑ → liquidity ↓ → deleveraging ↑ → correlations ↑ → drawdown amplification.")
-    scenarios.sort(key=lambda x:(x["score"], 1 if x["impact"]=="SEVERE" else 0), reverse=True)
-    return scenarios
-
-
-def attention_items(items: list[tuple[str,float,str,str]]) -> list[tuple[str,float,str,str]]:
-    clean=[x for x in items if np.isfinite(x[1])]
-    return sorted(clean,key=lambda x:x[1],reverse=True)[:3]
-
-def action_state_engine(*, plain_state: str, growth: str, lead_value: float, inflation_dir: str,
-                        credit_tone: str, stress_score: float, fragility_score: float, fcig: float,
-                        event_override: Optional[dict], market_structure: str, rates_score: float,
-                        fiscal_score: float) -> dict:
-    """Translate admitted macro/risk states into a simple posture. Not a return forecast/probability."""
-    score = 35.0
-    risk_reasons, buffers = [], []
-
-    if "CONTRACT" in growth or "RECESSION" in growth:
-        score += 25; risk_reasons.append("growth is contractionary")
-    elif "LOSING" in plain_state or "BELOW" in growth or (np.isfinite(lead_value) and lead_value < 0):
-        score += 10; risk_reasons.append("growth momentum is below trend")
-    elif "HEALTHY" in plain_state or (np.isfinite(lead_value) and lead_value > 0):
-        score -= 8; buffers.append("growth momentum is healthy")
-
-    if credit_tone == "red":
-        score += 22; risk_reasons.append("credit stress is active")
-    elif credit_tone == "amber":
-        score += 10; risk_reasons.append("credit is widening")
-    else:
-        score -= 6; buffers.append("credit remains calm")
-
-    if stress_score >= 65:
-        score += 22; risk_reasons.append("immediate market stress is high")
-    elif stress_score >= 45:
-        score += 9; risk_reasons.append("market stress is elevated")
-    elif stress_score < 40:
-        score -= 5; buffers.append("immediate stress is low")
-
-    if fragility_score >= 65:
-        score += 11; risk_reasons.append("system fragility is high")
-    elif fragility_score >= 50:
-        score += 5; risk_reasons.append("system fragility is moderate")
-
-    if inflation_dir == "HEATING":
-        score += 12; risk_reasons.append("inflation is re-heating")
-    elif inflation_dir == "MIXED":
-        score += 4; risk_reasons.append("inflation direction is mixed")
-    elif inflation_dir == "COOLING":
-        score -= 4; buffers.append("inflation is cooling")
-
-    if np.isfinite(fcig):
-        if fcig < 0:
-            score -= 5; buffers.append("financial conditions are a tailwind")
-        elif fcig > 0:
-            score += 6; risk_reasons.append("financial conditions are a headwind")
-
-    if np.isfinite(rates_score) and rates_score >= 65:
-        score += 8; risk_reasons.append("long-rate / term-premium pressure is elevated")
-    if np.isfinite(fiscal_score) and fiscal_score >= 65:
-        score += 4; risk_reasons.append("fiscal pressure is elevated")
-
-    if "BROAD" in market_structure or "IMPROVING" in market_structure:
-        score -= 5; buffers.append("market breadth is improving")
-    elif "NARROW" in market_structure or "DETERIORATING" in market_structure:
-        score += 8; risk_reasons.append("market structure is fragile")
-
-    if event_override:
-        impact = event_override.get("impact", "")
-        score += 16 if impact == "SEVERE" else (9 if impact == "HIGH" else 4)
-        risk_reasons.append(f"event override active: {event_override.get('name','event risk')}")
-
-    score = float(max(0, min(100, score)))
-
-    if score >= 75:
-        label, tone = "CRISIS RISK-OFF", "red"
-        headline = "Protect liquidity first. Cut leverage and fragile/illiquid risk."
-    elif score >= 60:
-        label, tone = "DEFENSIVE", "red"
-        headline = "Reduce beta and leverage; raise liquidity and quality."
-    elif score >= 45:
-        label, tone = "HOLD / SELECTIVE", "amber"
-        headline = "Keep core exposure, add no new leverage, and wait for confirmation."
-    elif score >= 25:
-        label, tone = "SELECTIVE RISK-ON", "green"
-        headline = "Add risk gradually only where breadth, credit and macro confirm."
-    else:
-        label, tone = "RISK-ON", "green"
-        headline = "Conditions are broadly supportive; add risk in tranches, not by chasing."
-
-    leverage = "CUT FAST" if score >= 75 else ("REDUCE" if score >= 60 else ("NO NEW LEVERAGE" if score >= 45 else "MODEST / NORMAL"))
-    cash = "MAXIMIZE LIQUIDITY" if score >= 75 else ("RAISE" if score >= 60 else ("KEEP DRY POWDER" if score >= 45 else "NORMAL BUFFER"))
-    beta = "CUT HIGH-BETA" if score >= 75 else ("REDUCE HIGH-BETA" if score >= 60 else ("KEEP QUALITY / DON'T CHASE" if score >= 45 else "ADD GRADUALLY"))
-    credit = "AVOID LOWER-QUALITY CREDIT" if score >= 60 else ("QUALITY BIAS" if score >= 45 else "NORMAL / WATCH SPREADS")
-    if inflation_dir == "COOLING" and score >= 45:
-        duration = "CAN ADD SELECTIVELY IF YIELDS CONFIRM"
-    elif inflation_dir == "HEATING":
-        duration = "AVOID ADDING LONG DURATION"
-    else:
-        duration = "WAIT FOR RATES CONFIRMATION"
-    hedge = "KEEP / INCREASE TAIL HEDGE" if score >= 60 else ("MAINTAIN, DON'T OVERPAY" if score >= 45 else "NORMAL HEDGE")
-
-    return {"score":score,"label":label,"tone":tone,"headline":headline,
-            "leverage":leverage,"cash":cash,"beta":beta,"credit":credit,
-            "duration":duration,"hedge":hedge,
-            "risk_reasons":risk_reasons[:5],"buffers":buffers[:5]}
-
-
-def horizon_action_plan(*, current: dict, growth: str, lead_value: float, inflation_dir: str,
-                        credit_tone: str) -> list[dict]:
-    out=[{"horizon":"NOW","state":current["label"],"tone":current["tone"],
-          "action":current["headline"],"status":"LIVE"}]
-
-    if credit_tone == "red" or ("CONTRACT" in growth and inflation_dir != "COOLING"):
-        q1=("DEFENSIVE","red","Reduce beta/leverage; prioritize liquidity and quality.")
-    elif ("BELOW" in growth or (np.isfinite(lead_value) and lead_value < 0)) and inflation_dir=="COOLING" and credit_tone=="green":
-        q1=("HOLD / QUALITY","amber","Keep quality exposure; add only on confirmation and retain dry powder.")
-    elif ("ABOVE" in growth or "POSITIVE" in growth) and inflation_dir=="COOLING" and credit_tone=="green":
-        q1=("SELECTIVE RISK-ON","green","Add risk in tranches if breadth and credit remain healthy.")
-    elif inflation_dir=="HEATING":
-        q1=("RATE-SENSITIVE CAUTION","amber","Avoid adding leverage/long duration until inflation and yields settle.")
-    else:
-        q1=("HOLD / SELECTIVE","amber","Wait for growth, inflation and credit to converge.")
-    out.append({"horizon":"+1Q","state":q1[0],"tone":q1[1],"action":q1[2],"status":"CONDITIONAL"})
-
-    if np.isfinite(lead_value) and lead_value <= -1:
-        q2=("DEFENSIVE","red","Cut beta/leverage if labor or credit also confirm deterioration.") if credit_tone=="red" else ("DEFENSIVE TILT","amber","Reduce cyclical/high-beta risk unless labor and credit improve.")
-    elif np.isfinite(lead_value) and lead_value < 0:
-        q2=("QUALITY / OPTIONALITY","amber","Stay selective; duration can work if yields fall, but don't assume recession.") if inflation_dir=="COOLING" and credit_tone=="green" else ("CAUTION","amber","Keep risk tight until the below-trend lead reverses or confirms.")
-    elif np.isfinite(lead_value) and lead_value > 0 and credit_tone=="green":
-        q2=("ADD RISK GRADUALLY","green","Broaden exposure if growth, breadth and credit confirm together.")
-    else:
-        q2=("WAIT / NO FORCED BET","gray","No sufficiently strong +2Q action state.")
-    out.append({"horizon":"+2Q","state":q2[0],"tone":q2[1],"action":q2[2],"status":"EVIDENCE-ALIGNED"})
-
-    out.append({"horizon":"+4Q","state":"NOT RELEASED","tone":"gray",
-                "action":"Do not make an autonomous +4Q portfolio bet until the projection model is validated; use scenario triggers instead.",
-                "status":"GATED"})
-    return out
-
-
-def scenario_action(scenario_name: str) -> dict:
-    n=scenario_name.lower()
-    if "reaccel" in n or "goldilocks" in n:
-        return {"state":"ADD RISK GRADUALLY","tone":"green","action":"Add beta/cyclicals in tranches; small caps only if breadth and credit confirm; normalize excess cash.","avoid":"Do not chase if credit starts widening."}
-    if "disinflationary slowdown" in n:
-        return {"state":"HOLD / QUALITY","tone":"amber","action":"Keep quality exposure and dry powder; reduce weak cyclicals; duration only if yields/inflation fall.","avoid":"Do not confuse slowing growth with an automatic crash."}
-    if "recession" in n or "credit crack" in n:
-        return {"state":"DEFENSIVE","tone":"red","action":"Cut leverage/high beta, raise liquidity, upgrade credit quality; add duration only if inflation is cooling.","avoid":"Avoid lower-quality credit and illiquid risk."}
-    if "stagflation" in n or "inflation resurgence" in n or "policy bind" in n:
-        return {"state":"STAGFLATION DEFENSE","tone":"red","action":"Reduce leverage, long-duration/rate-sensitive exposure and fragile cyclicals; keep liquidity and inflation/energy resilience.","avoid":"Do not rely on fast policy easing."}
-    if "term-premium" in n or "crowding-out" in n or "rates" in n:
-        return {"state":"RATE-SHOCK DEFENSE","tone":"amber","action":"Reduce long-duration/rate-sensitive risk; favor strong balance sheets and liquidity until yields reverse.","avoid":"Do not average blindly into rate-sensitive assets while yields accelerate."}
-    if "de-escalation incentive" in n:
-        return {"state":"WAIT FOR CONFIRMATION","tone":"amber","action":"If de-escalation is confirmed AND oil/rates fall while credit stays healthy, add risk gradually; otherwise keep protection.","avoid":"Do not front-run a political decision from fiscal data alone."}
-    if "war / energy" in n:
-        return {"state":"EVENT DEFENSE","tone":"red","action":"Keep beta/leverage lower; prioritize liquidity and inflation/energy resilience; watch credit for financial transmission.","avoid":"Act on real energy/rates/credit transmission, not headlines alone."}
-    if "ath + credit divergence" in n:
-        return {"state":"DON'T CHASE","tone":"amber","action":"Keep core winners but trim leverage/new high-beta adds until credit and breadth reconfirm.","avoid":"ATH alone is not a sell signal."}
-    if "funding" in n or "deleveraging" in n or "cascade" in n:
-        return {"state":"CRISIS RISK-OFF","tone":"red","action":"Cut leverage rapidly, maximize liquidity, reduce illiquid/high-beta/lower-quality credit and keep tail hedges.","avoid":"Do not wait for GDP/recession confirmation once funding transmission is active."}
-    return {"state":"MONITOR / CONDITIONAL","tone":"blue","action":"Keep current posture; act only when the scenario confirmation conditions are met.","avoid":"Do not trade a narrative before transmission is visible."}
-
-
-def next_data_decision_grid() -> list[dict]:
-    return [
-        {"growth":"↑ / STABLE","inflation":"↓","state":"UPGRADE","tone":"green","action":"Add risk gradually if credit and labor stay healthy. Broaden only when breadth confirms."},
-        {"growth":"↓","inflation":"↓","state":"SLOWDOWN","tone":"amber","action":"Keep quality, raise selectivity and dry powder; duration can improve if yields confirm lower."},
-        {"growth":"↑","inflation":"↑","state":"REFLATION / RATE RISK","tone":"amber","action":"Keep risk selective but avoid adding long duration/leverage; watch yields and credit."},
-        {"growth":"↓","inflation":"↑","state":"STAGFLATION","tone":"red","action":"Go defensive: cut beta/leverage, raise liquidity and reduce rate-sensitive exposure."},
-    ]
-
-# ----------------------------- UI -----------------------------
+# -----------------------------
+# Styling
+# -----------------------------
 COLORS = {
-    "green": ("#20d58b", "rgba(32,213,139,.12)"),
-    "amber": ("#f4b45f", "rgba(244,180,95,.12)"),
-    "red": ("#ff6d74", "rgba(255,109,116,.12)"),
-    "blue": ("#75a9ff", "rgba(117,169,255,.12)"),
-    "gray": ("#8e9bad", "rgba(142,155,173,.10)"),
+    "green": ("#27d896", "rgba(39,216,150,.12)"),
+    "amber": ("#f2b557", "rgba(242,181,87,.13)"),
+    "red": ("#ff6d77", "rgba(255,109,119,.12)"),
+    "blue": ("#78aaff", "rgba(120,170,255,.12)"),
+    "gray": ("#93a0b2", "rgba(147,160,178,.10)"),
+    "purple": ("#b99cff", "rgba(185,156,255,.12)"),
 }
 
 st.markdown(
     """
 <style>
-:root{--bg:#070b11;--panel:#0f1621;--border:#202b3b;--muted:#8e9bad;--text:#edf3fb}
+:root{--bg:#070b11;--panel:#0f1621;--panel2:#0b121b;--border:#202d3e;--text:#eef4fb;--muted:#8d9aac}
 .stApp{background:var(--bg);color:var(--text)}
-.block-container{max-width:1540px;padding-top:.7rem;padding-bottom:1.2rem}
+.block-container{max-width:1580px;padding-top:.65rem;padding-bottom:1.3rem}
 header[data-testid="stHeader"]{background:transparent}
-.hero{border:1px solid var(--border);border-radius:15px;padding:12px 15px;background:linear-gradient(180deg,#111a27,#0c121b)}
-.hero-title{font-size:1.65rem;font-weight:840;letter-spacing:-.035em}.sub{font-size:.75rem;color:var(--muted);margin-top:2px}
-.legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.badge{display:inline-block;padding:4px 7px;border-radius:999px;font-size:.59rem;font-weight:820;letter-spacing:.035em}
-.section{font-size:.66rem;font-weight:820;letter-spacing:.11em;text-transform:uppercase;color:#91a4bc;margin:.55rem 0 .3rem}
-.panel{border:1px solid var(--border);border-radius:13px;background:linear-gradient(180deg,#111925,#0c121b);padding:10px 11px}.ptitle{font-size:.74rem;font-weight:830;margin-bottom:6px}
-.summary-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.summary{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:8px 9px;min-height:78px}.kicker{font-size:.54rem;letter-spacing:.08em;text-transform:uppercase;color:#8090a4;font-weight:810}.svalue{font-size:.80rem;font-weight:830;margin-top:3px;line-height:1.12}.snum{font-size:1.14rem;font-weight:850;margin-top:2px}.snote{font-size:.60rem;color:#8f9cac;margin-top:3px;line-height:1.25}
-.matrix{width:100%;border-collapse:separate;border-spacing:4px}.matrix th{font-size:.56rem;color:#8393a7;text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:2px}.matrix td{padding:7px;border:1px solid var(--border);border-radius:8px;background:#0c131c;vertical-align:top}.rowname{font-size:.64rem;font-weight:820;color:#dbe5ef}.cellv{font-size:.66rem;font-weight:830;line-height:1.15}.celln{font-size:.55rem;color:#8c99aa;margin-top:2px;line-height:1.2}
-.quad{position:relative;height:190px;border:1px solid var(--border);border-radius:11px;overflow:hidden;background:linear-gradient(90deg,rgba(32,213,139,.05) 0 50%,rgba(255,109,116,.055) 50% 100%),linear-gradient(0deg,rgba(32,213,139,.05) 0 50%,rgba(255,109,116,.04) 50% 100%)}.qv{position:absolute;width:1px;top:0;bottom:0;left:50%;background:#2a3748}.qh{position:absolute;height:1px;left:0;right:0;top:50%;background:#2a3748}.qlabel{position:absolute;font-size:.53rem;font-weight:810;letter-spacing:.04em;text-transform:uppercase;color:#8090a4}.dot{position:absolute;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 4px rgba(255,255,255,.05)}
-.scenario-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.scenario{border:1px solid var(--border);border-radius:10px;background:#0c131d;padding:8px;min-height:104px}.scenario-title{font-size:.70rem;font-weight:830;margin-top:4px}.scenario-note{font-size:.60rem;color:#92a0b0;line-height:1.25;margin-top:4px}
-.rowline{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(255,255,255,.055);padding:5px 0;font-size:.64rem}.rowline:last-child{border-bottom:none}.muted{color:#8997a8}.right{text-align:right}
-.constraint-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.constraint{border:1px solid var(--border);border-radius:9px;background:#0c131d;padding:7px}.ctitle{font-size:.59rem;color:#8d9bad;text-transform:uppercase;font-weight:810}.cval{font-size:.75rem;font-weight:840;margin-top:3px}.cnote{font-size:.56rem;color:#8997a8;margin-top:2px;line-height:1.18}
-.chain{font-size:.62rem;color:#c8d3df;line-height:1.45;padding:7px 8px;background:#0c131d;border:1px solid var(--border);border-radius:9px}.gate{border:1px solid #38465a;border-radius:9px;background:rgba(74,90,117,.10);padding:7px 8px;font-size:.60rem;color:#aeb9c8;line-height:1.28}.watch-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.watch{border:1px solid var(--border);border-radius:9px;background:#0c131d;padding:7px}.watch-title{font-size:.63rem;font-weight:820}.watch-note{font-size:.57rem;color:#8e9bac;margin-top:2px;line-height:1.2}
-div[data-baseweb="tab-list"]{gap:6px}button[data-baseweb="tab"]{height:34px;font-size:.72rem}
-@media(max-width:1000px){.summary-grid{grid-template-columns:1fr 1fr}.scenario-grid,.constraint-grid{grid-template-columns:1fr}.matrix{font-size:.8rem}}
+.hero{border:1px solid var(--border);border-radius:16px;padding:14px 16px;background:linear-gradient(180deg,#111b29,#0c121b)}
+.hero-title{font-size:1.75rem;font-weight:850;letter-spacing:-.035em}.sub{font-size:.76rem;color:var(--muted);margin-top:3px;line-height:1.35}
+.legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:.59rem;font-weight:830;letter-spacing:.035em}
+.section{font-size:.66rem;font-weight:830;letter-spacing:.11em;text-transform:uppercase;color:#91a4bc;margin:.65rem 0 .33rem}
+.panel{border:1px solid var(--border);border-radius:13px;background:linear-gradient(180deg,#111925,#0c121b);padding:11px 12px}.ptitle{font-size:.74rem;font-weight:840;margin-bottom:7px}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.kpi{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:8px 9px;min-height:82px}.kicker{font-size:.53rem;color:#8392a5;font-weight:820;letter-spacing:.08em;text-transform:uppercase}.kval{font-size:.82rem;font-weight:840;margin-top:4px}.knum{font-size:1.12rem;font-weight:860;margin-top:2px}.knote{font-size:.59rem;color:#8e9bad;line-height:1.23;margin-top:3px}
+.action{border:1px solid var(--border);border-radius:13px;padding:11px;background:#0c131d}.action h3{margin:0;font-size:1.05rem}.action p{font-size:.67rem;color:#9aa8b8;line-height:1.35;margin:.35rem 0 0}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.card{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:9px;min-height:104px}.ct{font-size:.69rem;font-weight:840}.cn{font-size:.60rem;color:#8f9cad;line-height:1.28;margin-top:4px}
+.small{font-size:.60rem;color:#8f9cad;line-height:1.32}.big{font-size:1.28rem;font-weight:860}.muted{color:#8f9cad}.row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.055);font-size:.65rem}.row:last-child{border-bottom:none}.right{text-align:right}
+.chainbox{padding:8px 9px;border:1px solid var(--border);border-radius:10px;background:#0c131d;font-size:.64rem;line-height:1.45;color:#d3dde8}.gate{border:1px solid #39485c;border-radius:9px;background:rgba(80,97,126,.10);padding:7px 8px;color:#aeb9c8;font-size:.60rem;line-height:1.3}
+.stagebar{display:flex;gap:4px;align-items:center;flex-wrap:wrap}.stage{padding:4px 7px;border-radius:8px;font-size:.58rem;font-weight:820;border:1px solid var(--border);background:#0c131d}.stage.on{box-shadow:0 0 0 1px rgba(255,255,255,.06) inset}
+.matrix{width:100%;border-collapse:separate;border-spacing:4px}.matrix th{font-size:.55rem;color:#8291a4;text-transform:uppercase;letter-spacing:.05em;text-align:left}.matrix td{border:1px solid var(--border);border-radius:8px;padding:7px;background:#0c131d;vertical-align:top}.mv{font-size:.67rem;font-weight:830}.mn{font-size:.55rem;color:#8d9aac;margin-top:2px}
+div[data-baseweb="tab-list"]{gap:6px}button[data-baseweb="tab"]{height:34px;font-size:.71rem}
+@media(max-width:1000px){.kpis,.grid3{grid-template-columns:1fr 1fr}}
 </style>
 """,
     unsafe_allow_html=True,
 )
 
 
-def badge(text: str, tone: str) -> str:
-    c, bg = COLORS[tone]
+def badge(text: str, tone: str = "blue") -> str:
+    c, bg = COLORS.get(tone, COLORS["gray"])
     return f"<span class='badge' style='color:{c};background:{bg};border:1px solid {c}33'>{text}</span>"
 
 
-def state_cell(value: str, note: str, tone: str) -> str:
-    c, bg = COLORS[tone]
-    return f"<td style='background:{bg};border-color:{c}2f'><div class='cellv' style='color:{c}'>{value}</div><div class='celln'>{note}</div></td>"
+def kpi(kicker: str, value: str, num: str, note: str, tone: str = "blue") -> str:
+    c, bg = COLORS.get(tone, COLORS["gray"])
+    return f"<div class='kpi' style='background:linear-gradient(180deg,{bg},#0c131d)'><div class='kicker'>{kicker}</div><div class='kval' style='color:{c}'>{value}</div><div class='knum'>{num}</div><div class='knote'>{note}</div></div>"
 
 
-def summary_card(kicker: str, value: str, number: str, note: str, tone: str) -> str:
-    c, bg = COLORS[tone]
-    return f"<div class='summary' style='background:linear-gradient(180deg,{bg},#0c131d)'><div class='kicker'>{kicker}</div><div class='svalue' style='color:{c}'>{value}</div><div class='snum'>{number}</div><div class='snote'>{note}</div></div>"
+# -----------------------------
+# Market-data adapters
+# -----------------------------
+@dataclass
+class AssetSnapshot:
+    market: str
+    symbol: str
+    name: str
+    sector: str = "Unknown"
+    price: float = np.nan
+    market_cap: float = np.nan
+    trailing_pe: float = np.nan
+    forward_pe: float = np.nan
+    revenue_ttm: float = np.nan
+    eps_ttm: float = np.nan
+    fcf_ttm: float = np.nan
+    gross_margin: float = np.nan
+    net_margin: float = np.nan
+    revenue_growth_yoy: float = np.nan
+    eps_growth_yoy: float = np.nan
+    gross_margin_change: float = np.nan
+    fcf_growth_yoy: float = np.nan
+    price_change_20d: float = np.nan
+    realized_vol_20d: float = np.nan
+    history_rows: int = 0
+    data_quality: str = "LOW"
+    error: str = ""
 
 
-def scenario_card(tag: str, name: str, note: str, tone: str) -> str:
-    c, _ = COLORS[tone]
-    return f"<div class='scenario'>{badge(tag,tone)}<div class='scenario-title' style='color:{c}'>{name}</div><div class='scenario-note'>{note}</div></div>"
+def _pick_row(df: pd.DataFrame, candidates: Sequence[str]) -> Optional[pd.Series]:
+    if df is None or df.empty:
+        return None
+    idx_map = {str(i).lower(): i for i in df.index}
+    for c in candidates:
+        if c.lower() in idx_map:
+            return pd.to_numeric(df.loc[idx_map[c.lower()]], errors="coerce")
+    for i in df.index:
+        il = str(i).lower()
+        if any(c.lower() in il for c in candidates):
+            return pd.to_numeric(df.loc[i], errors="coerce")
+    return None
 
 
-def constraint_card(title: str, value: str, note: str, tone: str) -> str:
-    c, bg = COLORS[tone]
-    return f"<div class='constraint' style='background:{bg}'><div class='ctitle'>{title}</div><div class='cval' style='color:{c}'>{value}</div><div class='cnote'>{note}</div></div>"
+def _series_latest4(s: Optional[pd.Series]) -> pd.Series:
+    if s is None:
+        return pd.Series(dtype=float)
+    x = pd.to_numeric(s, errors="coerce").dropna()
+    # yfinance financial columns are usually newest first
+    return x.iloc[:8]
 
 
-# ----------------------------- LOAD -----------------------------
-if st.sidebar.button("Refresh live data"):
+def _yoy_from_quarters(s: Optional[pd.Series]) -> float:
+    x = _series_latest4(s)
+    if len(x) < 5 or x.iloc[4] == 0:
+        return np.nan
+    return float(x.iloc[0] / x.iloc[4] - 1)
+
+
+def _margin_latest(num: Optional[pd.Series], den: Optional[pd.Series]) -> float:
+    a, b = _series_latest4(num), _series_latest4(den)
+    if a.empty or b.empty or b.iloc[0] == 0:
+        return np.nan
+    return float(a.iloc[0] / b.iloc[0])
+
+
+def _margin_change_yoy(num: Optional[pd.Series], den: Optional[pd.Series]) -> float:
+    a, b = _series_latest4(num), _series_latest4(den)
+    if len(a) < 5 or len(b) < 5 or b.iloc[0] == 0 or b.iloc[4] == 0:
+        return np.nan
+    return float(a.iloc[0] / b.iloc[0] - a.iloc[4] / b.iloc[4])
+
+
+def _ttm(s: Optional[pd.Series]) -> float:
+    x = _series_latest4(s)
+    return float(x.iloc[:4].sum()) if len(x) >= 4 else np.nan
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def fetch_yfinance_snapshot(market: str, symbol: str, name: str) -> AssetSnapshot:
+    snap = AssetSnapshot(market=market, symbol=symbol, name=name)
+    if yf is None:
+        snap.error = "yfinance is not installed"
+        return snap
+    try:
+        t = yf.Ticker(symbol)
+        hist = t.history(period="2y", auto_adjust=True, actions=False)
+        info = {}
+        try:
+            info = t.info or {}
+        except Exception:
+            info = {}
+        snap.sector = str(info.get("sector") or info.get("industry") or "Unknown")
+        snap.market_cap = safe_float(info.get("marketCap"))
+        snap.trailing_pe = safe_float(info.get("trailingPE"))
+        snap.forward_pe = safe_float(info.get("forwardPE"))
+        if hist is not None and not hist.empty and "Close" in hist:
+            close = pd.to_numeric(hist["Close"], errors="coerce").dropna()
+            snap.history_rows = len(close)
+            if not close.empty:
+                snap.price = float(close.iloc[-1])
+                if len(close) >= 21 and close.iloc[-21] != 0:
+                    snap.price_change_20d = float(close.iloc[-1] / close.iloc[-21] - 1)
+                    ret = np.log(close / close.shift(1)).dropna().iloc[-20:]
+                    snap.realized_vol_20d = float(ret.std(ddof=1) * np.sqrt(252)) if len(ret) >= 10 else np.nan
+
+        inc = getattr(t, "quarterly_income_stmt", pd.DataFrame())
+        cf = getattr(t, "quarterly_cashflow", pd.DataFrame())
+        rev = _pick_row(inc, ["Total Revenue", "Operating Revenue", "Revenue"])
+        gross = _pick_row(inc, ["Gross Profit"])
+        net = _pick_row(inc, ["Net Income", "Net Income Common Stockholders"])
+        eps = _pick_row(inc, ["Diluted EPS", "Basic EPS"])
+        fcf = _pick_row(cf, ["Free Cash Flow"])
+        if fcf is None:
+            ocf = _pick_row(cf, ["Operating Cash Flow", "Total Cash From Operating Activities"])
+            capex = _pick_row(cf, ["Capital Expenditure", "Capital Expenditures"])
+            if ocf is not None and capex is not None:
+                fcf = pd.to_numeric(ocf, errors="coerce") + pd.to_numeric(capex, errors="coerce")
+
+        snap.revenue_ttm = _ttm(rev)
+        snap.eps_ttm = _ttm(eps)
+        if not np.isfinite(snap.eps_ttm) and np.isfinite(snap.market_cap) and np.isfinite(snap.trailing_pe) and snap.trailing_pe != 0 and np.isfinite(snap.price):
+            snap.eps_ttm = snap.price / snap.trailing_pe
+        snap.fcf_ttm = _ttm(fcf)
+        snap.revenue_growth_yoy = _yoy_from_quarters(rev)
+        snap.eps_growth_yoy = _yoy_from_quarters(eps)
+        snap.fcf_growth_yoy = _yoy_from_quarters(fcf)
+        snap.gross_margin = _margin_latest(gross, rev)
+        snap.net_margin = _margin_latest(net, rev)
+        snap.gross_margin_change = _margin_change_yoy(gross, rev)
+        if not np.isfinite(snap.trailing_pe) and np.isfinite(snap.price) and np.isfinite(snap.eps_ttm) and snap.eps_ttm > 0:
+            snap.trailing_pe = snap.price / snap.eps_ttm
+        valid = sum(np.isfinite(v) for v in [snap.price, snap.revenue_growth_yoy, snap.gross_margin, snap.eps_ttm, snap.market_cap])
+        snap.data_quality = "HIGH" if valid >= 5 else ("MEDIUM" if valid >= 3 else "LOW")
+        return snap
+    except Exception as e:
+        snap.error = str(e)
+        return snap
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def fetch_coingecko(coin_id: str) -> Dict[str, Any]:
+    if not coin_id:
+        return {}
+    url = f"https://api.coingecko.com/api/v3/coins/{urllib.parse.quote(coin_id)}"
+    try:
+        r = requests.get(url, params={"localization":"false","tickers":"false","market_data":"true","community_data":"false","developer_data":"false","sparkline":"false"}, headers=HEADERS, timeout=15)
+        r.raise_for_status()
+        return r.json()
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def fetch_defillama_revenue(slug: str) -> pd.Series:
+    if not slug:
+        return pd.Series(dtype=float)
+    candidates = [
+        f"https://api.llama.fi/summary/fees/{urllib.parse.quote(slug)}?dataType=dailyRevenue",
+        f"https://api.llama.fi/summary/fees/{urllib.parse.quote(slug)}?dataType=dailyFees",
+    ]
+    for url in candidates:
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=15)
+            if r.status_code != 200:
+                continue
+            j = r.json()
+            chart = j.get("totalDataChart") or j.get("totalDataChartBreakdown") or []
+            rows = []
+            if isinstance(chart, list):
+                for item in chart:
+                    if isinstance(item, list) and len(item) >= 2 and isinstance(item[1], (int,float)):
+                        rows.append((pd.to_datetime(item[0], unit="s", errors="coerce"), float(item[1])))
+            if rows:
+                return pd.Series(dict(rows)).sort_index()
+        except Exception:
+            continue
+    return pd.Series(dtype=float)
+
+
+# -----------------------------
+# News / automatic scenario discovery
+# -----------------------------
+STOPWORDS = set("the a an and or for to of in on with as at by from is are was were be been being this that it its their our your new says said after before over amid into up down more less rise rises rising fall falls falling market markets stock stocks company companies business industry us u s year years month months week weeks today latest".split())
+
+THEME_RULES = {
+    "Supply bottleneck": ["shortage","bottleneck","capacity","allocation","lead time","backlog","sold out","scarcity","constraint"],
+    "Data-center power": ["data center","datacenter","transformer","grid","power demand","turbine","switchgear","electricity"],
+    "Photonics / networking": ["photonics","optical","transceiver","laser","co-packaged","cpo","bandwidth","interconnect"],
+    "War / shipping": ["war","attack","chokepoint","shipping","tanker","sanction","blockade","missile","ceasefire"],
+    "Commodity scarcity": ["inventory","export ban","crop","drought","harvest","mine disruption","production cut"],
+    "Crypto value capture": ["buyback","burn","fees","revenue","emissions","unlock","tokenholder","staking"],
+    "Crypto usage / scarcity": ["shielded","privacy","adoption","integration","wallet","usage","issuance"],
+    "FX intervention": ["intervention","disorderly","finance ministry","currency support","yen buying","verbal intervention"],
+    "Credit / funding": ["credit stress","funding squeeze","default","private credit","spread widening","bank stress"],
+    "Policy / fiscal": ["tariff","subsidy","appropriation","fiscal","debt ceiling","government contract","export control"],
+    "Cyber / infrastructure": ["cyberattack","outage","clearing","payment system","ransomware","infrastructure attack"],
+    "Consumer inflection": ["pricing power","distribution expansion","consumer demand","market share","product launch","margin expansion"],
+}
+
+THEME_ROOT = {
+    "Supply bottleneck": "Supply bottleneck",
+    "Data-center power": "Electrical load",
+    "Photonics / networking": "Networking bandwidth",
+    "War / shipping": "War escalation",
+    "Commodity scarcity": "Physical commodity bottleneck",
+    "Crypto value capture": "Protocol usage",
+    "Crypto usage / scarcity": "Private asset usage",
+    "FX intervention": "Policy intervention hazard",
+    "Credit / funding": "Credit/funding shock",
+    "Policy / fiscal": "Policy intervention",
+    "Cyber / infrastructure": "Cyber shock",
+    "Consumer inflection": "Consumer demand",
+}
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def google_news_rss(query: str, limit: int = 12) -> List[Dict[str, str]]:
+    url = "https://news.google.com/rss/search?" + urllib.parse.urlencode({"q":query, "hl":"en-US", "gl":"US", "ceid":"US:en"})
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=15)
+        r.raise_for_status()
+        root = ET.fromstring(r.content)
+        out = []
+        for item in root.findall(".//item")[:limit]:
+            title = (item.findtext("title") or "").strip()
+            link = (item.findtext("link") or "").strip()
+            pub = (item.findtext("pubDate") or "").strip()
+            source = ""
+            src = item.find("source")
+            if src is not None and src.text:
+                source = src.text.strip()
+            out.append({"title":title,"link":link,"pubDate":pub,"source":source,"query":query})
+        return out
+    except Exception:
+        return []
+
+
+def classify_headline(text: str) -> List[str]:
+    t = text.lower()
+    hits = []
+    for theme, terms in THEME_RULES.items():
+        if any(term in t for term in terms):
+            hits.append(theme)
+    return hits
+
+
+def extract_novel_terms(headlines: Sequence[str], known_terms: Iterable[str], min_count: int = 3) -> List[Tuple[str,int]]:
+    known = set(k.lower() for k in known_terms)
+    c = Counter()
+    for h in headlines:
+        words = re.findall(r"[a-zA-Z][a-zA-Z\-]{3,}", h.lower())
+        for w in set(words):
+            if w in STOPWORDS or w in known:
+                continue
+            c[w] += 1
+    return [(w,n) for w,n in c.most_common(12) if n >= min_count]
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def discover_live_scenarios(max_queries: int = 10) -> pd.DataFrame:
+    rows = []
+    queries = DISCOVERY_QUERIES.head(max_queries) if not DISCOVERY_QUERIES.empty else pd.DataFrame()
+    all_items: List[Dict[str,str]] = []
+    for _, qrow in queries.iterrows():
+        all_items.extend(google_news_rss(str(qrow["query"]), limit=10))
+    if not all_items:
+        return pd.DataFrame(columns=["theme","root","evidence_count","source_count","latest_headline","sources","novelty"])
+
+    buckets: Dict[str,List[Dict[str,str]]] = defaultdict(list)
+    for item in all_items:
+        themes = classify_headline(item["title"])
+        for th in themes:
+            buckets[th].append(item)
+
+    for th, items in buckets.items():
+        sources = sorted(set(i.get("source") or "Unknown" for i in items))
+        rows.append({
+            "theme": th,
+            "root": THEME_ROOT.get(th, th),
+            "evidence_count": len(items),
+            "source_count": len(sources),
+            "latest_headline": items[0]["title"] if items else "",
+            "sources": ", ".join(sources[:5]),
+            "novelty": "MAPPED",
+        })
+
+    known_terms = [term for terms in THEME_RULES.values() for term in terms]
+    novel = extract_novel_terms([i["title"] for i in all_items], known_terms, min_count=3)
+    for word, n in novel[:6]:
+        matched = [i for i in all_items if word in i["title"].lower()]
+        sources = sorted(set(i.get("source") or "Unknown" for i in matched))
+        rows.append({
+            "theme": f"NOVEL CLUSTER: {word}",
+            "root": "Unmapped hypothesis",
+            "evidence_count": n,
+            "source_count": len(sources),
+            "latest_headline": matched[0]["title"] if matched else "",
+            "sources": ", ".join(sources[:5]),
+            "novelty": "NOVEL — NEEDS CAUSAL MAPPING",
+        })
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df["discovery_rank"] = df["evidence_count"].rank(pct=True) * 0.6 + df["source_count"].rank(pct=True) * 0.4
+        df = df.sort_values(["discovery_rank","source_count"], ascending=False).reset_index(drop=True)
+    return df
+
+
+def persist_scenario_memory(df: pd.DataFrame) -> None:
+    if df.empty:
+        return
+    p = STATE / "scenario_memory.json"
+    try:
+        old: Dict[str, Any] = {}
+        if p.exists():
+            old = json.loads(p.read_text(encoding="utf-8"))
+        now = datetime.now(timezone.utc).isoformat()
+        for _, r in df.iterrows():
+            key = str(r["theme"])
+            entry = old.get(key, {"first_seen":now,"observations":0})
+            entry.update({
+                "last_seen": now,
+                "observations": int(entry.get("observations",0)) + 1,
+                "root": str(r.get("root","")),
+                "evidence_count": int(r.get("evidence_count",0)),
+                "source_count": int(r.get("source_count",0)),
+                "latest_headline": str(r.get("latest_headline","")),
+            })
+            old[key] = entry
+        p.write_text(json.dumps(old, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def load_scenario_memory() -> pd.DataFrame:
+    p = STATE / "scenario_memory.json"
+    try:
+        if not p.exists():
+            return pd.DataFrame()
+        d = json.loads(p.read_text(encoding="utf-8"))
+        rows = [{"theme":k, **v} for k,v in d.items()]
+        return pd.DataFrame(rows).sort_values("last_seen", ascending=False)
+    except Exception:
+        return pd.DataFrame()
+
+
+# -----------------------------
+# Causal graph
+# -----------------------------
+def normalize_edges() -> pd.DataFrame:
+    if EDGES.empty:
+        return EDGES
+    e = EDGES.copy()
+    for c in ["source","target","mechanism","sign","lag","role","validation","condition"]:
+        if c not in e:
+            e[c] = ""
+    return e
+
+
+EDGE_DF = normalize_edges()
+
+
+def find_root_candidates(term: str) -> List[str]:
+    if EDGE_DF.empty:
+        return []
+    terml = term.lower().strip()
+    nodes = sorted(set(EDGE_DF["source"].astype(str)) | set(EDGE_DF["target"].astype(str)))
+    direct = [n for n in nodes if terml in n.lower()]
+    if direct:
+        return direct[:20]
+    tokens = [t for t in re.findall(r"[a-z0-9]+", terml) if len(t) > 2]
+    scored = []
+    for n in nodes:
+        score = sum(1 for t in tokens if t in n.lower())
+        if score:
+            scored.append((score,n))
+    return [n for _,n in sorted(scored, reverse=True)[:20]]
+
+
+def expand_chain(root: str, depth: int = 4, max_edges: int = 80) -> pd.DataFrame:
+    if EDGE_DF.empty or not root:
+        return pd.DataFrame()
+    by_source = defaultdict(list)
+    for i, r in EDGE_DF.iterrows():
+        by_source[str(r["source"])].append(i)
+    q = deque([(root,0)])
+    seen_nodes = {root}
+    selected = []
+    while q and len(selected) < max_edges:
+        node, d = q.popleft()
+        if d >= depth:
+            continue
+        for idx in by_source.get(node, []):
+            r = EDGE_DF.loc[idx]
+            selected.append(idx)
+            tgt = str(r["target"])
+            if tgt not in seen_nodes:
+                seen_nodes.add(tgt)
+                q.append((tgt,d+1))
+    if not selected:
+        return pd.DataFrame()
+    out = EDGE_DF.loc[selected].copy().drop_duplicates()
+    # derive BFS layer for display
+    layer = {root:0}
+    changed = True
+    while changed:
+        changed = False
+        for _, r in out.iterrows():
+            s,t = str(r["source"]),str(r["target"])
+            if s in layer and (t not in layer or layer[t] > layer[s]+1):
+                layer[t] = layer[s]+1; changed=True
+    out["layer"] = out["target"].map(layer).fillna(depth).astype(int)
+    return out
+
+
+def chain_plot(chain: pd.DataFrame, root: str):
+    if go is None or nx is None or chain.empty:
+        return None
+    G = nx.DiGraph()
+    G.add_node(root, layer=0)
+    for _, r in chain.iterrows():
+        G.add_edge(str(r["source"]), str(r["target"]), role=str(r.get("role","")), sign=str(r.get("sign","")))
+        G.nodes[str(r["target"])]["layer"] = int(r.get("layer",1))
+    layers = defaultdict(list)
+    for n, attrs in G.nodes(data=True):
+        layers[int(attrs.get("layer",0))].append(n)
+    pos = {}
+    for lx in sorted(layers):
+        nodes = layers[lx]
+        for j,n in enumerate(nodes):
+            pos[n] = (lx, -(j - (len(nodes)-1)/2))
+    ex, ey = [], []
+    for a,b in G.edges():
+        x0,y0=pos[a]; x1,y1=pos[b]
+        ex += [x0,x1,None]; ey += [y0,y1,None]
+    edge_trace = go.Scatter(x=ex,y=ey,mode="lines",line=dict(width=1,color="#435269"),hoverinfo="none")
+    nxv, nyv, text, colors = [], [], [], []
+    for n in G.nodes():
+        x,y=pos[n]; nxv.append(x); nyv.append(y); text.append(n)
+        if n == root: colors.append("#78aaff")
+        else:
+            incoming = [d.get("role","") for _,_,d in G.in_edges(n,data=True)]
+            role = incoming[0] if incoming else ""
+            colors.append("#ff6d77" if role=="LOSER" else ("#f2b557" if role in {"BOTTLENECK","CONDITIONAL"} else "#27d896"))
+    node_trace = go.Scatter(x=nxv,y=nyv,mode="markers+text",text=text,textposition="top center",textfont=dict(size=9,color="#d9e4ef"),marker=dict(size=14,color=colors,line=dict(width=1,color="#0b1119")),hoverinfo="text")
+    fig = go.Figure([edge_trace,node_trace])
+    fig.update_layout(height=500,showlegend=False,margin=dict(l=5,r=5,t=5,b=5),paper_bgcolor="#0b1119",plot_bgcolor="#0b1119",xaxis=dict(visible=False),yaxis=dict(visible=False))
+    return fig
+
+
+# -----------------------------
+# Opportunity discovery / projection
+# -----------------------------
+def base_family_from_market(market: str) -> str:
+    return {
+        "US":"Fundamental / causal inflection",
+        "IHSG":"Fundamental / structural inflection",
+        "FX":"Relative macro / policy hazard",
+        "Commodity":"Physical bottleneck / event propagation",
+        "Crypto":"Economic value / usage / scarcity",
+    }.get(market,"Cross-asset opportunity")
+
+
+def build_snapshot_frame(rows: pd.DataFrame, max_assets: int = 20) -> pd.DataFrame:
+    snaps = []
+    for _, r in rows.head(max_assets).iterrows():
+        market, symbol, name = str(r["market"]), str(r["symbol"]), str(r["name"])
+        if market == "Crypto":
+            # price via yfinance if available, economics via CoinGecko/DefiLlama later
+            s = fetch_yfinance_snapshot(market, symbol, name)
+        else:
+            s = fetch_yfinance_snapshot(market, symbol, name)
+        snaps.append(s.__dict__)
+    return pd.DataFrame(snaps)
+
+
+def add_cross_sectional_evidence(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df
+    out = df.copy()
+    metrics = ["revenue_growth_yoy","eps_growth_yoy","gross_margin_change","fcf_growth_yoy","net_margin"]
+    for m in metrics:
+        out[f"{m}_rank"] = np.nan
+    # rank within sector where enough peers, else within market
+    for idx, r in out.iterrows():
+        peers = out[(out["market"]==r["market"]) & (out["sector"]==r["sector"])]
+        if len(peers) < 4:
+            peers = out[out["market"]==r["market"]]
+        for m in metrics:
+            out.at[idx,f"{m}_rank"] = percentile_rank(peers[m], safe_float(r[m]))
+
+    evidence_cols = [f"{m}_rank" for m in metrics[:4]]
+    out["evidence_families"] = out[evidence_cols].apply(lambda row: int(sum(np.isfinite(v) and v >= 0.75 for v in row)), axis=1)
+    out["deterioration_families"] = out[evidence_cols].apply(lambda row: int(sum(np.isfinite(v) and v <= 0.25 for v in row)), axis=1)
+
+    def stage(n: int, d: int) -> str:
+        if n >= 4: return "HIGH-CONVICTION CANDIDATE"
+        if n >= 3: return "CONFIRMED INFLECTION"
+        if n >= 2: return "WATCH"
+        if d >= 3: return "DETERIORATION WATCH"
+        return "DISCOVERED / NEEDS MORE EVIDENCE"
+    out["stage"] = [stage(int(n),int(d)) for n,d in zip(out["evidence_families"],out["deterioration_families"])]
+    return out
+
+
+def sector_multiple_bands(scan: pd.DataFrame, row: pd.Series) -> Tuple[float,float,float]:
+    peers = scan[(scan["market"]==row["market"]) & (scan["sector"]==row["sector"]) & (scan["trailing_pe"]>0) & (scan["trailing_pe"]<200)]
+    if len(peers) < 4:
+        peers = scan[(scan["market"]==row["market"]) & (scan["trailing_pe"]>0) & (scan["trailing_pe"]<200)]
+    return robust_quantiles(peers["trailing_pe"].tolist())
+
+
+def scenario_growth_bands(row: pd.Series) -> Tuple[float,float,float]:
+    # transparent, non-fitted projection anchor: combine revenue & EPS current YoY,
+    # then use wide scenario dispersion. This is a research projection, not production.
+    vals = [safe_float(row.get("revenue_growth_yoy")), safe_float(row.get("eps_growth_yoy")), safe_float(row.get("fcf_growth_yoy"))]
+    vals = [v for v in vals if np.isfinite(v) and -0.95 < v < 5.0]
+    if not vals:
+        return (-0.15, 0.05, 0.25)
+    med = float(np.median(vals))
+    spread = max(0.15, float(np.std(vals)) if len(vals)>1 else 0.25)
+    # cap only to prevent nonsensical arithmetic, not to optimize backtest
+    bear = clamp(med-spread, -0.75, 2.0)
+    base = clamp(med, -0.50, 2.5)
+    bull = clamp(med+spread, -0.25, 4.0)
+    return bear,base,bull
+
+
+def valuation_projection(scan: pd.DataFrame, row: pd.Series) -> Dict[str, Any]:
+    pe25,pemed,pe75 = sector_multiple_bands(scan,row)
+    eps = safe_float(row.get("eps_ttm")); price=safe_float(row.get("price"))
+    g_bear,g_base,g_bull = scenario_growth_bands(row)
+    out = {"pe25":pe25,"pemed":pemed,"pe75":pe75,"g_bear":g_bear,"g_base":g_base,"g_bull":g_bull}
+    if not np.isfinite(eps) or eps <= 0 or not np.isfinite(price) or not np.isfinite(pemed):
+        out.update({"bear_eps":np.nan,"base_eps":np.nan,"bull_eps":np.nan,"fv_bear":np.nan,"fv_base":np.nan,"fv_bull":np.nan,"implied_eps":np.nan,"expectation_gap":np.nan})
+        return out
+    bear_eps = eps*(1+g_bear); base_eps=eps*(1+g_base); bull_eps=eps*(1+g_bull)
+    # Cross-sectional multiple bands make the assumptions visible and comparable.
+    fv_bear = max(0,bear_eps)*pe25 if np.isfinite(pe25) else np.nan
+    fv_base = max(0,base_eps)*pemed if np.isfinite(pemed) else np.nan
+    fv_bull = max(0,bull_eps)*pe75 if np.isfinite(pe75) else np.nan
+    implied_eps = price/pemed if pemed>0 else np.nan
+    gap = (base_eps-implied_eps)/abs(implied_eps) if np.isfinite(implied_eps) and implied_eps!=0 else np.nan
+    out.update({"bear_eps":bear_eps,"base_eps":base_eps,"bull_eps":bull_eps,"fv_bear":fv_bear,"fv_base":fv_base,"fv_bull":fv_bull,"implied_eps":implied_eps,"expectation_gap":gap})
+    return out
+
+
+def action_from_relative_rank(scan: pd.DataFrame) -> pd.DataFrame:
+    out = scan.copy()
+    gaps=[]
+    for _,r in out.iterrows():
+        gaps.append(valuation_projection(out,r).get("expectation_gap",np.nan))
+    out["expectation_gap"] = gaps
+    out["gap_rank"] = out.groupby("market")["expectation_gap"].rank(pct=True)
+    actions=[]
+    for _,r in out.iterrows():
+        n=int(r.get("evidence_families",0)); d=int(r.get("deterioration_families",0)); gr=safe_float(r.get("gap_rank")); market=str(r.get("market"))
+        if d>=3 and np.isfinite(gr) and gr<=0.25:
+            action = "SELL / AVOID" if market=="IHSG" else ("SHORT / PUT CANDIDATE" if market=="US" else "BEARISH CANDIDATE")
+        elif n>=3 and np.isfinite(gr) and gr>=0.80:
+            action = "BUILD CANDIDATE"
+        elif n>=2 and np.isfinite(gr) and gr>=0.60:
+            action = "SELECTIVE ADD / WATCH"
+        elif n>=2:
+            action = "HOLD / NEEDS BETTER PRICE"
+        else:
+            action = "WATCH / NO FORCED TRADE"
+        actions.append(action)
+    out["research_action"] = actions
+    return out
+
+
+def deep_crypto_metrics(symbol_row: pd.Series) -> Dict[str, Any]:
+    cid = str(symbol_row.get("external_id") or "")
+    j = fetch_coingecko(cid)
+    if not j:
+        return {}
+    md = j.get("market_data",{}) or {}
+    mcap = safe_float((md.get("market_cap",{}) or {}).get("usd"))
+    fdv = safe_float((md.get("fully_diluted_valuation",{}) or {}).get("usd"))
+    circ = safe_float(md.get("circulating_supply")); total=safe_float(md.get("total_supply")); maxs=safe_float(md.get("max_supply"))
+    slug = cid
+    revenue = fetch_defillama_revenue(slug)
+    rev30 = float(revenue.iloc[-30:].sum()) if len(revenue)>=30 else np.nan
+    prev30 = float(revenue.iloc[-60:-30].sum()) if len(revenue)>=60 else np.nan
+    rev_growth = rev30/prev30-1 if np.isfinite(rev30) and np.isfinite(prev30) and prev30>0 else np.nan
+    annualized = rev30*12 if np.isfinite(rev30) else np.nan
+    return {
+        "market_cap":mcap,"fdv":fdv,"fdv_premium":fdv/mcap-1 if mcap>0 and np.isfinite(fdv) else np.nan,
+        "circulating_supply":circ,"total_supply":total,"max_supply":maxs,
+        "circulating_ratio":circ/maxs if np.isfinite(circ) and np.isfinite(maxs) and maxs>0 else np.nan,
+        "revenue_30d":rev30,"revenue_growth_30d":rev_growth,"annualized_revenue":annualized,
+        "mcap_to_revenue":mcap/annualized if mcap>0 and annualized>0 else np.nan,
+    }
+
+
+def news_evidence(query: str, limit: int = 15) -> Dict[str, Any]:
+    items = google_news_rss(query,limit=limit)
+    themes=Counter(); titles=[]; sources=set()
+    for it in items:
+        titles.append(it["title"]); sources.add(it.get("source") or "Unknown")
+        for th in classify_headline(it["title"]): themes[th]+=1
+    return {"items":items,"themes":themes,"titles":titles,"sources":sources}
+
+
+def adaptive_scenario_branches(root: str) -> pd.DataFrame:
+    """Return scenario branches relevant to the inferred causal root.
+    Branches are hypotheses with trigger/action/falsifier, never numeric probabilities.
+    """
+    if TEMPLATES.empty:
+        return pd.DataFrame()
+    r=(root or "").lower()
+    names=[]
+    if any(k in r for k in ["supply","nand","memory","cpo","electrical","transformer","network","photon","cooling","bottleneck"]):
+        names=["Bottleneck persists","Bottleneck worsens","Supply catches up","Substitution","Policy intervention","Demand destruction","Capex response creates new bottleneck"]
+    elif any(k in r for k in ["war","oil","shipping"]):
+        names=["Event escalation","Event normalization","Policy intervention","Demand destruction","Capex response creates new bottleneck"]
+    elif any(k in r for k in ["protocol","token","private asset","scarcity"]):
+        # Reuse generic templates where mechanisms map cleanly; extra crypto-specific
+        # branches are generated below without a hard-coded winner/ticker.
+        extra=pd.DataFrame([
+            {"scenario":"Value capture strengthens","trigger":"External usage/revenue rises while buyback/burn/distribution grows and dilution falls","economic_projection":"Net holder accrual accelerates","action_logic":"BUILD/ADD only if market-implied growth still trails the economic projection","falsifier":"Revenue decouples from holder capture or dilution offsets accrual"},
+            {"scenario":"Usage grows but token capture fails","trigger":"Users/fees rise without holder economics","economic_projection":"Protocol may win while token does not","action_logic":"NO ADD / rotate to better value-capture expression","falsifier":"Direct capture mechanism becomes durable"},
+            {"scenario":"Dilution / unlock shock","trigger":"Emission or unlock schedule overwhelms organic demand","economic_projection":"Net token accrual turns negative","action_logic":"TRIM / SELL; leverage short only after liquidity/risk gate","falsifier":"Unlock absorbed while usage/capture accelerates"},
+            {"scenario":"Usage-scarcity breakout","trigger":"Real usage rises while effective liquid float / issuance tightens","economic_projection":"Scarcity premium can expand","action_logic":"BUILD if adoption is real and valuation is not already pricing the bull case","falsifier":"Usage is mostly speculative or effective float rises"},
+        ])
+        base=TEMPLATES[TEMPLATES["scenario"].isin(["Substitution","Policy intervention","Demand destruction"])].copy()
+        return pd.concat([extra,base],ignore_index=True)
+    elif any(k in r for k in ["intervention","currency"]):
+        return pd.DataFrame([
+            {"scenario":"Intervention executes","trigger":"Official escalation + disorderly move + policy capacity converge","economic_projection":"Sharp FX reversal risk; carry may delever","action_logic":"Prefer defined-risk short/hedge expression; do not wait for macro confirmation after execution","falsifier":"Authorities step back or move stabilizes"},
+            {"scenario":"No intervention / tolerance continues","trigger":"Currency remains weak but speed/volatility eases or rhetoric softens","economic_projection":"Carry/relative-macro trend can persist","action_logic":"Do not front-run intervention solely from a price level","falsifier":"Official escalation or coordinated action rises"},
+            {"scenario":"Intervention spills into carry unwind","trigger":"FX reversal collides with crowded leverage","economic_projection":"Cross-asset volatility and deleveraging rise","action_logic":"Cut leverage / fragile risk; favor liquidity","falsifier":"Positioning is light and funding stays stable"},
+        ])
+    else:
+        names=["Bottleneck persists","Supply catches up","Policy intervention","Demand destruction","Event escalation","Event normalization"]
+    return TEMPLATES[TEMPLATES["scenario"].isin(names)].copy()
+
+
+def infer_root_from_evidence(name: str, evidence: Dict[str,Any]) -> str:
+    themes=evidence.get("themes",Counter())
+    if themes:
+        th=themes.most_common(1)[0][0]
+        return THEME_ROOT.get(th,th)
+    candidates=find_root_candidates(name)
+    return candidates[0] if candidates else ""
+
+
+# -----------------------------
+# UI header and sidebar
+# -----------------------------
+st.markdown(
+    f"""
+<div class='hero'>
+ <div class='hero-title'>Opportunity Intelligence Engine</div>
+ <div class='sub'>Find the economic change first → trace the entire beneficiary/loser chain → project fundamentals → reverse-engineer what price already assumes → choose the expression.</div>
+ <div class='legend'>
+   {badge('DISCOVERY = high recall','blue')}
+   {badge('CONFIRMATION = evidence agreement','green')}
+   {badge('CAUTION / priced-in','amber')}
+   {badge('Deterioration / adverse','red')}
+   {badge('GATED = not proven','gray')}
+ </div>
+ <div class='sub'><b>No classic technical indicators.</b> Price is used only for valuation context, policy-relevant speed/volatility and replay outcomes.</div>
+</div>
+""", unsafe_allow_html=True)
+
+markets_available = [m for m in ["US","IHSG","FX","Commodity","Crypto"] if m in set(UNIVERSE.get("market",[]))]
+st.sidebar.markdown("### Live scanner")
+selected_markets = st.sidebar.multiselect("Markets", markets_available, default=markets_available[:2] + (["Crypto"] if "Crypto" in markets_available else []))
+max_assets = st.sidebar.slider("Max assets per scan", 5, 40, 18, 1)
+scan_btn = st.sidebar.button("Run / refresh live scan", use_container_width=True)
+if scan_btn:
     st.cache_data.clear()
-    st.rerun()
 
-st.sidebar.markdown("### Validation gates")
-st.sidebar.write("Projection:", "✅" if PROJECTION_MODEL_VALIDATED else "🔒")
-st.sidebar.write("Crash probability:", "✅" if CRASH_MODEL_VALIDATED else "🔒")
-st.sidebar.write("Event probability:", "✅" if EVENT_PROBABILITY_MODEL_VALIDATED else "🔒")
-st.sidebar.write("Market expectation gap:", "✅" if EXPECTATION_GAP_VALIDATED else "🔒")
-st.sidebar.caption("Grey means gated / unavailable — not neutral.")
+st.sidebar.markdown("### Research gates")
+st.sidebar.write("Action model", "✅" if PRODUCTION_ACTION_MODEL_VALIDATED else "🔒 research state")
+st.sidebar.write("Fair value", "✅" if PRODUCTION_FAIR_VALUE_MODEL_VALIDATED else "🔒 transparent research range")
+st.sidebar.write("Event probability", "✅" if PRODUCTION_EVENT_PROBABILITY_VALIDATED else "🔒 no fake probabilities")
+st.sidebar.caption("Acceptance cases are frozen tests; live rules may not special-case SNDK/PLTR/VVV/ZEC/ADES/JPY.")
 
+# Run a bounded live scan. It can fail gracefully when deployment blocks a source.
+if selected_markets:
+    scan_universe = UNIVERSE[UNIVERSE["market"].isin(selected_markets)].copy()
+else:
+    scan_universe = UNIVERSE.iloc[0:0].copy()
+# round-robin markets to prevent first market monopolizing limit
+parts=[]
+per_market=max(1,max_assets//max(1,len(selected_markets))) if selected_markets else max_assets
+for m in selected_markets:
+    parts.append(scan_universe[scan_universe["market"]==m].head(per_market))
+scan_input=pd.concat(parts,ignore_index=True) if parts else scan_universe
 
-with st.spinner("Loading official/public macro data…"):
-    data, research, market, gpr_df, treasury_debt_tn, treasury_debt_date, errors = load_all()
+with st.spinner("Scanning public market/fundamental data…"):
+    scan_raw=build_snapshot_frame(scan_input,max_assets=max_assets) if not scan_input.empty else pd.DataFrame()
+scan=action_from_relative_rank(add_cross_sectional_evidence(scan_raw)) if not scan_raw.empty else pd.DataFrame()
 
-# ----------------------------- live readings -----------------------------
-bbk_gdp, _ = latest(data.get("BBKMGDP")); bbk_co, _ = latest(data.get("BBKMCOIX")); bbk_lead, _ = latest(data.get("BBKMLEIX")); wei, _ = latest(data.get("WEI"))
-trimmed, _ = latest(data.get("PCETRIM12M159SFRBDAL")); core_pce = yoy_from_index(data.get("PCEPILFE")); trimmed_3m = lag_value(data.get("PCETRIM12M159SFRBDAL"), 3); core_3m = yoy_at_lag(data.get("PCEPILFE"), 3)
-sahm, _ = latest(data.get("SAHMREALTIME")); claims, _ = latest(data.get("ICSA")); claims_3m = months_ago(data.get("ICSA"), 3); sloos, _ = latest(data.get("DRTSCILM"))
-nfci, _ = latest(data.get("NFCIRISK")); vix, _ = latest(data.get("VIXCLS")); hy, _ = latest(data.get("BAMLH0A0HYM2")); hy_3m = months_ago(data.get("BAMLH0A0HYM2"), 3)
-breakeven, _ = latest(data.get("T5YIE")); d10, _ = latest(data.get("DGS10")); d2, _ = latest(data.get("DGS2")); fedfunds, _ = latest(data.get("FEDFUNDS")); term_premium, _ = latest(data.get("THREEFYTP10"))
-oil, _ = latest(data.get("DCOILWTICO")); oil_3m = months_ago(data.get("DCOILWTICO"), 3); oil_chg_3m = (oil/oil_3m-1)*100 if np.isfinite(oil) and np.isfinite(oil_3m) and oil_3m!=0 else np.nan
-debt_gdp, _ = latest(data.get("GFDEGDQ188S")); deficit_gdp, _ = latest(data.get("FYFSGDA188S")); interest_gdp, _ = latest(data.get("FYOIGDA188S")); curve = d10-d2 if np.isfinite(d10) and np.isfinite(d2) else np.nan
-gscpi, _ = latest(data.get("GSCPI")); gscpi_delta = level_change_over(data.get("GSCPI"), 3)
-epu, _ = latest(data.get("USEPUINDXD")); epu_pct = hist_pct(data.get("USEPUINDXD"), 10)
-gpr = gpr_readings(gpr_df)
-
-# Fed published outputs
-ebp_prob = ebp = np.nan
-if "EBP" in research and not research["EBP"].empty:
-    edf=research["EBP"].copy()
-    for c in ["ebp","est_prob"]:
-        if c in edf: edf[c]=pd.to_numeric(edf[c],errors="coerce")
-    ec=edf.dropna(subset=["est_prob"])
-    if len(ec): ebp_prob=float(ec.iloc[-1]["est_prob"])*100; ebp=float(ec.iloc[-1]["ebp"])
-fcig=np.nan
-if "FCIG" in research and not research["FCIG"].empty:
-    fdf=research["FCIG"].copy(); fcol=next((c for c in fdf.columns if c.startswith("FCI-G Index")),None)
-    if fcol:
-        fdf[fcol]=pd.to_numeric(fdf[fcol],errors="coerce"); fc=fdf.dropna(subset=[fcol])
-        if len(fc): fcig=float(fc.iloc[-1][fcol])
-
-# states
-growth,growth_tone=growth_state(bbk_gdp,bbk_co,wei); lead,lead_tone=lead_state(bbk_lead); inflation,inflation_tone,inflation_dir=inflation_state(trimmed,core_pce,trimmed_3m,core_3m); labor,labor_tone=labor_state(sahm); fc_state,fc_tone=fcig_state(fcig); regime=regime_name(growth,inflation_dir)
-lead_delta = bbk_lead - lag_value(data.get("BBKMLEIX"),1) if np.isfinite(bbk_lead) and np.isfinite(lag_value(data.get("BBKMLEIX"),1)) else np.nan
-credit_tone="red" if (np.isfinite(ebp_prob) and ebp_prob>=35) else ("amber" if np.isfinite(hy) and np.isfinite(hy_3m) and hy>hy_3m else "green")
-credit_state="STRESS" if credit_tone=="red" else ("WIDENING / WATCH" if credit_tone=="amber" else "CALM")
-stress_score=np.nanmean([hist_pct(data.get("VIXCLS")),hist_pct(data.get("NFCIRISK")),hist_pct(data.get("BAMLH0A0HYM2"))]); fragility_score=np.nanmean([hist_pct(data.get("DGS10")),hist_pct(data.get("THREEFYTP10")),hist_pct(data.get("BAMLH0A0HYM2"))])
-if not np.isfinite(stress_score): stress_score=50.0
-if not np.isfinite(fragility_score): fragility_score=50.0
-crash_state, crash_tone, crash_explain = crash_state_name(stress_score,fragility_score)
-fiscal_score=fiscal_constraint_score(debt_gdp,deficit_gdp,interest_gdp,term_premium); fiscal_tone=tone_from_score(fiscal_score)
-energy_score=energy_pressure_score(hist_pct(data.get("DCOILWTICO")),oil_chg_3m,hist_pct(data.get("T5YIE"))); energy_tone=tone_from_score(energy_score)
-rates_score=np.nanmean([hist_pct(data.get("DGS10")),hist_pct(data.get("THREEFYTP10"))]); rates_tone=tone_from_score(rates_score)
-credit_score=np.nanmean([hist_pct(data.get("BAMLH0A0HYM2")),ebp_prob]); credit_pressure_tone=tone_from_score(credit_score)
-funding_score=np.nanmean([hist_pct(data.get("NFCIRISK")),hist_pct(data.get("VIXCLS"))]); funding_tone=tone_from_score(funding_score)
-geo_score=np.nanmean([gpr.get("gpr_pct",np.nan), hist_pct(data.get("USEPUINDXD"),10)]); geo_tone=tone_from_score(geo_score)
-
-rough_gross_headroom=STATUTORY_DEBT_LIMIT_TN-treasury_debt_tn if np.isfinite(treasury_debt_tn) else np.nan
-
-# market structure
-spy,iwm,rsp=market.get("SPY"),market.get("IWM"),market.get("RSP"); spy_ath,iwm_ath,rsp_ath=dist_to_ath(spy),dist_to_ath(iwm),dist_to_ath(rsp); iwm_rel=relative_change(iwm,spy,3); rsp_rel=relative_change(rsp,spy,3)
-if all(np.isfinite(x) for x in [spy_ath,iwm_ath,rsp_ath]) and spy_ath>=-1.5 and iwm_ath>=-1.5 and rsp_ath>=-1.5: market_structure,market_tone="BROAD ATH / BROADENING","green"
-elif np.isfinite(spy_ath) and spy_ath>=-1.5 and ((np.isfinite(iwm_ath) and iwm_ath<-5) or (np.isfinite(rsp_ath) and rsp_ath<-5)): market_structure,market_tone="NARROW LEADERSHIP","amber"
-elif np.isfinite(iwm_rel) and np.isfinite(rsp_rel) and iwm_rel>0 and rsp_rel>0: market_structure,market_tone="BREADTH IMPROVING","green"
-elif np.isfinite(iwm_rel) and np.isfinite(rsp_rel) and iwm_rel<0 and rsp_rel<0: market_structure,market_tone="BREADTH DETERIORATING","amber"
-else: market_structure,market_tone="MIXED / OPTIONAL FEED","blue"
-
-coverage=(len(data)+len(research)+(0 if gpr_df.empty else 1))/(len(SERIES)+3); coverage_tone="green" if coverage>=.85 else "amber"
-plain_state, plain_explain = plain_regime(growth,lead,credit_tone,stress_score)
-
-# adaptive scenario ranking
-scenarios=adaptive_scenarios(growth=growth,lead_value=bbk_lead,lead_delta=lead_delta,wei=wei,inflation_dir=inflation_dir,claims=claims,claims_3m=claims_3m,ebp_prob=ebp_prob,hy=hy,hy_3m=hy_3m,fcig=fcig,market_structure=market_structure,fiscal_score=fiscal_score,rates_score=rates_score,energy_score=energy_score,funding_score=funding_score,gpr_pct=gpr.get("gpr_pct",np.nan),gpr_change=gpr.get("gpr_change",np.nan),gscpi=gscpi,gscpi_delta=gscpi_delta,epu_pct=epu_pct,spy_ath=spy_ath)
-macro_scen=[x for x in scenarios if x["family"] in ["Macro","Positive"]][:3]
-event_scen=[x for x in scenarios if x["family"] in ["Geopolitical","Fiscal"] and x["score"]>=25][:4]
-market_scen=[x for x in scenarios if x["family"]=="Market"][:2]
-
-# top attention drivers
-growth_attention=np.nanmean([100-hist_pct(data.get("BBKMLEIX")), 65 if (np.isfinite(claims) and np.isfinite(claims_3m) and claims>claims_3m) else 25])
-attention=attention_items([
-    ("Rates / term premium",rates_score,"Long yields and term premium","Rates"),
-    ("Fiscal pressure",fiscal_score,"Debt, deficit and interest burden","Fiscal"),
-    ("Growth momentum",growth_attention,"Leading growth + claims","Growth"),
-    ("Credit",credit_score,"HY OAS + EBP","Credit"),
-    ("Funding / stress",funding_score,"NFCI + VIX","Funding"),
-    ("Energy / supply",np.nanmean([energy_score, hist_pct(data.get("GSCPI"))]),"Oil + global supply chain","Energy"),
-    ("Geopolitical / policy uncertainty",geo_score,"AI-GPR + EPU","World events"),
+# -----------------------------
+# Tabs
+# -----------------------------
+tab_control, tab_chain, tab_scen, tab_replay, tab_research = st.tabs([
+    "OPPORTUNITY CONTROL ROOM","CAUSAL CHAINS","AUTO SCENARIO DISCOVERY","HISTORICAL REPLAY","RESEARCH / GATES"
 ])
 
-# event override
-override_candidates=[x for x in event_scen if x["score"]>=50]
-event_override=override_candidates[0] if override_candidates else None
-
-# action engine — posture, not a return forecast
-action_now=action_state_engine(
-    plain_state=plain_state,growth=growth,lead_value=bbk_lead,inflation_dir=inflation_dir,
-    credit_tone=credit_tone,stress_score=stress_score,fragility_score=fragility_score,
-    fcig=fcig,event_override=event_override,market_structure=market_structure,
-    rates_score=rates_score,fiscal_score=fiscal_score
-)
-horizon_actions=horizon_action_plan(
-    current=action_now,growth=growth,lead_value=bbk_lead,inflation_dir=inflation_dir,
-    credit_tone=credit_tone
-)
-data_decisions=next_data_decision_grid()
-
-# ----------------------------- HEADER -----------------------------
-st.markdown(f"""
-<div class='hero'>
-  <div class='hero-title'>Macro Intelligence</div>
-  <div class='sub'>Landing v5 · low-scroll control room · state → projection → scenarios → action engine.</div>
-  <div class='legend'>{badge('GREEN = supportive / resilient / improving','green')}{badge('AMBER = caution / transition / monitor','amber')}{badge('RED = stress / deterioration / adverse','red')}{badge('BLUE = information / base state','blue')}{badge('GREY = not released / unvalidated / unavailable','gray')}</div>
-  <div class='sub' style='margin-top:5px'><b>Colors describe the component, not a trade.</b> Green ≠ automatic buy. Red ≠ automatic sell.</div>
-</div>""",unsafe_allow_html=True)
-
-tab_control,tab_events,tab_research=st.tabs(["CONTROL ROOM","ACTIVE EVENTS","RESEARCH"])
-
-# ============================================================
-# CONTROL ROOM
-# ============================================================
 with tab_control:
-    # Right now translation
-    rt_tone = "red" if crash_tone=="red" else ("amber" if "LOSING" in plain_state or "WATCH" in crash_state or crash_state=="POWDER KEG" else "green")
-    st.markdown("<div class='section'>Right now</div>",unsafe_allow_html=True)
-    st.markdown(f"<div class='panel'><div class='ptitle' style='font-size:.95rem'>{badge(plain_state,rt_tone)} &nbsp; {badge(crash_state,crash_tone)}</div><div style='font-size:.78rem;line-height:1.45;color:#d8e1ec'><b>{plain_explain}</b> {crash_explain} " + (f"<b>Event override:</b> {event_override['name']}." if event_override else "<b>Event override:</b> none active from admitted feeds.") + "</div></div>",unsafe_allow_html=True)
-
-    # Action state now — the first decision answer
-    st.markdown("<div class='section'>Action state now</div>",unsafe_allow_html=True)
-    a1,a2=st.columns([1.05,1.7])
-    with a1:
-        st.markdown(
-            f"<div class='panel'><div class='ptitle'>{badge(action_now['label'],action_now['tone'])}</div>"
-            f"<div style='font-size:1.25rem;font-weight:850;margin:.15rem 0'>{int(action_now['score'])}/100</div>"
-            f"<div style='font-size:.75rem;line-height:1.4'><b>{action_now['headline']}</b></div>"
-            f"<div class='gate' style='margin-top:6px'>Action score = deterministic posture translation, <b>not</b> expected return or crash probability.</div></div>",
-            unsafe_allow_html=True,
-        )
-    with a2:
-        action_rows=[
-            ("Leverage",action_now["leverage"]),
-            ("Equity beta / cyclicals",action_now["beta"]),
-            ("Cash / optionality",action_now["cash"]),
-            ("Credit quality",action_now["credit"]),
-            ("Duration / rates",action_now["duration"]),
-            ("Hedge",action_now["hedge"]),
-        ]
-        h="<div class='panel'><div class='ptitle'>What to do now</div>"
-        for k,v in action_rows:
-            h+=f"<div class='rowline'><div class='muted'>{k}</div><div class='right'><b>{v}</b></div></div>"
-        h+="</div>"
-        st.markdown(h,unsafe_allow_html=True)
-
-    # Top 3 matters + compact strip
-    st.markdown("<div class='section'>Top 3 things that matter now</div>",unsafe_allow_html=True)
-    cols=st.columns(3)
-    for col,(name,score,note,fam) in zip(cols,attention):
-        with col:
-            tone=tone_from_score(score)
-            st.markdown(summary_card(f"#{attention.index((name,score,note,fam))+1} · {fam}",name,fmt(score,0,"/100"),note+" · attention score, not probability",tone),unsafe_allow_html=True)
-
-    st.markdown("<div class='section'>Projection + crash map</div>",unsafe_allow_html=True)
-    left,right=st.columns([1.75,1])
-    with left:
-        claims_dir="WEAKENING" if np.isfinite(claims) and np.isfinite(claims_3m) and claims>claims_3m else "STABLE / IMPROVING"; claims_tone="amber" if claims_dir=="WEAKENING" else "green"
-        hy_dir="WIDENING" if np.isfinite(hy) and np.isfinite(hy_3m) and hy>hy_3m else "CALM / TIGHTER"; hy_tone="amber" if hy_dir=="WIDENING" else "green"
-        dash=lambda note: state_cell("—",note,"gray")
-        rows=[]
-        rows.append("<tr><td><div class='rowname'>Growth</div></td>"+state_cell(growth,f"BBK GDP {fmt(bbk_gdp,2,'%')}",growth_tone)+state_cell("CURRENT BIAS","broad/high-frequency state",growth_tone)+state_cell(lead,f"BBK lead {signed(bbk_lead,2,'σ')}",lead_tone)+dash("proprietary +4Q not released")+"</tr>")
-        rows.append("<tr><td><div class='rowname'>Inflation</div></td>"+state_cell(inflation,f"Trim/Core {fmt(trimmed,1,'%')}/{fmt(core_pce,1,'%')}",inflation_tone)+state_cell(inflation_dir,"observed 3M direction","green" if inflation_dir=="COOLING" else ("red" if inflation_dir=="HEATING" else "amber"))+dash("pipeline projection pending")+dash("long projection pending")+"</tr>")
-        rows.append("<tr><td><div class='rowname'>Labor</div></td>"+state_cell(labor,f"Sahm {signed(sahm,2)}",labor_tone)+state_cell(claims_dir,f"Claims {fmt(claims,0)}",claims_tone)+dash("leading composite pending")+dash("long projection pending")+"</tr>")
-        rows.append("<tr><td><div class='rowname'>Credit</div></td>"+state_cell(credit_state,f"EBP {signed(ebp,2)} · HY {fmt(hy,2,'%')}",credit_tone)+state_cell(hy_dir,"HY 3M direction",hy_tone)+dash("credit impulse pending")+dash("proprietary path pending")+"</tr>")
-        rows.append("<tr><td><div class='rowname'>Financial conditions</div></td>"+state_cell(fc_state,f"FCI-G {signed(fcig,2)}",fc_tone)+state_cell(fc_state,"near-term carry",fc_tone)+dash("+2Q model pending")+dash("+4Q model pending")+"</tr>")
-        st.markdown("<div class='panel'><div class='ptitle'>Projection Matrix · NOW → +1Q → +2Q → +4Q</div><table class='matrix'><thead><tr><th>Engine</th><th>NOW</th><th>+1Q</th><th>+2Q</th><th>+4Q</th></tr></thead><tbody>"+"".join(rows)+"</tbody></table><div class='gate' style='margin-top:5px'><b>12M supporting benchmarks:</b> Fed EBP recession "+fmt(ebp_prob,1,"%")+" · FCI-G "+signed(fcig,2)+". These support the horizon; they are not mislabeled as our +4Q projection.</div></div>",unsafe_allow_html=True)
-    with right:
-        dot_color=COLORS[crash_tone][0]; x=max(3,min(97,fragility_score)); y=max(3,min(97,100-stress_score))
-        st.markdown(f"""<div class='panel'><div class='ptitle'>Crash Map · {crash_state}</div><div class='quad'><div class='qv'></div><div class='qh'></div><div class='qlabel' style='left:7px;top:7px'>Shock / stress</div><div class='qlabel' style='right:7px;top:7px'>Crash danger</div><div class='qlabel' style='left:7px;bottom:7px'>Healthy</div><div class='qlabel' style='right:7px;bottom:7px'>Powder keg</div><div class='dot' style='left:{x}%;top:{y}%;background:{dot_color}'></div></div><div class='rowline'><div>Immediate stress</div><div class='right'><b>{int(stress_score)}/100 · {('LOW' if stress_score<40 else 'MED' if stress_score<65 else 'HIGH')}</b></div></div><div class='rowline'><div>Fragility</div><div class='right'><b>{int(fragility_score)}/100 · {('LOW' if fragility_score<40 else 'MED' if fragility_score<65 else 'HIGH')}</b></div></div><div class='gate' style='margin-top:5px'>{crash_explain} Exact &gt;20% drawdown probability stays grey until validated.</div></div>""",unsafe_allow_html=True)
-
-    # action by horizon + next data decision rules
-    st.markdown("<div class='section'>Action by horizon + next economic data</div>",unsafe_allow_html=True)
-    ha1,ha2=st.columns([1.3,1.25])
-    with ha1:
-        cards="<div class='scenario-grid' style='grid-template-columns:repeat(4,minmax(0,1fr))'>"
-        for item in horizon_actions:
-            c=COLORS[item["tone"]][0]
-            cards+=f"<div class='scenario' style='min-height:122px'><div class='kicker'>{item['horizon']} · {item['status']}</div><div class='scenario-title' style='color:{c}'>{item['state']}</div><div class='scenario-note'>{item['action']}</div></div>"
-        cards+="</div>"
-        st.markdown("<div class='panel'><div class='ptitle'>What the projection implies for your posture</div>"+cards+"<div class='gate' style='margin-top:5px'>NOW is live. Future columns are conditional/evidence-aligned, not guaranteed forecasts.</div></div>",unsafe_allow_html=True)
-    with ha2:
-        h="<div class='panel'><div class='ptitle'>Next economic-data decision grid</div><table class='matrix'><thead><tr><th>Growth</th><th>Inflation</th><th>State</th><th>Action</th></tr></thead><tbody>"
-        for d in data_decisions:
-            c,bg=COLORS[d["tone"]]
-            h+=f"<tr><td><div class='cellv'>{d['growth']}</div></td><td><div class='cellv'>{d['inflation']}</div></td><td style='background:{bg}'><div class='cellv' style='color:{c}'>{d['state']}</div></td><td><div class='celln' style='font-size:.58rem'>{d['action']}</div></td></tr>"
-        h+="</tbody></table><div class='gate' style='margin-top:5px'><b>Override:</b> if labor + credit deteriorate together, downgrade one action level. If both improve while breadth broadens, upgrade one level.</div></div>"
-        st.markdown(h,unsafe_allow_html=True)
-
-    # scenarios + driver relationship map
-    st.markdown("<div class='section'>Scenarios + driver map</div>",unsafe_allow_html=True)
-    s1,s2=st.columns([1.1,1.25])
-    with s1:
-        html="<div class='scenario-grid'>"
-        for i,sc in enumerate(macro_scen[:3]):
-            tag="BASE / ACTIVE" if i==0 else ("ALTERNATIVE" if i==1 else "TAIL")
-            sa=scenario_action(sc["name"])
-            note=f"Evidence {len(sc['hits'])}/{sc['total']} · {sc['direction']}<br><b>ACTION IF CONFIRMED: {sa['state']}</b> — {sa['action']}"
-            html+=scenario_card(tag,sc['name'],note,sa['tone'])
-        html+="</div>"
-        st.markdown("<div class='panel'><div class='ptitle'>Adaptive Macro Paths</div>"+html+"<div class='gate' style='margin-top:5px'>Rank is evidence activation, <b>not probability</b>. Candidates automatically rise/fall as inputs change.</div></div>",unsafe_allow_html=True)
-    with s2:
-        # compact driver-scenario transmission map
-        st.markdown("<div class='panel'><div class='ptitle'>Driver → Scenario Map</div>",unsafe_allow_html=True)
-        dm=pd.DataFrame({
-            "Slowdown":["++","+","++","+","−"],
-            "Reaccel":["−−","0","−−","−","++"],
-            "Stagflation":["+","+++","+","++","0"],
-            "Crash cascade":["+","+","+++","++","−−"],
-            "Fiscal / war constraint":["0","++","+","+++","0"],
-        },index=["Growth weakness","Energy / supply","Credit / funding","Rates / fiscal","Liquidity support"])
-        def map_cell(v):
-            if v in ["+++","++"]: return "#ff6d7430" if v=="+++" else "#f4b45f25"
-            if v in ["−−","−"]: return "#20d58b22"
-            return "#75a9ff16"
-        # HTML table
-        h="<table class='matrix'><thead><tr><th>Driver</th>"+"".join(f"<th>{c}</th>" for c in dm.columns)+"</tr></thead><tbody>"
-        for idxr,row in dm.iterrows():
-            h+=f"<tr><td><div class='rowname'>{idxr}</div></td>"+"".join(f"<td style='background:{map_cell(v)}'><div class='cellv'>{v}</div></td>" for v in row)+"</tr>"
-        h+="</tbody></table><div class='gate' style='margin-top:5px'><b>Legend:</b> + increases that scenario pressure; − buffers it; more signs = stronger structural transmission assumption. This is a causal map, not a raw correlation matrix.</div></div>"
-        st.markdown(h,unsafe_allow_html=True)
-
-    # event override + next confirmations
-    st.markdown("<div class='section'>Event override + next confirmations</div>",unsafe_allow_html=True)
-    e1,e2=st.columns([1,1.3])
-    with e1:
-        if event_override:
-            ev_action=scenario_action(event_override["name"])
-            ev_note = f"Evidence {len(event_override['hits'])}/{event_override['total']} · {event_override['transmission']}<br><b>ACTION NOW: {ev_action['state']}</b> — {ev_action['action']}"
-            ev_card = scenario_card(event_override['family'], event_override['name'], ev_note, ev_action['tone'])
-            st.markdown(f"<div class='panel'><div class='ptitle'>⚠ Event Override Active</div>{ev_card}<div class='gate' style='margin-top:5px'><b>Confirm:</b> {event_override['confirms']}<br><b>Breaks if:</b> {event_override['invalidates']}<br><b>Avoid:</b> {ev_action['avoid']}</div></div>", unsafe_allow_html=True)
-        else:
-            st.markdown("<div class='panel'><div class='ptitle'>Event Override</div>"+scenario_card("CURRENT","NONE ACTIVE","No admitted world-event scenario currently has enough live evidence to override the base macro path.","green")+"</div>",unsafe_allow_html=True)
-    with e2:
-        nexts=[
-            ("Growth", "Need BBK lead + WEI + claims to converge.", lead_tone),
-            ("Inflation", "Need Trimmed/Core PCE to move together; supply shock can change the branch.", inflation_tone),
-            ("Credit", "Danger if HY/EBP widen before headline macro cracks.", credit_tone),
-            ("World events", "AI-GPR + oil/supply pressure must confirm an event transmission, not just headlines.", geo_tone),
-        ]
-        html="<div class='watch-grid'>"+"".join(f"<div class='watch'><div class='watch-title' style='color:{COLORS[t][0]}'>{n}</div><div class='watch-note'>{txt}</div></div>" for n,txt,t in nexts)+"</div>"
-        st.markdown("<div class='panel'><div class='ptitle'>What changes the answer?</div>"+html+"</div>",unsafe_allow_html=True)
-
-# ============================================================
-# ACTIVE EVENTS — only material live scenarios
-# ============================================================
-with tab_events:
-    st.markdown("<div class='section'>Active event radar</div>",unsafe_allow_html=True)
-    st.markdown("<div class='gate'><b>Adaptive by design:</b> this tab shows only scenarios with live evidence. The full library is hidden in Research. Economic/event data can score activation and transmission; political intent probabilities remain gated.</div>",unsafe_allow_html=True)
-    if event_scen:
-        cols=st.columns(min(4,len(event_scen)))
-        for col,sc in zip(cols,event_scen[:4]):
-            with col:
-                sa=scenario_action(sc["name"]); tone=sa["tone"]; c=COLORS[tone][0]
-                st.markdown(f"<div class='scenario' style='min-height:205px'><div>{badge(sc['family'],tone)}</div><div class='scenario-title' style='color:{c};font-size:.83rem'>{sc['name']}</div><div class='snum'>{sc['score']}/100</div><div class='snote'>Activation score · not probability · impact {sc['impact']} · {sc['direction']}</div><div class='scenario-note'><b>Live evidence:</b> {', '.join(sc['hits'][:3]) if sc['hits'] else 'insufficient'}.</div><div class='gate' style='margin-top:6px'><b>IF CONFIRMED → {sa['state']}</b><br>{sa['action']}</div></div>",unsafe_allow_html=True)
+    st.markdown("<div class='section'>What should I look at now?</div>", unsafe_allow_html=True)
+    if scan.empty:
+        st.warning("No live scan rows. Install requirements / check network, then refresh. The causal/scenario/replay tabs still work offline.")
     else:
-        st.success("No material event scenario is active from currently admitted feeds.")
+        usable=scan[scan["error"].fillna("")==""] if "error" in scan else scan
+        build_count=int(usable["research_action"].str.contains("BUILD",na=False).sum()) if not usable.empty else 0
+        confirmed=int(usable["stage"].str.contains("CONFIRMED|HIGH-CONVICTION",regex=True,na=False).sum()) if not usable.empty else 0
+        watch=int(usable["stage"].str.contains("WATCH",na=False).sum()) if not usable.empty else 0
+        bad=int(usable["research_action"].str.contains("SELL|SHORT|BEARISH",regex=True,na=False).sum()) if not usable.empty else 0
+        quality=(usable["data_quality"]=="HIGH").mean() if not usable.empty else 0
+        kpis="<div class='kpis'>"
+        kpis+=kpi("Build candidates","HIGH-RECALL / NOT AUTO-BUY",str(build_count),"Need deep causal confirmation before capital.","green" if build_count else "gray")
+        kpis+=kpi("Confirmed inflections","EVIDENCE AGREEMENT",str(confirmed),"Independent fundamental families agree.","green" if confirmed else "gray")
+        kpis+=kpi("Early radar","WATCH",str(watch),"Designed not to miss early inflections.","blue")
+        kpis+=kpi("Deterioration","SHORT / EXIT RADAR",str(bad),"Only actionable after causal + valuation confirmation.","red" if bad else "gray")
+        kpis+=kpi("Live data quality","HIGH COVERAGE",f"{quality:.0%}","Per scanned row; grey means source incomplete.","green" if quality>.6 else "amber")
+        kpis+=kpi("Technical indicators","OFF","0","No RSI/MACD/MA/oscillator signal path.","green")
+        kpis+="</div>"
+        st.markdown(kpis,unsafe_allow_html=True)
 
-    st.markdown("<div class='section'>World-event sensors</div>",unsafe_allow_html=True)
-    s1,s2,s3,s4=st.columns(4)
-    sensors=[
-        (s1,"Geopolitical risk",gpr.get('gpr_pct',np.nan),f"AI-GPR {fmt(gpr.get('gpr',np.nan),1)} · 3M Δ {signed(gpr.get('gpr_change',np.nan),1)}",geo_tone),
-        (s2,"Supply-chain pressure",hist_pct(data.get('GSCPI')),f"GSCPI {signed(gscpi,2)} · 3M Δ {signed(gscpi_delta,2)}",tone_from_score(hist_pct(data.get('GSCPI')))),
-        (s3,"Energy pressure",energy_score,f"WTI {fmt(oil,1,'$')} · 3M {signed(oil_chg_3m,1,'%')}",energy_tone),
-        (s4,"Policy uncertainty",epu_pct,f"EPU {fmt(epu,0)}",tone_from_score(epu_pct)),
+        display=usable.copy()
+        if not display.empty:
+            display["rev YoY"] = display["revenue_growth_yoy"].map(lambda x: pct(x))
+            display["EPS YoY"] = display["eps_growth_yoy"].map(lambda x: pct(x))
+            display["GM Δ"] = display["gross_margin_change"].map(lambda x: pct(x))
+            display["gap"] = display["expectation_gap"].map(lambda x: pct(x))
+            cols=["market","symbol","name","stage","research_action","price","rev YoY","EPS YoY","GM Δ","gap","data_quality"]
+            st.dataframe(display[cols].sort_values(["evidence_families","gap_rank"],ascending=False),use_container_width=True,hide_index=True)
+
+            st.markdown("<div class='section'>Deep-dive one candidate</div>", unsafe_allow_html=True)
+            symbols=display["symbol"].tolist()
+            selected_symbol=st.selectbox("Ticker / asset",symbols,index=0,key="deep_symbol")
+            row=display[display["symbol"]==selected_symbol].iloc[0]
+            urow=UNIVERSE[UNIVERSE["symbol"]==selected_symbol]
+            urow=urow.iloc[0] if not urow.empty else pd.Series(dtype=object)
+            val=valuation_projection(display,row)
+
+            left,right=st.columns([1.25,1])
+            with left:
+                tone="green" if "BUILD" in str(row["research_action"]) else ("red" if any(x in str(row["research_action"]) for x in ["SELL","SHORT","BEARISH"]) else "amber")
+                c,_=COLORS[tone]
+                st.markdown(f"""
+<div class='action'>
+ <div class='kicker'>RESEARCH ACTION STATE</div>
+ <h3 style='color:{c}'>{row['research_action']}</h3>
+ <p><b>{row['name']} ({row['symbol']})</b> · {base_family_from_market(str(row['market']))}<br>
+ Stage: <b>{row['stage']}</b> · Data quality: <b>{row['data_quality']}</b><br>
+ This is a research state, not a production trade signal until PIT/OOS validation passes.</p>
+</div>
+""",unsafe_allow_html=True)
+                st.markdown("<div class='section'>Fundamental projection / price-in</div>",unsafe_allow_html=True)
+                proj=pd.DataFrame([
+                    ["Bear",pct(val.get("g_bear",np.nan)),fmt_num(val.get("bear_eps",np.nan),2),fmt_num(val.get("pe25",np.nan),1)+"x",fmt_money(val.get("fv_bear",np.nan))],
+                    ["Base",pct(val.get("g_base",np.nan)),fmt_num(val.get("base_eps",np.nan),2),fmt_num(val.get("pemed",np.nan),1)+"x",fmt_money(val.get("fv_base",np.nan))],
+                    ["Bull",pct(val.get("g_bull",np.nan)),fmt_num(val.get("bull_eps",np.nan),2),fmt_num(val.get("pe75",np.nan),1)+"x",fmt_money(val.get("fv_bull",np.nan))],
+                ],columns=["Scenario","Earnings-power change","Projected NTM EPS","Peer multiple anchor","Research FV"])
+                st.dataframe(proj,use_container_width=True,hide_index=True)
+                st.markdown(f"""
+<div class='gate'><b>Reverse valuation:</b> current price {fmt_money(safe_float(row['price']))} implies roughly <b>{fmt_num(val.get('implied_eps',np.nan),2)} EPS</b> at the scanned peer median multiple. Our data-anchored base projection is <b>{fmt_num(val.get('base_eps',np.nan),2)}</b>. Expectation gap: <b>{pct(val.get('expectation_gap',np.nan))}</b>.<br>
+Fair-value bands are deliberately wide and assumption-visible; they are not production validated yet.</div>
+""",unsafe_allow_html=True)
+
+            with right:
+                st.markdown("<div class='panel'><div class='ptitle'>Why now / what changes the answer</div>",unsafe_allow_html=True)
+                reasons=[]
+                if safe_float(row.get("revenue_growth_yoy_rank"))>=.75: reasons.append("Revenue growth is top-quartile vs scanned peers")
+                if safe_float(row.get("eps_growth_yoy_rank"))>=.75: reasons.append("EPS growth is top-quartile vs scanned peers")
+                if safe_float(row.get("gross_margin_change_rank"))>=.75: reasons.append("Gross-margin change is top-quartile vs scanned peers")
+                if safe_float(row.get("fcf_growth_yoy_rank"))>=.75: reasons.append("FCF growth is top-quartile vs scanned peers")
+                if not reasons: reasons=["Current live fundamentals do not yet show enough independent evidence; stay in discovery mode."]
+                for rtext in reasons[:5]: st.markdown(f"<div class='row'><div>{rtext}</div><div class='right'>{badge('EVIDENCE','green')}</div></div>",unsafe_allow_html=True)
+                st.markdown(f"<div class='row'><div>What price already assumes</div><div class='right'><b>{fmt_num(val.get('implied_eps',np.nan),2)} EPS @ peer median</b></div></div>",unsafe_allow_html=True)
+                st.markdown(f"<div class='row'><div>What would upgrade</div><div class='right'>More independent causal evidence + positive expectation gap</div></div>",unsafe_allow_html=True)
+                st.markdown(f"<div class='row'><div>What would downgrade</div><div class='right'>Growth/margin/FCF deterioration or supply/adoption thesis breaks</div></div></div>",unsafe_allow_html=True)
+
+                if str(row["market"])=="Crypto":
+                    cm=deep_crypto_metrics(urow)
+                    if cm:
+                        st.markdown("<div class='section'>Crypto economics</div>",unsafe_allow_html=True)
+                        st.markdown(f"""
+<div class='panel'>
+ <div class='row'><div>Market cap</div><div class='right'><b>{fmt_money(cm.get('market_cap',np.nan))}</b></div></div>
+ <div class='row'><div>FDV premium</div><div class='right'><b>{pct(cm.get('fdv_premium',np.nan))}</b></div></div>
+ <div class='row'><div>30D protocol revenue</div><div class='right'><b>{fmt_money(cm.get('revenue_30d',np.nan))}</b></div></div>
+ <div class='row'><div>Revenue acceleration</div><div class='right'><b>{pct(cm.get('revenue_growth_30d',np.nan))}</b></div></div>
+ <div class='row'><div>Mcap / annualized revenue</div><div class='right'><b>{fmt_num(cm.get('mcap_to_revenue',np.nan),1)}x</b></div></div>
+ <div class='gate' style='margin-top:6px'>Revenue alone is never enough. Deep confirmation still needs holder capture, dilution/unlocks and usage quality.</div>
+</div>
+""",unsafe_allow_html=True)
+
+            st.markdown("<div class='section'>Automatic thesis explanation</div>",unsafe_allow_html=True)
+            q=f"{row['name']} {row['symbol']} shortage capacity pricing adoption revenue buyback burn contract backlog margin demand supply"
+            ev=news_evidence(q,limit=12)
+            root=infer_root_from_evidence(str(row['name']),ev)
+            ths=", ".join(f"{k} ({v})" for k,v in ev["themes"].most_common(4)) or "No strong mapped live theme yet"
+            chain=expand_chain(root,depth=3,max_edges=40) if root else pd.DataFrame()
+            st.markdown(f"""
+<div class='panel'>
+ <div class='row'><div>Detected live themes</div><div class='right'><b>{ths}</b></div></div>
+ <div class='row'><div>Inferred causal root</div><div class='right'><b>{root or 'UNMAPPED / needs research'}</b></div></div>
+ <div class='row'><div>Why this matters</div><div class='right'>The engine explains the economic chain, not just the ticker.</div></div>
+</div>
+""",unsafe_allow_html=True)
+            if not chain.empty:
+                st.dataframe(chain[["source","target","mechanism","sign","lag","role","validation","condition"]].head(30),use_container_width=True,hide_index=True)
+            st.markdown("<div class='section'>Adaptive scenario branches + action if confirmed</div>",unsafe_allow_html=True)
+            branches=adaptive_scenario_branches(root)
+            if not branches.empty:
+                st.dataframe(branches[["scenario","trigger","economic_projection","action_logic","falsifier"]],use_container_width=True,hide_index=True)
+            else:
+                st.caption("No mapped scenario branch yet — keep the thesis in discovery until a causal scenario is defined.")
+            if ev["items"]:
+                with st.expander("Live evidence headlines"):
+                    st.dataframe(pd.DataFrame(ev["items"])[["source","title","pubDate"]],use_container_width=True,hide_index=True)
+
+with tab_chain:
+    st.markdown("<div class='section'>Chain engine — direct, second-order, third-order and losers</div>",unsafe_allow_html=True)
+    presets=[
+        "AI adoption","Electrical load","Networking bandwidth","CPO price","War escalation","Protocol usage","Private asset usage","Currency depreciation speed","Consumer mobility recovery"
     ]
-    for col,name,score,note,tone in sensors:
-        with col: st.markdown(summary_card(name,"LIVE SENSOR",fmt(score,0,"/100"),note,tone),unsafe_allow_html=True)
-
-    st.markdown("<div class='section'>Dominant transmission</div>",unsafe_allow_html=True)
-    if event_scen:
-        top=event_scen[0]; ta=scenario_action(top["name"])
-        st.markdown(f"<div class='panel'><div class='ptitle'>{top['name']}</div><div class='chain'>{top['transmission']}</div><div class='constraint-grid' style='margin-top:6px'>{constraint_card('CONFIRM', 'WATCH', top['confirms'], 'amber')}{constraint_card('INVALIDATE', 'BREAK', top['invalidates'], 'green')}{constraint_card('ACTION IF CONFIRMED', ta['state'], ta['action'], ta['tone'])}</div><div class='gate' style='margin-top:6px'><b>Avoid:</b> {ta['avoid']} · Activation is not political probability.</div></div>",unsafe_allow_html=True)
+    nodes=sorted(set(EDGE_DF["source"].astype(str)) | set(EDGE_DF["target"].astype(str))) if not EDGE_DF.empty else []
+    default_idx=nodes.index("AI adoption") if "AI adoption" in nodes else 0
+    root=st.selectbox("Root change / bottleneck / shock",nodes,index=default_idx,key="chain_root") if nodes else ""
+    depth=st.slider("Propagation depth",1,6,4,key="chain_depth")
+    chain=expand_chain(root,depth=depth,max_edges=120)
+    if chain.empty:
+        st.info("No mapped downstream edges yet. Auto Scenario Discovery can still surface a novel root; add it to the graph only after causal validation.")
     else:
-        st.markdown("<div class='panel'><div class='ptitle'>No dominant event transmission</div><div class='chain'>Base macro path currently dominates the dashboard.</div></div>",unsafe_allow_html=True)
+        # compact chain summary by role
+        role_counts=chain["role"].value_counts().to_dict()
+        khtml="<div class='kpis'>"
+        for label,role,tone in [("Direct","DIRECT","green"),("Second order","SECOND","green"),("Third+","THIRD","blue"),("Bottlenecks","BOTTLENECK","amber"),("Losers","LOSER","red"),("Normalization","NORMALIZATION","purple")]:
+            khtml+=kpi(label,role,str(role_counts.get(role,0)),"Mapped economic links",tone)
+        khtml+="</div>"; st.markdown(khtml,unsafe_allow_html=True)
+        fig=chain_plot(chain,root)
+        if fig is not None:
+            st.plotly_chart(fig,use_container_width=True)
+        st.dataframe(chain[["source","target","mechanism","sign","lag","role","validation","condition"]],use_container_width=True,hide_index=True)
+        st.markdown("<div class='section'>How to trade the chain</div>",unsafe_allow_html=True)
+        direct=chain[chain["role"].isin(["DIRECT","SECOND","THIRD","FOURTH"])]["target"].drop_duplicates().tolist()
+        bott=chain[chain["role"].astype(str).str.contains("BOTTLENECK",case=False,na=False)]["target"].drop_duplicates().tolist()
+        losers=chain[chain["role"]=="LOSER"]["target"].drop_duplicates().tolist()
+        normal=chain[chain["role"]=="NORMALIZATION"]["target"].drop_duplicates().tolist()
+        a,b,c=st.columns(3)
+        with a:
+            st.markdown(f"<div class='panel'><div class='ptitle'>Potential beneficiaries</div><div class='small'>{'<br>'.join(direct[:18]) or '—'}</div></div>",unsafe_allow_html=True)
+        with b:
+            st.markdown(f"<div class='panel'><div class='ptitle'>Scarcity / next bottleneck nodes</div><div class='small'>{'<br>'.join(bott[:18]) or '—'}</div></div>",unsafe_allow_html=True)
+        with c:
+            st.markdown(f"<div class='panel'><div class='ptitle'>Losers / later normalization</div><div class='small'><b>Losers</b><br>{'<br>'.join(losers[:10]) or '—'}<br><br><b>Normalization</b><br>{'<br>'.join(normal[:10]) or '—'}</div></div>",unsafe_allow_html=True)
 
-    with st.expander(f"Dormant scenario library · {len(SCENARIO_LIBRARY)} candidates"):
-        st.dataframe(pd.DataFrame(SCENARIO_LIBRARY,columns=["Family","Scenario","Mechanism","Key data / trigger family"]),use_container_width=True,hide_index=True,height=420)
+    st.markdown("<div class='section'>Data-center example: not just chips</div>",unsafe_allow_html=True)
+    dc=expand_chain("AI adoption",depth=5,max_edges=120)
+    if not dc.empty:
+        st.dataframe(dc[["source","target","mechanism","role","lag","condition"]],use_container_width=True,hide_index=True)
 
-# ============================================================
-# RESEARCH
-# ============================================================
+with tab_scen:
+    st.markdown("<div class='section'>Automatic scenario discovery — scenario list changes with live evidence</div>",unsafe_allow_html=True)
+    st.markdown("<div class='gate'>The engine scans broad causal queries, clusters headlines into known themes, and also surfaces recurring unmapped terms as <b>NOVEL CLUSTERS</b>. A novel cluster is a research hypothesis, not a probability. It must be mapped to a causal chain and falsifier before it can affect action.</div>",unsafe_allow_html=True)
+    maxq=st.slider("Broad discovery query families",4,15,10,key="disc_q")
+    with st.spinner("Scanning broad public-news themes…"):
+        discovered=discover_live_scenarios(max_queries=maxq)
+    if discovered.empty:
+        st.warning("Live scenario feed unavailable. The engine will not invent active scenarios; try again when the deployment has internet access.")
+    else:
+        persist_scenario_memory(discovered)
+        st.dataframe(discovered[["theme","root","evidence_count","source_count","novelty","latest_headline","sources"]],use_container_width=True,hide_index=True)
+        active=discovered.iloc[0]
+        root=str(active["root"])
+        st.markdown(f"<div class='section'>Top discovered chain: {active['theme']}</div>",unsafe_allow_html=True)
+        if root!="Unmapped hypothesis":
+            ch=expand_chain(root,depth=4,max_edges=70)
+            if not ch.empty:
+                fig=chain_plot(ch,root)
+                if fig is not None: st.plotly_chart(fig,use_container_width=True)
+                st.dataframe(ch[["source","target","mechanism","role","lag","condition"]].head(45),use_container_width=True,hide_index=True)
+        else:
+            st.info("This is intentionally unmapped. The engine found a recurring new theme that is not yet in the causal library; research must identify mechanism, beneficiaries, losers, confirmation and falsifier before promotion.")
+        st.markdown("<div class='section'>If this scenario confirms, what changes?</div>",unsafe_allow_html=True)
+        br=adaptive_scenario_branches(root)
+        if not br.empty:
+            st.dataframe(br[["scenario","trigger","economic_projection","action_logic","falsifier"]],use_container_width=True,hide_index=True)
+
+    st.markdown("<div class='section'>Scenario memory</div>",unsafe_allow_html=True)
+    mem=load_scenario_memory()
+    if mem.empty: st.caption("No persistent scenario memory yet.")
+    else: st.dataframe(mem.head(40),use_container_width=True,hide_index=True)
+
+with tab_replay:
+    st.markdown("<div class='section'>Acceptance tests — examples are tests, never training labels</div>",unsafe_allow_html=True)
+    st.dataframe(ACCEPTANCE,use_container_width=True,hide_index=True)
+    st.markdown("<div class='gate'>PASS requires point-in-time evidence known on that date, a pre-frozen rule, negative controls, false-positive burden and lead time. The table below is the replay manifest / causal timeline; it is not yet a statistical proof by itself.</div>",unsafe_allow_html=True)
+    cases=REPLAY["case"].dropna().unique().tolist() if not REPLAY.empty else []
+    if cases:
+        selected_case=st.selectbox("Replay case",cases,key="replay_case")
+        r=REPLAY[REPLAY["case"]==selected_case].copy()
+        st.dataframe(r[["date","phase","scanner_state","evidence_known_then","causal_chain","source_url"]],use_container_width=True,hide_index=True)
+        st.markdown("<div class='section'>What the final replay must report</div>",unsafe_allow_html=True)
+        st.markdown("""
+<div class='grid3'>
+ <div class='card'><div class='ct'>First detection</div><div class='cn'>Earliest date the frozen scanner raised DISCOVERED/WATCH using only information available then.</div></div>
+ <div class='card'><div class='ct'>First actionable state</div><div class='cn'>When independent evidence + projection + expectation gap justified BUILD/SHORT — not when price already moved.</div></div>
+ <div class='card'><div class='ct'>False positives</div><div class='cn'>How many same-family candidates fired but never produced the expected economics. Mandatory precision control.</div></div>
+ <div class='card'><div class='ct'>Lead time</div><div class='cn'>Days/weeks before major repricing or intervention event.</div></div>
+ <div class='card'><div class='ct'>Adverse excursion</div><div class='cn'>How wrong / early the signal looked before confirmation. Prevents hindsight-only storytelling.</div></div>
+ <div class='card'><div class='ct'>Exit replay</div><div class='cn'>BUILD → HOLD → NO ADD → TRIM → SELL based on economics and price-in, not technical exits.</div></div>
+</div>
+""",unsafe_allow_html=True)
+
 with tab_research:
-    st.markdown("<div class='section'>Validation status</div>",unsafe_allow_html=True)
-    status=pd.DataFrame([
-        ["Live state","RELEASED","Official/public latest data"],
-        ["Adaptive scenario activation","HEURISTIC / SCREENING","Evidence-count ranking; not probability"],
-        ["Macro probability +1Q/+2Q/+4Q","LOCKED","Needs point-in-time OOS calibration"],
-        ["Crash probability","LOCKED","Needs target/frequency/calibration tournament"],
-        ["Political event probability","LOCKED","Economic/GPR data do not determine intent"],
-        ["Expectation gap","LOCKED","Needs validated model-vs-market mapping"],
-    ],columns=["Layer","Status","Meaning"])
-    st.dataframe(status,use_container_width=True,hide_index=True)
+    st.markdown("<div class='section'>Frozen principles</div>",unsafe_allow_html=True)
+    st.markdown("""
+<div class='grid3'>
+ <div class='card'><div class='ct'>1 · High recall first</div><div class='cn'>Discovery is intentionally sensitive so early bottlenecks/adoption/value-capture inflections are not discarded before evidence matures.</div></div>
+ <div class='card'><div class='ct'>2 · High precision before capital</div><div class='cn'>Action requires independent evidence families, causal explanation, projection, expectation gap, falsifier and expression suitability.</div></div>
+ <div class='card'><div class='ct'>3 · No hard-coded winner logic</div><div class='cn'>SNDK, PLTR, VVV, ZEC, ADES and JPY are frozen acceptance cases. They may not set thresholds or special rules.</div></div>
+ <div class='card'><div class='ct'>4 · Auto-discover scenarios</div><div class='cn'>Broad feeds can surface mapped and novel clusters. Novel hypotheses remain quarantined until causally validated.</div></div>
+ <div class='card'><div class='ct'>5 · Whole-chain search</div><div class='cn'>Direct winners, suppliers, equipment, logistics, substitutes, macro transmission, losers and normalization nodes are all searched.</div></div>
+ <div class='card'><div class='ct'>6 · Price-in before action</div><div class='cn'>A great business can be a bad trade. Reverse valuation asks what earnings/usage/duration today's price already requires.</div></div>
+</div>
+""",unsafe_allow_html=True)
+    st.markdown("<div class='section'>Source / coverage registry</div>",unsafe_allow_html=True)
+    st.dataframe(SOURCE_REGISTRY,use_container_width=True,hide_index=True)
+    st.markdown("<div class='section'>Opportunity families</div>",unsafe_allow_html=True)
+    st.dataframe(FAMILIES,use_container_width=True,hide_index=True)
+    st.markdown("<div class='section'>Scenario templates</div>",unsafe_allow_html=True)
+    st.dataframe(TEMPLATES,use_container_width=True,hide_index=True)
+    st.markdown("<div class='section'>Known limitations before production</div>",unsafe_allow_html=True)
+    st.markdown("""
+<div class='gate'>
+<b>Still gated:</b> full point-in-time fundamentals for every global asset; exhaustive all-listed IHSG/US universe; verified tokenholder-capture adapters for every protocol; physical inventory/curve adapters for every commodity; cross-country FX equilibrium models; historical valuation distributions; option implied-distribution comparison; and purged/embargoed OOS acceptance statistics.<br><br>
+The architecture is intentionally built so missing data becomes grey / research-only rather than being replaced with a fabricated score.
+</div>
+""",unsafe_allow_html=True)
 
-    st.markdown("<div class='section'>Scenario screening</div>",unsafe_allow_html=True)
-    st.dataframe(pd.DataFrame(SCENARIO_SCREEN,columns=["Scenario","Decision","Evidence strength","Why"]),use_container_width=True,hide_index=True)
-
-    st.markdown("<div class='section'>Raw readings</div>",unsafe_allow_html=True)
-    raw=pd.DataFrame([
-        ["BBK Monthly GDP",bbk_gdp,"% ann."],["BBK Coincident",bbk_co,"σ"],["BBK Leading",bbk_lead,"σ"],["WEI",wei,"%"],["Trimmed PCE",trimmed,"% y/y"],["Core PCE",core_pce,"% y/y"],["Sahm",sahm,"pp"],["Claims",claims,"claims"],["SLOOS",sloos,"net %"],["EBP",ebp,"index"],["EBP recession benchmark",ebp_prob,"%"],["FCI-G",fcig,"pp impulse"],["NFCI Risk",nfci,"index"],["VIX",vix,"index"],["HY OAS",hy,"%"],["5Y breakeven",breakeven,"%"],["10Y Treasury",d10,"%"],["2Y Treasury",d2,"%"],["Fed Funds",fedfunds,"%"],["10Y Term Premium",term_premium,"%"],["WTI",oil,"$/bbl"],["GSCPI",gscpi,"σ"],["EPU",epu,"index"],["AI-GPR",gpr.get('gpr',np.nan),"index"],["Debt/GDP",debt_gdp,"%"],["Deficit/GDP",deficit_gdp,"%"],["Interest/GDP",interest_gdp,"%"],["Treasury gross debt",treasury_debt_tn,"tn USD"],
-    ],columns=["Series","Latest","Unit"])
-    st.dataframe(raw,use_container_width=True,hide_index=True)
-    if errors:
-        with st.expander(f"Data / optional feed errors ({len(errors)})"):
-            st.dataframe(pd.DataFrame([{"Source":k,"Error":v} for k,v in errors.items()]),use_container_width=True,hide_index=True)
-
-st.caption("Landing v5: control room + action engine. NOW posture is live; future/scenario actions are conditional and only activate when their evidence is confirmed. Numerical macro/crash/event probabilities remain locked until proven out-of-sample.")
+st.caption("Opportunity Intelligence v1 · causal-first, projection-aware, scenario-adaptive, no classic technical indicators.")

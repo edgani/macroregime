@@ -603,6 +603,168 @@ def attention_items(items: list[tuple[str,float,str,str]]) -> list[tuple[str,flo
     clean=[x for x in items if np.isfinite(x[1])]
     return sorted(clean,key=lambda x:x[1],reverse=True)[:3]
 
+def action_state_engine(*, plain_state: str, growth: str, lead_value: float, inflation_dir: str,
+                        credit_tone: str, stress_score: float, fragility_score: float, fcig: float,
+                        event_override: Optional[dict], market_structure: str, rates_score: float,
+                        fiscal_score: float) -> dict:
+    """Translate admitted macro/risk states into a simple posture. Not a return forecast/probability."""
+    score = 35.0
+    risk_reasons, buffers = [], []
+
+    if "CONTRACT" in growth or "RECESSION" in growth:
+        score += 25; risk_reasons.append("growth is contractionary")
+    elif "LOSING" in plain_state or "BELOW" in growth or (np.isfinite(lead_value) and lead_value < 0):
+        score += 10; risk_reasons.append("growth momentum is below trend")
+    elif "HEALTHY" in plain_state or (np.isfinite(lead_value) and lead_value > 0):
+        score -= 8; buffers.append("growth momentum is healthy")
+
+    if credit_tone == "red":
+        score += 22; risk_reasons.append("credit stress is active")
+    elif credit_tone == "amber":
+        score += 10; risk_reasons.append("credit is widening")
+    else:
+        score -= 6; buffers.append("credit remains calm")
+
+    if stress_score >= 65:
+        score += 22; risk_reasons.append("immediate market stress is high")
+    elif stress_score >= 45:
+        score += 9; risk_reasons.append("market stress is elevated")
+    elif stress_score < 40:
+        score -= 5; buffers.append("immediate stress is low")
+
+    if fragility_score >= 65:
+        score += 11; risk_reasons.append("system fragility is high")
+    elif fragility_score >= 50:
+        score += 5; risk_reasons.append("system fragility is moderate")
+
+    if inflation_dir == "HEATING":
+        score += 12; risk_reasons.append("inflation is re-heating")
+    elif inflation_dir == "MIXED":
+        score += 4; risk_reasons.append("inflation direction is mixed")
+    elif inflation_dir == "COOLING":
+        score -= 4; buffers.append("inflation is cooling")
+
+    if np.isfinite(fcig):
+        if fcig < 0:
+            score -= 5; buffers.append("financial conditions are a tailwind")
+        elif fcig > 0:
+            score += 6; risk_reasons.append("financial conditions are a headwind")
+
+    if np.isfinite(rates_score) and rates_score >= 65:
+        score += 8; risk_reasons.append("long-rate / term-premium pressure is elevated")
+    if np.isfinite(fiscal_score) and fiscal_score >= 65:
+        score += 4; risk_reasons.append("fiscal pressure is elevated")
+
+    if "BROAD" in market_structure or "IMPROVING" in market_structure:
+        score -= 5; buffers.append("market breadth is improving")
+    elif "NARROW" in market_structure or "DETERIORATING" in market_structure:
+        score += 8; risk_reasons.append("market structure is fragile")
+
+    if event_override:
+        impact = event_override.get("impact", "")
+        score += 16 if impact == "SEVERE" else (9 if impact == "HIGH" else 4)
+        risk_reasons.append(f"event override active: {event_override.get('name','event risk')}")
+
+    score = float(max(0, min(100, score)))
+
+    if score >= 75:
+        label, tone = "CRISIS RISK-OFF", "red"
+        headline = "Protect liquidity first. Cut leverage and fragile/illiquid risk."
+    elif score >= 60:
+        label, tone = "DEFENSIVE", "red"
+        headline = "Reduce beta and leverage; raise liquidity and quality."
+    elif score >= 45:
+        label, tone = "HOLD / SELECTIVE", "amber"
+        headline = "Keep core exposure, add no new leverage, and wait for confirmation."
+    elif score >= 25:
+        label, tone = "SELECTIVE RISK-ON", "green"
+        headline = "Add risk gradually only where breadth, credit and macro confirm."
+    else:
+        label, tone = "RISK-ON", "green"
+        headline = "Conditions are broadly supportive; add risk in tranches, not by chasing."
+
+    leverage = "CUT FAST" if score >= 75 else ("REDUCE" if score >= 60 else ("NO NEW LEVERAGE" if score >= 45 else "MODEST / NORMAL"))
+    cash = "MAXIMIZE LIQUIDITY" if score >= 75 else ("RAISE" if score >= 60 else ("KEEP DRY POWDER" if score >= 45 else "NORMAL BUFFER"))
+    beta = "CUT HIGH-BETA" if score >= 75 else ("REDUCE HIGH-BETA" if score >= 60 else ("KEEP QUALITY / DON'T CHASE" if score >= 45 else "ADD GRADUALLY"))
+    credit = "AVOID LOWER-QUALITY CREDIT" if score >= 60 else ("QUALITY BIAS" if score >= 45 else "NORMAL / WATCH SPREADS")
+    if inflation_dir == "COOLING" and score >= 45:
+        duration = "CAN ADD SELECTIVELY IF YIELDS CONFIRM"
+    elif inflation_dir == "HEATING":
+        duration = "AVOID ADDING LONG DURATION"
+    else:
+        duration = "WAIT FOR RATES CONFIRMATION"
+    hedge = "KEEP / INCREASE TAIL HEDGE" if score >= 60 else ("MAINTAIN, DON'T OVERPAY" if score >= 45 else "NORMAL HEDGE")
+
+    return {"score":score,"label":label,"tone":tone,"headline":headline,
+            "leverage":leverage,"cash":cash,"beta":beta,"credit":credit,
+            "duration":duration,"hedge":hedge,
+            "risk_reasons":risk_reasons[:5],"buffers":buffers[:5]}
+
+
+def horizon_action_plan(*, current: dict, growth: str, lead_value: float, inflation_dir: str,
+                        credit_tone: str) -> list[dict]:
+    out=[{"horizon":"NOW","state":current["label"],"tone":current["tone"],
+          "action":current["headline"],"status":"LIVE"}]
+
+    if credit_tone == "red" or ("CONTRACT" in growth and inflation_dir != "COOLING"):
+        q1=("DEFENSIVE","red","Reduce beta/leverage; prioritize liquidity and quality.")
+    elif ("BELOW" in growth or (np.isfinite(lead_value) and lead_value < 0)) and inflation_dir=="COOLING" and credit_tone=="green":
+        q1=("HOLD / QUALITY","amber","Keep quality exposure; add only on confirmation and retain dry powder.")
+    elif ("ABOVE" in growth or "POSITIVE" in growth) and inflation_dir=="COOLING" and credit_tone=="green":
+        q1=("SELECTIVE RISK-ON","green","Add risk in tranches if breadth and credit remain healthy.")
+    elif inflation_dir=="HEATING":
+        q1=("RATE-SENSITIVE CAUTION","amber","Avoid adding leverage/long duration until inflation and yields settle.")
+    else:
+        q1=("HOLD / SELECTIVE","amber","Wait for growth, inflation and credit to converge.")
+    out.append({"horizon":"+1Q","state":q1[0],"tone":q1[1],"action":q1[2],"status":"CONDITIONAL"})
+
+    if np.isfinite(lead_value) and lead_value <= -1:
+        q2=("DEFENSIVE","red","Cut beta/leverage if labor or credit also confirm deterioration.") if credit_tone=="red" else ("DEFENSIVE TILT","amber","Reduce cyclical/high-beta risk unless labor and credit improve.")
+    elif np.isfinite(lead_value) and lead_value < 0:
+        q2=("QUALITY / OPTIONALITY","amber","Stay selective; duration can work if yields fall, but don't assume recession.") if inflation_dir=="COOLING" and credit_tone=="green" else ("CAUTION","amber","Keep risk tight until the below-trend lead reverses or confirms.")
+    elif np.isfinite(lead_value) and lead_value > 0 and credit_tone=="green":
+        q2=("ADD RISK GRADUALLY","green","Broaden exposure if growth, breadth and credit confirm together.")
+    else:
+        q2=("WAIT / NO FORCED BET","gray","No sufficiently strong +2Q action state.")
+    out.append({"horizon":"+2Q","state":q2[0],"tone":q2[1],"action":q2[2],"status":"EVIDENCE-ALIGNED"})
+
+    out.append({"horizon":"+4Q","state":"NOT RELEASED","tone":"gray",
+                "action":"Do not make an autonomous +4Q portfolio bet until the projection model is validated; use scenario triggers instead.",
+                "status":"GATED"})
+    return out
+
+
+def scenario_action(scenario_name: str) -> dict:
+    n=scenario_name.lower()
+    if "reaccel" in n or "goldilocks" in n:
+        return {"state":"ADD RISK GRADUALLY","tone":"green","action":"Add beta/cyclicals in tranches; small caps only if breadth and credit confirm; normalize excess cash.","avoid":"Do not chase if credit starts widening."}
+    if "disinflationary slowdown" in n:
+        return {"state":"HOLD / QUALITY","tone":"amber","action":"Keep quality exposure and dry powder; reduce weak cyclicals; duration only if yields/inflation fall.","avoid":"Do not confuse slowing growth with an automatic crash."}
+    if "recession" in n or "credit crack" in n:
+        return {"state":"DEFENSIVE","tone":"red","action":"Cut leverage/high beta, raise liquidity, upgrade credit quality; add duration only if inflation is cooling.","avoid":"Avoid lower-quality credit and illiquid risk."}
+    if "stagflation" in n or "inflation resurgence" in n or "policy bind" in n:
+        return {"state":"STAGFLATION DEFENSE","tone":"red","action":"Reduce leverage, long-duration/rate-sensitive exposure and fragile cyclicals; keep liquidity and inflation/energy resilience.","avoid":"Do not rely on fast policy easing."}
+    if "term-premium" in n or "crowding-out" in n or "rates" in n:
+        return {"state":"RATE-SHOCK DEFENSE","tone":"amber","action":"Reduce long-duration/rate-sensitive risk; favor strong balance sheets and liquidity until yields reverse.","avoid":"Do not average blindly into rate-sensitive assets while yields accelerate."}
+    if "de-escalation incentive" in n:
+        return {"state":"WAIT FOR CONFIRMATION","tone":"amber","action":"If de-escalation is confirmed AND oil/rates fall while credit stays healthy, add risk gradually; otherwise keep protection.","avoid":"Do not front-run a political decision from fiscal data alone."}
+    if "war / energy" in n:
+        return {"state":"EVENT DEFENSE","tone":"red","action":"Keep beta/leverage lower; prioritize liquidity and inflation/energy resilience; watch credit for financial transmission.","avoid":"Act on real energy/rates/credit transmission, not headlines alone."}
+    if "ath + credit divergence" in n:
+        return {"state":"DON'T CHASE","tone":"amber","action":"Keep core winners but trim leverage/new high-beta adds until credit and breadth reconfirm.","avoid":"ATH alone is not a sell signal."}
+    if "funding" in n or "deleveraging" in n or "cascade" in n:
+        return {"state":"CRISIS RISK-OFF","tone":"red","action":"Cut leverage rapidly, maximize liquidity, reduce illiquid/high-beta/lower-quality credit and keep tail hedges.","avoid":"Do not wait for GDP/recession confirmation once funding transmission is active."}
+    return {"state":"MONITOR / CONDITIONAL","tone":"blue","action":"Keep current posture; act only when the scenario confirmation conditions are met.","avoid":"Do not trade a narrative before transmission is visible."}
+
+
+def next_data_decision_grid() -> list[dict]:
+    return [
+        {"growth":"↑ / STABLE","inflation":"↓","state":"UPGRADE","tone":"green","action":"Add risk gradually if credit and labor stay healthy. Broaden only when breadth confirms."},
+        {"growth":"↓","inflation":"↓","state":"SLOWDOWN","tone":"amber","action":"Keep quality, raise selectivity and dry powder; duration can improve if yields confirm lower."},
+        {"growth":"↑","inflation":"↑","state":"REFLATION / RATE RISK","tone":"amber","action":"Keep risk selective but avoid adding long duration/leverage; watch yields and credit."},
+        {"growth":"↓","inflation":"↑","state":"STAGFLATION","tone":"red","action":"Go defensive: cut beta/leverage, raise liquidity and reduce rate-sensitive exposure."},
+    ]
+
 # ----------------------------- UI -----------------------------
 COLORS = {
     "green": ("#20d58b", "rgba(32,213,139,.12)"),
@@ -758,11 +920,24 @@ attention=attention_items([
 override_candidates=[x for x in event_scen if x["score"]>=50]
 event_override=override_candidates[0] if override_candidates else None
 
+# action engine — posture, not a return forecast
+action_now=action_state_engine(
+    plain_state=plain_state,growth=growth,lead_value=bbk_lead,inflation_dir=inflation_dir,
+    credit_tone=credit_tone,stress_score=stress_score,fragility_score=fragility_score,
+    fcig=fcig,event_override=event_override,market_structure=market_structure,
+    rates_score=rates_score,fiscal_score=fiscal_score
+)
+horizon_actions=horizon_action_plan(
+    current=action_now,growth=growth,lead_value=bbk_lead,inflation_dir=inflation_dir,
+    credit_tone=credit_tone
+)
+data_decisions=next_data_decision_grid()
+
 # ----------------------------- HEADER -----------------------------
 st.markdown(f"""
 <div class='hero'>
   <div class='hero-title'>Macro Intelligence</div>
-  <div class='sub'>Landing Page 1 · low-scroll control room · state → projection → scenarios → crash transmission.</div>
+  <div class='sub'>Landing v5 · low-scroll control room · state → projection → scenarios → action engine.</div>
   <div class='legend'>{badge('GREEN = supportive / resilient / improving','green')}{badge('AMBER = caution / transition / monitor','amber')}{badge('RED = stress / deterioration / adverse','red')}{badge('BLUE = information / base state','blue')}{badge('GREY = not released / unvalidated / unavailable','gray')}</div>
   <div class='sub' style='margin-top:5px'><b>Colors describe the component, not a trade.</b> Green ≠ automatic buy. Red ≠ automatic sell.</div>
 </div>""",unsafe_allow_html=True)
@@ -777,6 +952,32 @@ with tab_control:
     rt_tone = "red" if crash_tone=="red" else ("amber" if "LOSING" in plain_state or "WATCH" in crash_state or crash_state=="POWDER KEG" else "green")
     st.markdown("<div class='section'>Right now</div>",unsafe_allow_html=True)
     st.markdown(f"<div class='panel'><div class='ptitle' style='font-size:.95rem'>{badge(plain_state,rt_tone)} &nbsp; {badge(crash_state,crash_tone)}</div><div style='font-size:.78rem;line-height:1.45;color:#d8e1ec'><b>{plain_explain}</b> {crash_explain} " + (f"<b>Event override:</b> {event_override['name']}." if event_override else "<b>Event override:</b> none active from admitted feeds.") + "</div></div>",unsafe_allow_html=True)
+
+    # Action state now — the first decision answer
+    st.markdown("<div class='section'>Action state now</div>",unsafe_allow_html=True)
+    a1,a2=st.columns([1.05,1.7])
+    with a1:
+        st.markdown(
+            f"<div class='panel'><div class='ptitle'>{badge(action_now['label'],action_now['tone'])}</div>"
+            f"<div style='font-size:1.25rem;font-weight:850;margin:.15rem 0'>{int(action_now['score'])}/100</div>"
+            f"<div style='font-size:.75rem;line-height:1.4'><b>{action_now['headline']}</b></div>"
+            f"<div class='gate' style='margin-top:6px'>Action score = deterministic posture translation, <b>not</b> expected return or crash probability.</div></div>",
+            unsafe_allow_html=True,
+        )
+    with a2:
+        action_rows=[
+            ("Leverage",action_now["leverage"]),
+            ("Equity beta / cyclicals",action_now["beta"]),
+            ("Cash / optionality",action_now["cash"]),
+            ("Credit quality",action_now["credit"]),
+            ("Duration / rates",action_now["duration"]),
+            ("Hedge",action_now["hedge"]),
+        ]
+        h="<div class='panel'><div class='ptitle'>What to do now</div>"
+        for k,v in action_rows:
+            h+=f"<div class='rowline'><div class='muted'>{k}</div><div class='right'><b>{v}</b></div></div>"
+        h+="</div>"
+        st.markdown(h,unsafe_allow_html=True)
 
     # Top 3 matters + compact strip
     st.markdown("<div class='section'>Top 3 things that matter now</div>",unsafe_allow_html=True)
@@ -803,6 +1004,24 @@ with tab_control:
         dot_color=COLORS[crash_tone][0]; x=max(3,min(97,fragility_score)); y=max(3,min(97,100-stress_score))
         st.markdown(f"""<div class='panel'><div class='ptitle'>Crash Map · {crash_state}</div><div class='quad'><div class='qv'></div><div class='qh'></div><div class='qlabel' style='left:7px;top:7px'>Shock / stress</div><div class='qlabel' style='right:7px;top:7px'>Crash danger</div><div class='qlabel' style='left:7px;bottom:7px'>Healthy</div><div class='qlabel' style='right:7px;bottom:7px'>Powder keg</div><div class='dot' style='left:{x}%;top:{y}%;background:{dot_color}'></div></div><div class='rowline'><div>Immediate stress</div><div class='right'><b>{int(stress_score)}/100 · {('LOW' if stress_score<40 else 'MED' if stress_score<65 else 'HIGH')}</b></div></div><div class='rowline'><div>Fragility</div><div class='right'><b>{int(fragility_score)}/100 · {('LOW' if fragility_score<40 else 'MED' if fragility_score<65 else 'HIGH')}</b></div></div><div class='gate' style='margin-top:5px'>{crash_explain} Exact &gt;20% drawdown probability stays grey until validated.</div></div>""",unsafe_allow_html=True)
 
+    # action by horizon + next data decision rules
+    st.markdown("<div class='section'>Action by horizon + next economic data</div>",unsafe_allow_html=True)
+    ha1,ha2=st.columns([1.3,1.25])
+    with ha1:
+        cards="<div class='scenario-grid' style='grid-template-columns:repeat(4,minmax(0,1fr))'>"
+        for item in horizon_actions:
+            c=COLORS[item["tone"]][0]
+            cards+=f"<div class='scenario' style='min-height:122px'><div class='kicker'>{item['horizon']} · {item['status']}</div><div class='scenario-title' style='color:{c}'>{item['state']}</div><div class='scenario-note'>{item['action']}</div></div>"
+        cards+="</div>"
+        st.markdown("<div class='panel'><div class='ptitle'>What the projection implies for your posture</div>"+cards+"<div class='gate' style='margin-top:5px'>NOW is live. Future columns are conditional/evidence-aligned, not guaranteed forecasts.</div></div>",unsafe_allow_html=True)
+    with ha2:
+        h="<div class='panel'><div class='ptitle'>Next economic-data decision grid</div><table class='matrix'><thead><tr><th>Growth</th><th>Inflation</th><th>State</th><th>Action</th></tr></thead><tbody>"
+        for d in data_decisions:
+            c,bg=COLORS[d["tone"]]
+            h+=f"<tr><td><div class='cellv'>{d['growth']}</div></td><td><div class='cellv'>{d['inflation']}</div></td><td style='background:{bg}'><div class='cellv' style='color:{c}'>{d['state']}</div></td><td><div class='celln' style='font-size:.58rem'>{d['action']}</div></td></tr>"
+        h+="</tbody></table><div class='gate' style='margin-top:5px'><b>Override:</b> if labor + credit deteriorate together, downgrade one action level. If both improve while breadth broadens, upgrade one level.</div></div>"
+        st.markdown(h,unsafe_allow_html=True)
+
     # scenarios + driver relationship map
     st.markdown("<div class='section'>Scenarios + driver map</div>",unsafe_allow_html=True)
     s1,s2=st.columns([1.1,1.25])
@@ -810,8 +1029,9 @@ with tab_control:
         html="<div class='scenario-grid'>"
         for i,sc in enumerate(macro_scen[:3]):
             tag="BASE / ACTIVE" if i==0 else ("ALTERNATIVE" if i==1 else "TAIL")
-            note=f"Evidence {len(sc['hits'])}/{sc['total']} · {sc['direction']} · {sc['transmission']}"
-            html+=scenario_card(tag,sc['name'],note,sc['tone'])
+            sa=scenario_action(sc["name"])
+            note=f"Evidence {len(sc['hits'])}/{sc['total']} · {sc['direction']}<br><b>ACTION IF CONFIRMED: {sa['state']}</b> — {sa['action']}"
+            html+=scenario_card(tag,sc['name'],note,sa['tone'])
         html+="</div>"
         st.markdown("<div class='panel'><div class='ptitle'>Adaptive Macro Paths</div>"+html+"<div class='gate' style='margin-top:5px'>Rank is evidence activation, <b>not probability</b>. Candidates automatically rise/fall as inputs change.</div></div>",unsafe_allow_html=True)
     with s2:
@@ -840,9 +1060,10 @@ with tab_control:
     e1,e2=st.columns([1,1.3])
     with e1:
         if event_override:
-            ev_note = f"Evidence {len(event_override['hits'])}/{event_override['total']} · {event_override['transmission']}"
-            ev_card = scenario_card(event_override['family'], event_override['name'], ev_note, event_override['tone'])
-            st.markdown(f"<div class='panel'><div class='ptitle'>⚠ Event Override Active</div>{ev_card}<div class='gate' style='margin-top:5px'><b>Confirm:</b> {event_override['confirms']}<br><b>Breaks if:</b> {event_override['invalidates']}</div></div>", unsafe_allow_html=True)
+            ev_action=scenario_action(event_override["name"])
+            ev_note = f"Evidence {len(event_override['hits'])}/{event_override['total']} · {event_override['transmission']}<br><b>ACTION NOW: {ev_action['state']}</b> — {ev_action['action']}"
+            ev_card = scenario_card(event_override['family'], event_override['name'], ev_note, ev_action['tone'])
+            st.markdown(f"<div class='panel'><div class='ptitle'>⚠ Event Override Active</div>{ev_card}<div class='gate' style='margin-top:5px'><b>Confirm:</b> {event_override['confirms']}<br><b>Breaks if:</b> {event_override['invalidates']}<br><b>Avoid:</b> {ev_action['avoid']}</div></div>", unsafe_allow_html=True)
         else:
             st.markdown("<div class='panel'><div class='ptitle'>Event Override</div>"+scenario_card("CURRENT","NONE ACTIVE","No admitted world-event scenario currently has enough live evidence to override the base macro path.","green")+"</div>",unsafe_allow_html=True)
     with e2:
@@ -865,8 +1086,8 @@ with tab_events:
         cols=st.columns(min(4,len(event_scen)))
         for col,sc in zip(cols,event_scen[:4]):
             with col:
-                tone=sc['tone']; c=COLORS[tone][0]
-                st.markdown(f"<div class='scenario' style='min-height:170px'><div>{badge(sc['family'],tone)}</div><div class='scenario-title' style='color:{c};font-size:.83rem'>{sc['name']}</div><div class='snum'>{sc['score']}/100</div><div class='snote'>Activation score · not probability · impact {sc['impact']} · {sc['direction']}</div><div class='scenario-note'><b>Live evidence:</b> {', '.join(sc['hits'][:3]) if sc['hits'] else 'insufficient'}.</div></div>",unsafe_allow_html=True)
+                sa=scenario_action(sc["name"]); tone=sa["tone"]; c=COLORS[tone][0]
+                st.markdown(f"<div class='scenario' style='min-height:205px'><div>{badge(sc['family'],tone)}</div><div class='scenario-title' style='color:{c};font-size:.83rem'>{sc['name']}</div><div class='snum'>{sc['score']}/100</div><div class='snote'>Activation score · not probability · impact {sc['impact']} · {sc['direction']}</div><div class='scenario-note'><b>Live evidence:</b> {', '.join(sc['hits'][:3]) if sc['hits'] else 'insufficient'}.</div><div class='gate' style='margin-top:6px'><b>IF CONFIRMED → {sa['state']}</b><br>{sa['action']}</div></div>",unsafe_allow_html=True)
     else:
         st.success("No material event scenario is active from currently admitted feeds.")
 
@@ -883,8 +1104,8 @@ with tab_events:
 
     st.markdown("<div class='section'>Dominant transmission</div>",unsafe_allow_html=True)
     if event_scen:
-        top=event_scen[0]
-        st.markdown(f"<div class='panel'><div class='ptitle'>{top['name']}</div><div class='chain'>{top['transmission']}</div><div class='constraint-grid' style='margin-top:6px'>{constraint_card('CONFIRM', 'WATCH', top['confirms'], 'amber')}{constraint_card('INVALIDATE', 'BREAK', top['invalidates'], 'green')}{constraint_card('CONFIDENCE', top['confidence'], 'Activation is not political probability.', 'gray')}</div></div>",unsafe_allow_html=True)
+        top=event_scen[0]; ta=scenario_action(top["name"])
+        st.markdown(f"<div class='panel'><div class='ptitle'>{top['name']}</div><div class='chain'>{top['transmission']}</div><div class='constraint-grid' style='margin-top:6px'>{constraint_card('CONFIRM', 'WATCH', top['confirms'], 'amber')}{constraint_card('INVALIDATE', 'BREAK', top['invalidates'], 'green')}{constraint_card('ACTION IF CONFIRMED', ta['state'], ta['action'], ta['tone'])}</div><div class='gate' style='margin-top:6px'><b>Avoid:</b> {ta['avoid']} · Activation is not political probability.</div></div>",unsafe_allow_html=True)
     else:
         st.markdown("<div class='panel'><div class='ptitle'>No dominant event transmission</div><div class='chain'>Base macro path currently dominates the dashboard.</div></div>",unsafe_allow_html=True)
 
@@ -918,4 +1139,4 @@ with tab_research:
         with st.expander(f"Data / optional feed errors ({len(errors)})"):
             st.dataframe(pd.DataFrame([{"Source":k,"Error":v} for k,v in errors.items()]),use_container_width=True,hide_index=True)
 
-st.caption("Landing v4: one control room for plain-English state, explicit projection, adaptive scenarios, event override and crash anatomy. Numerical probabilities remain locked until proven out-of-sample.")
+st.caption("Landing v5: control room + action engine. NOW posture is live; future/scenario actions are conditional and only activate when their evidence is confirmed. Numerical macro/crash/event probabilities remain locked until proven out-of-sample.")

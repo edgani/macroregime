@@ -1,109 +1,35 @@
-# Opportunity Intelligence Engine v1.2 — Unified
+# Opportunity Intelligence Engine v1.5 — Auto Decision View
 
-Macro is now embedded in the same Streamlit app. There is no separate Macro Control Room page in the sidebar. Use the top in-app workspace navigation:
+## What changed
+- No scan button required. First load automatically scans every asset in the selected markets.
+- Market-selection changes automatically trigger a new scan.
+- Cached public data is reused for ~30 minutes; an optional manual refresh remains available.
+- Macro gate, market scan, and near-term scenario discovery run together.
+- Daily workflow is one `OPPORTUNITIES` workspace with expression sub-views:
+  - `BUY & HOLD · STOCKS`
+  - `SPOT / CASH`
+  - `LEVERAGED LONG / SHORT`
+  - `OPTIONS · CALL / PUT`
+  - `EARLY RADAR`
+- Causal chains and scenario branches only appear inside the selected opportunity when they materially affect the decision.
+- Options are only surfaced after a directional thesis gate; the selected US option candidate additionally checks live expiry, ATM IV, bid/ask spread, OI, and implied move. This is still research-gated, not a production option-pricing alpha model.
+- No classic technical indicators are used.
 
-- MACRO + ACTION
-- OPPORTUNITY CONTROL ROOM
-- CAUSAL CHAINS
-- AUTO SCENARIO DISCOVERY
-- HISTORICAL REPLAY
-- RESEARCH / GATES
+## Data behavior
+- US/IHSG equities: Yahoo market + public quarterly company financial metadata.
+- Crypto: CoinGecko market/supply first; DeFiLlama used for available protocol revenue economics.
+- FX/commodities: lightweight market-price/history adapter so startup does not waste company-financial calls.
+- Macro: embedded Macro + Action engine.
+- Scenario evidence: cached public news discovery.
 
-The macro action snapshot flows into the Opportunity Control Room as a gate/sizing-expression modifier.
-
-This version also fixes the `gap_rank` KeyError and defensively repairs stale session-state scan schemas.
-
-# Opportunity Intelligence Engine v1
-
-A causal-first multi-market opportunity scanner for:
-
-- US equities
-- IHSG equities (BUY/BUILD/HOLD/TRIM/SELL/AVOID only)
-- FX
-- commodities
-- crypto
-
-It is designed around **high recall in discovery** and **high precision before action**. It does **not** use classic technical indicators.
-
-## What is new
-
-### 1. Full causal-chain expansion
-The engine does not stop at the obvious asset. It maps:
-
-root shock/change → direct beneficiaries → second/third/fourth-order beneficiaries → new bottlenecks → losers → normalization/capacity response.
-
-The built-in graph includes AI/data-center compute, memory, networking, photonics/CPO, grid interconnection, transformers, switchgear, cables/copper, gas generation/turbines, nuclear/uranium, backup generation, cooling/liquid cooling, water, construction/EPC, powered land, war/oil/shipping/tankers/defense, CPO, crypto value capture, privacy/scarcity, FX intervention hazard, and ADES-style consumer/operating-leverage chains.
-
-### 2. Automatic scenario discovery
-The scanner runs broad news/theme queries rather than only named-ticker queries. It can:
-
-- map a recurring theme to an existing causal root;
-- generate a **NOVEL CLUSTER** when a recurring theme is not in the current library;
-- persist first-seen / last-seen scenario memory;
-- keep a novel scenario quarantined until a causal mechanism, confirmation and falsifier are established.
-
-No numerical event probability is invented.
-
-### 3. Projection + reverse valuation
-For live equity rows with sufficient public data the deep dive shows:
-
-- Bear / Base / Bull earnings-power projection;
-- peer-multiple anchored research fair-value range;
-- current price-implied EPS at the scanned peer median multiple;
-- expectation gap;
-- stage and research action state.
-
-These are intentionally labelled research ranges until the PIT/OOS valuation model is validated.
-
-### 4. Crypto economics
-The deep dive can query CoinGecko supply/FDV context and DefiLlama revenue data. Revenue is **not** a hard buy rule. The research design requires:
-
-usage → fees/revenue → tokenholder capture → dilution/unlocks → net accrual → price-in.
-
-This lets VVV-style value capture and ZEC-style usage/scarcity be discovered by different causal families.
-
-### 5. Historical acceptance tests
-Frozen cases:
-
-- SNDK — structural memory bottleneck
-- PLTR — product/adoption + sales-cycle inflection
-- VVV — revenue/value-capture inflection
-- ZEC — usage/scarcity inflection
-- USDJPY — policy intervention hazard
-- ADES — fundamental/operating-leverage inflection
-
-These cases are **tests only** and may never be used to tune thresholds. Negative controls and holdouts are mandatory before any production claim.
+Current-at-fetch is not the same as production-complete PIT coverage. Missing critical data lowers the action state rather than being filled with fake precision.
 
 ## Run
+Windows:
+`run_windows.bat`
 
-### Windows
-Double click `run_windows.bat`.
+Linux:
+`./run_linux.sh`
 
 Or:
-
-```bash
-python -m pip install -r requirements.txt
-python -m streamlit run app.py
-```
-
-### Linux / WSL
-
-```bash
-./run_linux.sh
-```
-
-## Pages
-
-The ZIP also contains `pages/2_Macro_Control_Room.py`, the latest Macro Control Room build, so Streamlit exposes it as a second page from the sidebar.
-
-## Important limitations
-
-This v1 is an inspectable working research product, not a claim that the full multi-market scanner is statistically proven. Production promotion still requires point-in-time data, negative controls, holdout winners, false-alarm accounting, lead-time analysis and purged/embargoed OOS validation.
-
-## v1.1 startup/runtime fix
-
-- Fixed `UnserializableReturnValueError` from `st.cache_data`: the Yahoo adapter now caches only a plain dictionary, never the custom `AssetSnapshot` dataclass.
-- Live ticker scan no longer runs during app startup. Press **Run / refresh live scan** after the UI loads.
-- Auto Scenario Discovery no longer fires 4–15 external news queries on every Streamlit rerun/tab render. Press **Run live scenario discovery** when needed.
-- Added `pyarrow<25` plus Python 3.12 preference files for safer cloud deployment.
-- Result: both local and cloud deployments should render the UI immediately instead of sitting in a startup spinner while external APIs are queried.
+`python -m streamlit run app.py`

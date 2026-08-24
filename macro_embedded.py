@@ -823,6 +823,69 @@ def constraint_card(title: str, value: str, note: str, tone: str) -> str:
 
 
 
+
+def compute_macro_gate_snapshot(refresh: bool=False):
+    """Compute the compact macro gate without rendering the full macro dashboard."""
+    if refresh:
+        for _fn in [fetch_fred, fetch_research_csv, fetch_treasury_debt, fetch_yahoo, fetch_ai_gpr_monthly]:
+            try: _fn.clear()
+            except Exception: pass
+    data, research, market, gpr_df, treasury_debt_tn, treasury_debt_date, errors = load_all()
+    bbk_gdp, _ = latest(data.get("BBKMGDP")); bbk_co, _ = latest(data.get("BBKMCOIX")); bbk_lead, _ = latest(data.get("BBKMLEIX")); wei, _ = latest(data.get("WEI"))
+    trimmed, _ = latest(data.get("PCETRIM12M159SFRBDAL")); core_pce = yoy_from_index(data.get("PCEPILFE")); trimmed_3m = lag_value(data.get("PCETRIM12M159SFRBDAL"), 3); core_3m = yoy_at_lag(data.get("PCEPILFE"), 3)
+    sahm, _ = latest(data.get("SAHMREALTIME")); claims, _ = latest(data.get("ICSA")); claims_3m = months_ago(data.get("ICSA"), 3)
+    nfci, _ = latest(data.get("NFCIRISK")); vix, _ = latest(data.get("VIXCLS")); hy, _ = latest(data.get("BAMLH0A0HYM2")); hy_3m = months_ago(data.get("BAMLH0A0HYM2"), 3)
+    d10, _ = latest(data.get("DGS10")); d2, _ = latest(data.get("DGS2")); term_premium, _ = latest(data.get("THREEFYTP10")); breakeven, _ = latest(data.get("T5YIE"))
+    oil, _ = latest(data.get("DCOILWTICO")); oil_3m = months_ago(data.get("DCOILWTICO"), 3); oil_chg_3m = (oil/oil_3m-1)*100 if np.isfinite(oil) and np.isfinite(oil_3m) and oil_3m!=0 else np.nan
+    debt_gdp, _ = latest(data.get("GFDEGDQ188S")); deficit_gdp, _ = latest(data.get("FYFSGDA188S")); interest_gdp, _ = latest(data.get("FYOIGDA188S"))
+    gscpi, _ = latest(data.get("GSCPI")); gscpi_delta = level_change_over(data.get("GSCPI"), 3)
+    epu, _ = latest(data.get("USEPUINDXD")); epu_pct = hist_pct(data.get("USEPUINDXD"), 10); gpr=gpr_readings(gpr_df)
+    ebp_prob=ebp=np.nan
+    if "EBP" in research and not research["EBP"].empty:
+        edf=research["EBP"].copy()
+        for c in ["ebp","est_prob"]:
+            if c in edf: edf[c]=pd.to_numeric(edf[c],errors="coerce")
+        ec=edf.dropna(subset=["est_prob"])
+        if len(ec): ebp_prob=float(ec.iloc[-1]["est_prob"])*100; ebp=float(ec.iloc[-1]["ebp"])
+    fcig=np.nan
+    if "FCIG" in research and not research["FCIG"].empty:
+        fdf=research["FCIG"].copy(); fcol=next((c for c in fdf.columns if c.startswith("FCI-G Index")),None)
+        if fcol:
+            fdf[fcol]=pd.to_numeric(fdf[fcol],errors="coerce"); fc=fdf.dropna(subset=[fcol])
+            if len(fc): fcig=float(fc.iloc[-1][fcol])
+    growth,growth_tone=growth_state(bbk_gdp,bbk_co,wei); lead,lead_tone=lead_state(bbk_lead); inflation,inflation_tone,inflation_dir=inflation_state(trimmed,core_pce,trimmed_3m,core_3m); regime=regime_name(growth,inflation_dir)
+    lead_delta=bbk_lead-lag_value(data.get("BBKMLEIX"),1) if np.isfinite(bbk_lead) and np.isfinite(lag_value(data.get("BBKMLEIX"),1)) else np.nan
+    credit_tone="red" if (np.isfinite(ebp_prob) and ebp_prob>=35) else ("amber" if np.isfinite(hy) and np.isfinite(hy_3m) and hy>hy_3m else "green")
+    credit_state="STRESS" if credit_tone=="red" else ("WIDENING / WATCH" if credit_tone=="amber" else "CALM")
+    stress_score=np.nanmean([hist_pct(data.get("VIXCLS")),hist_pct(data.get("NFCIRISK")),hist_pct(data.get("BAMLH0A0HYM2"))]); fragility_score=np.nanmean([hist_pct(data.get("DGS10")),hist_pct(data.get("THREEFYTP10")),hist_pct(data.get("BAMLH0A0HYM2"))])
+    if not np.isfinite(stress_score): stress_score=50.0
+    if not np.isfinite(fragility_score): fragility_score=50.0
+    crash_state,crash_tone,crash_explain=crash_state_name(stress_score,fragility_score)
+    fiscal_score=fiscal_constraint_score(debt_gdp,deficit_gdp,interest_gdp,term_premium)
+    energy_score=energy_pressure_score(hist_pct(data.get("DCOILWTICO")),oil_chg_3m,hist_pct(data.get("T5YIE")))
+    rates_score=np.nanmean([hist_pct(data.get("DGS10")),hist_pct(data.get("THREEFYTP10"))]); credit_score=np.nanmean([hist_pct(data.get("BAMLH0A0HYM2")),ebp_prob]); funding_score=np.nanmean([hist_pct(data.get("NFCIRISK")),hist_pct(data.get("VIXCLS"))]); geo_score=np.nanmean([gpr.get("gpr_pct",np.nan),hist_pct(data.get("USEPUINDXD"),10)])
+    spy,iwm,rsp=market.get("SPY"),market.get("IWM"),market.get("RSP"); spy_ath,iwm_ath,rsp_ath=dist_to_ath(spy),dist_to_ath(iwm),dist_to_ath(rsp); iwm_rel=relative_change(iwm,spy,3); rsp_rel=relative_change(rsp,spy,3)
+    if all(np.isfinite(x) for x in [spy_ath,iwm_ath,rsp_ath]) and spy_ath>=-1.5 and iwm_ath>=-1.5 and rsp_ath>=-1.5: market_structure="BROAD ATH / BROADENING"
+    elif np.isfinite(spy_ath) and spy_ath>=-1.5 and ((np.isfinite(iwm_ath) and iwm_ath<-5) or (np.isfinite(rsp_ath) and rsp_ath<-5)): market_structure="NARROW LEADERSHIP"
+    elif np.isfinite(iwm_rel) and np.isfinite(rsp_rel) and iwm_rel>0 and rsp_rel>0: market_structure="BREADTH IMPROVING"
+    elif np.isfinite(iwm_rel) and np.isfinite(rsp_rel) and iwm_rel<0 and rsp_rel<0: market_structure="BREADTH DETERIORATING"
+    else: market_structure="MIXED / OPTIONAL FEED"
+    plain_state,plain_explain=plain_regime(growth,lead,credit_tone,stress_score)
+    scenarios=adaptive_scenarios(growth=growth,lead_value=bbk_lead,lead_delta=lead_delta,wei=wei,inflation_dir=inflation_dir,claims=claims,claims_3m=claims_3m,ebp_prob=ebp_prob,hy=hy,hy_3m=hy_3m,fcig=fcig,market_structure=market_structure,fiscal_score=fiscal_score,rates_score=rates_score,energy_score=energy_score,funding_score=funding_score,gpr_pct=gpr.get("gpr_pct",np.nan),gpr_change=gpr.get("gpr_change",np.nan),gscpi=gscpi,gscpi_delta=gscpi_delta,epu_pct=epu_pct,spy_ath=spy_ath,interest_gdp=interest_gdp,stress_score=stress_score,fragility_score=fragility_score,credit_score=credit_score)
+    macro_scen=[x for x in scenarios if x["family"] in ["Macro","Positive"]][:3]; event_scen=[x for x in scenarios if x["family"] in ["Geopolitical","Fiscal"] and x["score"]>=25][:4]
+    override_candidates=[x for x in event_scen if x["score"]>=50]; event_override=override_candidates[0] if override_candidates else None
+    action_now=action_state_engine(plain_state=plain_state,growth=growth,lead_value=bbk_lead,inflation_dir=inflation_dir,credit_tone=credit_tone,stress_score=stress_score,fragility_score=fragility_score,fcig=fcig,event_override=event_override,market_structure=market_structure,rates_score=rates_score,fiscal_score=fiscal_score)
+    horizon_actions=horizon_action_plan(current=action_now,growth=growth,lead_value=bbk_lead,inflation_dir=inflation_dir,credit_tone=credit_tone)
+    snapshot={
+        "action_label":action_now.get("label"),"action_tone":action_now.get("tone"),"action_score":action_now.get("score"),"headline":action_now.get("headline"),
+        "regime":plain_state,"regime_explain":plain_explain,"crash_state":crash_state,"crash_tone":crash_tone,"credit_state":credit_state,"market_structure":market_structure,
+        "event_override":event_override.get("name") if event_override else None,"event_override_score":event_override.get("score") if event_override else None,"horizon_actions":horizon_actions,
+        "macro_scenarios":macro_scen,"event_scenarios":event_scen,"data_errors":errors,"refreshed_at_utc":pd.Timestamp.utcnow().isoformat(),
+    }
+    st.session_state["macro_gate_snapshot"]=snapshot
+    return snapshot
+
+
 def render_macro_control_room():
     # ----------------------------- LOAD -----------------------------
     _refresh_col, _gate_col = st.columns([1, 3])

@@ -64,7 +64,64 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-from macro_embedded import render_macro_control_room, compute_macro_gate_snapshot
+# Macro module is optional-safe at import time so a stale/mismatched deploy cannot blank the whole app.
+try:
+    import macro_embedded as _macro_module
+    _macro_import_error = ""
+except Exception as _macro_exc:
+    _macro_module = None
+    _macro_import_error = f"{type(_macro_exc).__name__}: {_macro_exc}"
+
+def _macro_gate_fallback(error: str = "") -> Dict[str, Any]:
+    """Fail closed: keep the scanner alive but never upgrade risk if macro is unavailable."""
+    snap = {
+        "action_label": "HOLD / MACRO GATED",
+        "action_tone": "gray",
+        "action_score": 50,
+        "headline": "Macro feed unavailable; leverage upgrades disabled until the live macro gate returns.",
+        "regime": "MACRO GATED",
+        "regime_explain": "Opportunity discovery can continue, but sizing/expression must remain conservative.",
+        "crash_state": "GATED",
+        "crash_tone": "gray",
+        "credit_state": "GATED",
+        "market_structure": "GATED",
+        "event_override": None,
+        "event_override_score": None,
+        "horizon_actions": [],
+        "macro_scenarios": [],
+        "event_scenarios": [],
+        "data_errors": {"macro_module": error or "macro module unavailable"},
+        "refreshed_at_utc": pd.Timestamp.utcnow().isoformat(),
+    }
+    st.session_state["macro_gate_snapshot"] = snap
+    if error:
+        st.session_state["macro_refresh_error"] = error
+    return snap
+
+def safe_compute_macro_gate_snapshot(refresh: bool = False) -> Dict[str, Any]:
+    fn = getattr(_macro_module, "compute_macro_gate_snapshot", None) if _macro_module is not None else None
+    if not callable(fn):
+        detail = _macro_import_error or "macro_embedded.py is stale/missing compute_macro_gate_snapshot()"
+        return _macro_gate_fallback(detail)
+    try:
+        return fn(refresh=refresh)
+    except Exception as exc:
+        return _macro_gate_fallback(f"{type(exc).__name__}: {exc}")
+
+def safe_render_macro_control_room() -> None:
+    fn = getattr(_macro_module, "render_macro_control_room", None) if _macro_module is not None else None
+    if not callable(fn):
+        snap = _macro_gate_fallback(_macro_import_error or "macro_embedded.py is stale/missing render_macro_control_room()")
+        st.error("Macro module mismatch detected. The app stays online in MACRO GATED mode; deploy app.py and macro_embedded.py from the same bundle.")
+        st.json({k: snap.get(k) for k in ["action_label","regime","crash_state","credit_state"]})
+        return
+    try:
+        fn()
+    except Exception as exc:
+        snap = _macro_gate_fallback(f"{type(exc).__name__}: {exc}")
+        st.error("Live macro rendering failed, so the app switched to MACRO GATED mode instead of crashing.")
+        st.caption(str(exc))
+        st.json({k: snap.get(k) for k in ["action_label","regime","crash_state","credit_state"]})
 
 HEADERS = {
     "User-Agent": "OpportunityIntelligence/1.0 research-dashboard contact=local-user",
@@ -1134,7 +1191,7 @@ def _run_intelligence(scan_input: pd.DataFrame, scan_signature: Tuple[Any,...], 
             try: _fn.clear()
             except Exception: pass
     try:
-        compute_macro_gate_snapshot(refresh=force)
+        safe_compute_macro_gate_snapshot(refresh=force)
     except Exception as exc:
         st.session_state["macro_refresh_error"] = str(exc)
     fresh=build_snapshot_frame(scan_input,max_assets=max_assets) if not scan_input.empty else pd.DataFrame()
@@ -1367,7 +1424,7 @@ expr=_expression_tables(ranked,mg)
 nav=st.radio("Workspace",["OPPORTUNITIES","MACRO DETAILS","RESEARCH / REPLAY"],horizontal=True,label_visibility="collapsed",key="decision_nav_v15")
 
 if nav=="MACRO DETAILS":
-    render_macro_control_room()
+    safe_render_macro_control_room()
 
 elif nav=="RESEARCH / REPLAY":
     st.markdown("<div class='section'>Research gates / historical replay</div>",unsafe_allow_html=True)

@@ -1,5 +1,5 @@
 family,source,coverage,role
-US fundamentals,SEC EDGAR / company filings,US equities,point-in-time primary-source fundamentals when adapter is enabled
+US fundamentals,SEC EDGAR / company filings,US equities,PLANNED / NOT YET WIRED — point-in-time primary-source fundamentals
 Market data,Yahoo Finance via yfinance,US/IHSG/FX/commodities/crypto,price and public financial metadata; price is context not technical signal
 Crypto economics,DefiLlama,Crypto,protocol fees/revenue/value-capture candidates
 Crypto supply,CoinGecko,Crypto,market cap/FDV/circulating and max-supply context

@@ -37,7 +37,7 @@ except Exception:
     yf = None
 
 # ============================================================
-# OPPORTUNITY INTELLIGENCE ENGINE v1.5 AUTO DECISION VIEW
+# OPPORTUNITY INTELLIGENCE ENGINE v1.7 BEGINNER DECISION VIEW
 # ------------------------------------------------------------
 # Goal: high-recall discovery of exceptional opportunities, then
 # high-precision confirmation. No classic technical indicators.
@@ -227,10 +227,11 @@ header[data-testid="stHeader"]{background:transparent}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.card{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:9px;min-height:104px}.ct{font-size:.69rem;font-weight:840}.cn{font-size:.60rem;color:#8f9cad;line-height:1.28;margin-top:4px}
 .small{font-size:.60rem;color:#8f9cad;line-height:1.32}.big{font-size:1.28rem;font-weight:860}.muted{color:#8f9cad}.row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.055);font-size:.65rem}.row:last-child{border-bottom:none}.right{text-align:right}
 .chainbox{padding:8px 9px;border:1px solid var(--border);border-radius:10px;background:#0c131d;font-size:.64rem;line-height:1.45;color:#d3dde8}.gate{border:1px solid #39485c;border-radius:9px;background:rgba(80,97,126,.10);padding:7px 8px;color:#aeb9c8;font-size:.60rem;line-height:1.3}
+.plainbox{border:1px solid var(--border);border-radius:12px;background:#0c131d;padding:10px 12px;font-size:.73rem;line-height:1.45;color:#dbe6f2}.plainbox b{color:#fff}.decision-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.decision-card{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:9px;min-height:80px}.dv{font-size:.82rem;font-weight:850;margin-top:4px}.dn{font-size:.58rem;color:#8f9cad;line-height:1.28;margin-top:3px}.info4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.info-card{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:9px;min-height:105px}.info-title{font-size:.64rem;font-weight:850}.info-text{font-size:.60rem;color:#9aa7b7;line-height:1.38;margin-top:5px}.top3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.topopp{border:1px solid var(--border);border-radius:12px;background:linear-gradient(180deg,#111925,#0c131d);padding:10px;min-height:94px}.topopp .sym{font-size:1.0rem;font-weight:880}.topopp .why{font-size:.60rem;color:#91a0b1;line-height:1.32;margin-top:4px}
 .stagebar{display:flex;gap:4px;align-items:center;flex-wrap:wrap}.stage{padding:4px 7px;border-radius:8px;font-size:.58rem;font-weight:820;border:1px solid var(--border);background:#0c131d}.stage.on{box-shadow:0 0 0 1px rgba(255,255,255,.06) inset}
 .matrix{width:100%;border-collapse:separate;border-spacing:4px}.matrix th{font-size:.55rem;color:#8291a4;text-transform:uppercase;letter-spacing:.05em;text-align:left}.matrix td{border:1px solid var(--border);border-radius:8px;padding:7px;background:#0c131d;vertical-align:top}.mv{font-size:.67rem;font-weight:830}.mn{font-size:.55rem;color:#8d9aac;margin-top:2px}
 div[data-baseweb="tab-list"]{gap:6px}button[data-baseweb="tab"]{height:34px;font-size:.71rem}
-@media(max-width:1000px){.kpis,.grid3{grid-template-columns:1fr 1fr}}
+@media(max-width:1000px){.kpis,.grid3,.decision-grid,.info4,.top3{grid-template-columns:1fr 1fr}}
 </style>
 """,
     unsafe_allow_html=True,
@@ -1224,6 +1225,70 @@ def _macro_allows_long_leverage(mg: Dict[str,Any]) -> bool:
     return not any(k in label for k in ["DEFENSIVE","CRISIS"]) and "CRASH DANGER" not in crash
 
 
+def _plain_horizon(row: pd.Series, kind: str = "") -> str:
+    stage=str(row.get("stage","")).upper()
+    market=str(row.get("market","")).upper()
+    if "HIGH-CONVICTION" in stage: return "2Q–2Y" if market in ["US","IHSG","CRYPTO"] else "days–1Q"
+    if "CONFIRMED" in stage: return "1–4Q" if market in ["US","IHSG","CRYPTO"] else "days–1Q"
+    if "WATCH" in stage: return "1–2Q"
+    return "early / wait"
+
+
+def _conviction_label(row: pd.Series) -> str:
+    ev=int(safe_float(row.get("evidence_families")) if np.isfinite(safe_float(row.get("evidence_families"))) else 0)
+    q=str(row.get("data_quality","LOW")).upper()
+    if ev>=4 and q=="HIGH": return "HIGH"
+    if ev>=3 and q in ["HIGH","MEDIUM"]: return "MED-HIGH"
+    if ev>=2 and q=="HIGH": return "MEDIUM"
+    return "LOW / EARLY"
+
+
+def _asymmetry_label(row: pd.Series, val: Dict[str,Any]) -> str:
+    px=safe_float(row.get("price")); fv=safe_float(val.get("fv_base")) if val else np.nan
+    gap=safe_float(val.get("expectation_gap")) if val else np.nan
+    if np.isfinite(px) and px>0 and np.isfinite(fv):
+        up=fv/px-1
+        if up>=0.50 and _conviction_label(row) in ["HIGH","MED-HIGH"]: return "HIGH"
+        if up>=0.20: return "POSITIVE"
+        if up<=-0.20: return "NEGATIVE"
+    if np.isfinite(gap) and gap>=0.25: return "POSITIVE"
+    return "MIXED"
+
+
+def _why_now_compact(row: pd.Series) -> str:
+    bits=[]
+    rg=safe_float(row.get("revenue_growth_yoy")); eg=safe_float(row.get("eps_growth_yoy")); gm=safe_float(row.get("gross_margin_change")); fcf=safe_float(row.get("fcf_growth_yoy"))
+    if np.isfinite(rg): bits.append((abs(rg), f"revenue {'accelerating' if rg>0 else 'weakening'} {pct(rg)}"))
+    if np.isfinite(eg): bits.append((abs(eg), f"EPS {'accelerating' if eg>0 else 'weakening'} {pct(eg)}"))
+    if np.isfinite(gm): bits.append((abs(gm)*2, f"gross margin {'expanding' if gm>0 else 'compressing'} {pct(gm)}"))
+    if np.isfinite(fcf): bits.append((abs(fcf), f"FCF {'improving' if fcf>0 else 'weakening'} {pct(fcf)}"))
+    bits=sorted(bits,key=lambda x:x[0],reverse=True)
+    if bits: return "; ".join(x[1] for x in bits[:2])
+    note=str(row.get("notes","") or "").replace("acceptance test only; ","").strip()
+    return note if note else "Early evidence; needs deeper causal confirmation"
+
+
+def _macro_fit(mg: Dict[str,Any], direction: str="LONG") -> str:
+    label=str(mg.get("action_label","MACRO GATED")).upper(); crash=str(mg.get("crash_state",""))
+    if "MACRO GATED" in label: return "GATED"
+    if direction=="LONG" and any(k in label for k in ["DEFENSIVE","CRISIS"]): return "HEADWIND"
+    if direction=="SHORT" and any(k in label for k in ["DEFENSIVE","CRISIS"]): return "TAILWIND"
+    if "RISK-ON" in label: return "TAILWIND" if direction=="LONG" else "HEADWIND"
+    return "NEUTRAL / SELECTIVE"
+
+
+def _plain_action_from_row(row: pd.Series, kind: str) -> str:
+    research=str(row.get("research_action","")).upper(); stage=str(row.get("stage","")).upper()
+    if kind=="buyhold":
+        if "SELL" in research or "AVOID" in research: return "TRIM / SELL / AVOID"
+        if "BUILD" in research and ("CONFIRMED" in stage or "HIGH-CONVICTION" in stage): return "BUY / BUILD"
+        if "SELECTIVE ADD" in research and "WATCH" in stage: return "WATCH · WAIT CONFIRMATION"
+        if "SELECTIVE ADD" in research: return "SELECTIVE ADD"
+        if "HOLD" in research: return "HOLD · WAIT BETTER PRICE"
+        return "WATCH"
+    return str(row.get("expression",row.get("research_action","WATCH")))
+
+
 def _expression_tables(ranked: pd.DataFrame, mg: Dict[str,Any]) -> Dict[str,pd.DataFrame]:
     if ranked.empty:
         empty=pd.DataFrame()
@@ -1233,19 +1298,18 @@ def _expression_tables(ranked: pd.DataFrame, mg: Dict[str,Any]) -> Dict[str,pd.D
     qual=out.get("data_quality",pd.Series(index=out.index,dtype=str)).fillna("LOW").astype(str)
     ev=pd.to_numeric(out.get("evidence_families",0),errors="coerce").fillna(0)
     det=pd.to_numeric(out.get("deterioration_families",0),errors="coerce").fillna(0)
-    gap=pd.to_numeric(out.get("expectation_gap",np.nan),errors="coerce")
 
-    # Long-duration stock ownership: only US/IHSG, no short/leverage assumption.
-    buyhold=out[out["market"].isin(["US","IHSG"]) & action.str.contains("BUILD|SELECTIVE ADD|HOLD",regex=True,na=False)].copy()
+    # Ownership view includes both entry and exit states. IHSG remains cash-only.
+    buyhold=out[out["market"].isin(["US","IHSG"]) & action.str.contains("BUILD|SELECTIVE ADD|HOLD|SELL|AVOID",regex=True,na=False)].copy()
     if not buyhold.empty:
-        buyhold["expression"]=["BUY / BUILD" if "BUILD" in a else ("ACCUMULATE" if "SELECTIVE" in a else "HOLD / WAIT BETTER PRICE") for a in buyhold["research_action"].astype(str)]
+        buyhold["expression"]=[_plain_action_from_row(r,"buyhold") for _,r in buyhold.iterrows()]
 
-    # Cash/spot expressions for non-stock markets. No forced trade if causal confirmation is weak.
-    spot=out[out["market"].isin(["Crypto","FX","Commodity"]) & action.str.contains("BUILD|SELECTIVE ADD|HOLD|BEARISH",regex=True,na=False)].copy()
+    # Cash/spot expressions for crypto / FX / commodities.
+    spot=out[out["market"].isin(["Crypto","FX","Commodity"]) & action.str.contains("BUILD|SELECTIVE ADD|HOLD|BEARISH|SELL|SHORT",regex=True,na=False)].copy()
     if not spot.empty:
-        spot["expression"]=["SPOT LONG" if any(k in a for k in ["BUILD","SELECTIVE ADD"]) else ("SPOT / CASH HOLD" if "HOLD" in a else "BEARISH / AVOID") for a in spot["research_action"].astype(str)]
+        spot["expression"]=["SPOT LONG / BUILD" if any(k in a for k in ["BUILD","SELECTIVE ADD"]) else ("HOLD / CASH" if "HOLD" in a else "BEARISH / AVOID") for a in spot["research_action"].astype(str)]
 
-    # Leverage is earned, never the default. IHSG excluded by user constraint.
+    # Leverage must be earned. IHSG is excluded by design.
     long_ok=action.str.contains("BUILD",na=False) & (ev>=3) & qual.eq("HIGH") & _macro_allows_long_leverage(mg)
     short_ok=action.str.contains("SHORT|SELL|BEARISH",regex=True,na=False) & (det>=3) & qual.eq("HIGH")
     lev=out[(out["market"]!="IHSG") & (long_ok|short_ok)].copy()
@@ -1253,33 +1317,50 @@ def _expression_tables(ranked: pd.DataFrame, mg: Dict[str,Any]) -> Dict[str,pd.D
         lev["expression"]=["LEVERAGED LONG" if "BUILD" in a else "LEVERAGED SHORT" for a in lev["research_action"].astype(str)]
         lev["risk_gate"]="EARNED / RESEARCH"
 
-    # Options are a directional thesis shortlist; live IV/liquidity is fetched only for the selected detail.
+    # Options shortlist only; live IV/liquidity is checked after selection.
     opt=out[(out["market"]=="US") & ((action.str.contains("BUILD",na=False) & (ev>=3) & qual.eq("HIGH")) | (action.str.contains("SHORT|SELL",regex=True,na=False) & (det>=3) & qual.eq("HIGH")))].copy()
     if not opt.empty:
         opt["expression"]=["CALL CANDIDATE" if "BUILD" in a else "PUT CANDIDATE" for a in opt["research_action"].astype(str)]
         opt["option_edge"]="CHECK LIVE IV / LIQUIDITY"
 
-    radar=out[~out.index.isin(pd.concat([buyhold,spot,lev,opt],axis=0).index if any(not x.empty for x in [buyhold,spot,lev,opt]) else [])].copy()
-    radar=radar.head(12)
+    used=set(pd.concat([x for x in [buyhold,spot,lev,opt] if not x.empty],axis=0).index.tolist()) if any(not x.empty for x in [buyhold,spot,lev,opt]) else set()
+    radar=out[~out.index.isin(used)].copy().head(15)
     return {"buyhold":buyhold,"spot":spot,"leverage":lev,"options":opt,"radar":radar}
-
 
 def _display_scoreboard(df: pd.DataFrame, kind: str) -> None:
     if df.empty:
         st.markdown(f"<div class='gate'><b>NO QUALIFIED {kind.upper()} OPPORTUNITY RIGHT NOW.</b> The engine does not manufacture a trade when evidence, valuation or data coverage is insufficient.</div>",unsafe_allow_html=True)
         return
     rows=[]
-    for _,r in df.head(10).iterrows():
+    k=kind.upper()
+    for _,r in df.head(14).iterrows():
         val=valuation_projection(df,r) if str(r.get("market")) in ["US","IHSG"] else {}
         pin,_=price_in_label(val)
-        rows.append({
-            "market":r.get("market"),"symbol":r.get("symbol"),"name":r.get("name"),
-            "ACTION":r.get("expression",r.get("research_action")),"stage":r.get("stage"),
-            "price":r.get("price"),"price-in":pin if val else "asset-class model",
-            "evidence":r.get("evidence_families"),"data":r.get("data_quality")
-        })
-    st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True)
-
+        px=safe_float(r.get("price")); base=safe_float(val.get("fv_base")) if val else np.nan
+        upside=base/px-1 if np.isfinite(base) and np.isfinite(px) and px>0 else np.nan
+        common={
+            "Market":r.get("market"),"Ticker":r.get("symbol"),"Name":r.get("name"),
+            "Action":_plain_action_from_row(r,"buyhold") if "BUY & HOLD" in k else r.get("expression",r.get("research_action")),
+            "Why now":_why_now_compact(r),"Price":r.get("price"),"Horizon":_plain_horizon(r,k),"Conviction":_conviction_label(r),
+        }
+        if "BUY & HOLD" in k:
+            common.update({"Base FV":base,"Base upside":upside,"Price-in":pin})
+        elif "LEVERAGED" in k:
+            direction="SHORT" if "SHORT" in str(common["Action"]) else "LONG"
+            common.update({"Macro fit":_macro_fit(st.session_state.get("macro_gate_snapshot",{}) or {},direction),"Risk gate":r.get("risk_gate","EARNED / RESEARCH")})
+        elif "OPTIONS" in k:
+            common.update({"Price-in":pin if val else "valuation model gated","Option check":r.get("option_edge","live chain after selection")})
+        elif "EARLY" in k:
+            common.update({"Stage":r.get("stage"),"Needs": "more causal + valuation confirmation"})
+        else:
+            common.update({"Stage":r.get("stage")})
+        rows.append(common)
+    show=pd.DataFrame(rows)
+    st.dataframe(show,use_container_width=True,hide_index=True,column_config={
+        "Price":st.column_config.NumberColumn(format="%.2f"),
+        "Base FV":st.column_config.NumberColumn(format="%.2f"),
+        "Base upside":st.column_config.NumberColumn(format="%.1f%%"),
+    })
 
 def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[str,Any], view_kind: str) -> None:
     query=f"{row.get('name','')} {row.get('symbol','')} shortage capacity pricing adoption revenue contract backlog demand supply buyback burn intervention"
@@ -1287,52 +1368,77 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
     root=infer_specific_root(str(row.get("name","")),str(row.get("symbol","")),ev)
     val=valuation_projection(ranked,row) if str(row.get("market")) in ["US","IHSG"] else {}
     pin,pintone=price_in_label(val)
-    action=str(row.get("expression",row.get("research_action","WATCH")))
-    atone="green" if any(x in action for x in ["BUILD","LONG","CALL","ACCUMULATE"]) else ("red" if any(x in action for x in ["SELL","SHORT","PUT","BEARISH"]) else "amber")
-    st.markdown(f"<div class='action'><div class='kicker'>ACTION NOW</div><h3 style='color:{COLORS[atone][0]}'>{action}</h3><p>{opportunity_thesis_summary(row,ev,root)}<br><b>Stage:</b> {row.get('stage','—')} · <b>Data:</b> {row.get('data_quality','—')} · <b>Price-in:</b> {pin}</p></div>",unsafe_allow_html=True)
+    action=_plain_action_from_row(row,"buyhold") if view_kind=="BUYHOLD" else str(row.get("expression",row.get("research_action","WATCH")))
+    atone="green" if any(x in action for x in ["BUILD","LONG","CALL","SELECTIVE ADD"]) else ("red" if any(x in action for x in ["SELL","SHORT","PUT","BEARISH"]) else "amber")
+    thesis=opportunity_thesis_summary(row,ev,root)
+    conf=_conviction_label(row); horizon=_plain_horizon(row,view_kind); asym=_asymmetry_label(row,val)
+    px=safe_float(row.get("price")); base=safe_float(val.get("fv_base")) if val else np.nan; bull=safe_float(val.get("fv_bull")) if val else np.nan; bear=safe_float(val.get("fv_bear")) if val else np.nan
+    upside=base/px-1 if np.isfinite(base) and np.isfinite(px) and px>0 else np.nan
+    branches=adaptive_scenario_branches(root)
+    falsifier=str(branches.iloc[0].get("falsifier","Needs causal invalidation rule")) if not branches.empty else "Critical thesis input reverses or data stops confirming."
+    huge=str(branches.iloc[0].get("economic_projection","Economics accelerate faster/longer than market expects")) if not branches.empty else "Fundamentals accelerate faster and stay durable longer than priced."
+
+    st.markdown(f"<div class='plainbox'><b>{row.get('symbol')} · {row.get('name')}</b><br>{thesis}</div>",unsafe_allow_html=True)
+    cards="<div class='decision-grid'>"
+    cards+=f"<div class='decision-card'><div class='kicker'>ACTION NOW</div><div class='dv' style='color:{COLORS[atone][0]}'>{action}</div><div class='dn'>What to do with this asset now.</div></div>"
+    cards+=f"<div class='decision-card'><div class='kicker'>CURRENT PRICE</div><div class='dv'>{fmt_money(px)}</div><div class='dn'>Latest scanned price.</div></div>"
+    cards+=f"<div class='decision-card'><div class='kicker'>BASE FAIR VALUE</div><div class='dv'>{fmt_money(base) if np.isfinite(base) else 'GATED'}</div><div class='dn'>Research range, not a precise target.</div></div>"
+    cards+=f"<div class='decision-card'><div class='kicker'>BASE UPSIDE</div><div class='dv'>{pct(upside) if np.isfinite(upside) else 'GATED'}</div><div class='dn'>Versus current price.</div></div>"
+    cards+=f"<div class='decision-card'><div class='kicker'>HORIZON</div><div class='dv'>{horizon}</div><div class='dn'>When thesis should resolve.</div></div>"
+    cards+=f"<div class='decision-card'><div class='kicker'>CONVICTION</div><div class='dv'>{conf}</div><div class='dn'>Evidence + data quality, not probability.</div></div>"
+    cards+="</div>"
+    st.markdown(cards,unsafe_allow_html=True)
+
+    st.markdown("<div class='section'>Read this before the numbers</div>",unsafe_allow_html=True)
+    info="<div class='info4'>"
+    info+=f"<div class='info-card'><div class='info-title'>WHY NOW?</div><div class='info-text'>{_why_now_compact(row)}</div></div>"
+    info+=f"<div class='info-card'><div class='info-title'>WHAT MAY BE MISPRICED?</div><div class='info-text'>{pin}. Base expectation gap: {pct(val.get('expectation_gap',np.nan)) if val else 'asset-class model gated'}.</div></div>"
+    info+=f"<div class='info-card'><div class='info-title'>WHAT CAN MAKE IT MUCH BIGGER?</div><div class='info-text'>{huge}</div></div>"
+    info+=f"<div class='info-card'><div class='info-title'>WHAT KILLS THE THESIS?</div><div class='info-text'>{falsifier}</div></div>"
+    info+="</div>"
+    st.markdown(info,unsafe_allow_html=True)
 
     if str(row.get("market")) in ["US","IHSG"]:
         proj=pd.DataFrame([
-            ["Bear",pct(val.get("g_bear",np.nan)),fmt_num(val.get("bear_eps",np.nan),2),fmt_money(val.get("fv_bear",np.nan))],
-            ["Base",pct(val.get("g_base",np.nan)),fmt_num(val.get("base_eps",np.nan),2),fmt_money(val.get("fv_base",np.nan))],
-            ["Bull",pct(val.get("g_bull",np.nan)),fmt_num(val.get("bull_eps",np.nan),2),fmt_money(val.get("fv_bull",np.nan))],
-        ],columns=["Scenario","Earnings-power change","Projected NTM EPS","Research FV"])
-        st.markdown("**Projection / what today's price already assumes**")
+            ["Bear",pct(val.get("g_bear",np.nan)),fmt_num(val.get("bear_eps",np.nan),2),fmt_money(bear), pct(bear/px-1) if np.isfinite(bear) and np.isfinite(px) and px>0 else "—"],
+            ["Base",pct(val.get("g_base",np.nan)),fmt_num(val.get("base_eps",np.nan),2),fmt_money(base), pct(upside) if np.isfinite(upside) else "—"],
+            ["Bull",pct(val.get("g_bull",np.nan)),fmt_num(val.get("bull_eps",np.nan),2),fmt_money(bull), pct(bull/px-1) if np.isfinite(bull) and np.isfinite(px) and px>0 else "—"],
+        ],columns=["Scenario","Earnings change","Projected NTM EPS","Research fair value","vs current"])
+        st.markdown("**Projection / fair value / what today's price assumes**")
         st.dataframe(proj,use_container_width=True,hide_index=True)
-        st.caption(f"Current price implies ~{fmt_num(val.get('implied_eps',np.nan),2)} EPS at the scanned peer median multiple; base projection ~{fmt_num(val.get('base_eps',np.nan),2)}. Research expectation gap {pct(val.get('expectation_gap',np.nan))}. Fair value remains a transparent research range until PIT/OOS validation passes.")
+        st.caption(f"Current price implies ~{fmt_num(val.get('implied_eps',np.nan),2)} EPS at the scanned peer-median multiple vs base projection ~{fmt_num(val.get('base_eps',np.nan),2)}. Fair value is a transparent research range until PIT/OOS validation passes.")
     elif str(row.get("market"))=="Crypto":
         urow=UNIVERSE[UNIVERSE["symbol"]==row.get("symbol")]
         cm=deep_crypto_metrics(urow.iloc[0]) if not urow.empty else {}
         if cm:
-            st.markdown("**Crypto economic projection inputs**")
+            st.markdown("**Crypto economics · not just price**")
             st.dataframe(pd.DataFrame([{
                 "Market cap":fmt_money(cm.get("market_cap",np.nan)),"FDV premium":pct(cm.get("fdv_premium",np.nan)),
                 "30D revenue":fmt_money(cm.get("revenue_30d",np.nan)),"Revenue acceleration":pct(cm.get("revenue_growth_30d",np.nan)),
                 "Mcap / annualized revenue":fmt_num(cm.get("mcap_to_revenue",np.nan),1)+"x"
             }]),use_container_width=True,hide_index=True)
-            st.caption("Revenue is not a hard buy rule. Holder capture, dilution/unlocks and real usage must agree before promotion.")
+            st.caption("Revenue alone is never a buy rule. Holder capture, dilution/unlocks and real usage must agree.")
         else:
-            st.caption("Crypto economics incomplete → no forced high-conviction trade.")
+            st.caption("Critical crypto economics are incomplete → action cannot be promoted to high conviction.")
     else:
-        st.caption("Dedicated physical/relative-macro fair-value projection for this asset class is still gated; directional expression is not upgraded without it.")
+        st.caption("Dedicated physical / relative-macro fair-value projection for this asset class is still gated; direction is not upgraded without it.")
 
-    branches=adaptive_scenario_branches(root)
     if not branches.empty:
-        st.markdown("**Most relevant scenarios — next 1–2Q**")
+        st.markdown("**If this happens, do this · max 3 relevant scenarios**")
         st.dataframe(branches[["scenario","trigger","economic_projection","action_logic","falsifier"]].head(3),use_container_width=True,hide_index=True)
 
     cb=chain_brief(root)
     is_bottleneck=bool(cb.get("bottlenecks")) or any(k in (root or "").lower() for k in ["nand","supply","electrical load","networking bandwidth","cpo price","war escalation","transformer","photon"])
     if is_bottleneck and not cb.get("chain",pd.DataFrame()).empty:
-        st.markdown("**Bottleneck → spillover → who gets paid**")
+        st.markdown("**Bottleneck chain · only shown because it can change the opportunity**")
         bc1,bc2,bc3=st.columns(3)
-        with bc1: st.markdown(f"<div class='chainbox'><b>Root bottleneck</b><br>{root}<br><br><b>Direct transmission</b><br>{'<br>'.join(cb['direct'][:5]) or '—'}</div>",unsafe_allow_html=True)
-        with bc2: st.markdown(f"<div class='chainbox'><b>Next bottleneck</b><br>{'<br>'.join(cb['bottlenecks'][:5]) or 'Not separately mapped yet'}<br><br><b>Normalization</b><br>{'<br>'.join(cb['normalization'][:4]) or 'Capacity/substitution must be monitored'}</div>",unsafe_allow_html=True)
-        with bc3: st.markdown(f"<div class='chainbox'><b>Potential losers</b><br>{'<br>'.join(cb['losers'][:6]) or '—'}</div>",unsafe_allow_html=True)
+        with bc1: st.markdown(f"<div class='chainbox'><b>Where the bottleneck is</b><br>{root}<br><br><b>Who gets paid first</b><br>{'<br>'.join(cb['direct'][:5]) or '—'}</div>",unsafe_allow_html=True)
+        with bc2: st.markdown(f"<div class='chainbox'><b>Where it can spread next</b><br>{'<br>'.join(cb['bottlenecks'][:5]) or 'Not separately mapped yet'}<br><br><b>How it heals</b><br>{'<br>'.join(cb['normalization'][:4]) or 'Capacity/substitution must be monitored'}</div>",unsafe_allow_html=True)
+        with bc3: st.markdown(f"<div class='chainbox'><b>Who can lose</b><br>{'<br>'.join(cb['losers'][:6]) or '—'}</div>",unsafe_allow_html=True)
         driver=parallel_driver_root(root) or root
         exposed=merge_scanned_actions(exposed_assets_from_chain(driver,str(row.get("symbol")),limit=10),ranked)
         if not exposed.empty:
-            st.caption("Potential beneficiaries from the same root driver. 'Exposed' is not 'buy': each name still passes through its own valuation/action gate.")
+            st.caption("Companies exposed to the same root driver. Exposure is not a buy signal; each name still passes its own valuation/action gate.")
             showcols=[c for c in ["market","symbol","name","research_action","price","data_quality","notes"] if c in exposed.columns]
             st.dataframe(exposed[showcols],use_container_width=True,hide_index=True)
 
@@ -1348,12 +1454,12 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
                 "Strike":od.get("strike"),"Mid":od.get("mid"),"Bid/ask spread":pct(od.get("spread",np.nan)),
                 "IV":pct(od.get("iv",np.nan)),"Implied move":pct(od.get("implied_move",np.nan)),"OI":od.get("open_interest"),"Liquidity":od.get("liquidity")
             }]),use_container_width=True,hide_index=True)
-            st.caption("A directional thesis does not automatically mean buy the option. This check only verifies current chain/liquidity/IV context; the option-pricing edge model remains research-gated.")
+            st.caption("Directional thesis ≠ automatically buy the option. IV/liquidity/expiry must still offer a sensible expression.")
 
     if ev.get("items"):
-        e=pd.DataFrame(ev["items"])
-        st.caption("Latest evidence used for the explanation")
-        st.dataframe(e[[c for c in ["source","title","pubDate"] if c in e.columns]].head(4),use_container_width=True,hide_index=True)
+        with st.expander("Latest evidence / sources",expanded=False):
+            e=pd.DataFrame(ev["items"])
+            st.dataframe(e[[c for c in ["source","title","pubDate"] if c in e.columns]].head(6),use_container_width=True,hide_index=True)
 
 
 # -----------------------------
@@ -1393,7 +1499,7 @@ if selected_markets:
 else:
     scan_input=UNIVERSE.iloc[0:0].copy()
 max_assets=len(scan_input)
-scan_signature=(tuple(selected_markets),int(max_assets),"v1.5")
+scan_signature=(tuple(selected_markets),int(max_assets),"v1.7")
 
 # Automatic initial/stale refresh. The user never has to press a scan button.
 existing_records=st.session_state.get("live_scan_records",[])
@@ -1421,66 +1527,86 @@ mg=st.session_state.get("macro_gate_snapshot",{}) or {}
 ranked=rank_opportunities(scan[scan.get("error",pd.Series(index=scan.index,dtype=str)).fillna("")==""] if not scan.empty and "error" in scan else scan)
 expr=_expression_tables(ranked,mg)
 
-nav=st.radio("Workspace",["OPPORTUNITIES","MACRO DETAILS","RESEARCH / REPLAY"],horizontal=True,label_visibility="collapsed",key="decision_nav_v15")
+nav=st.radio("Workspace",["OPPORTUNITIES","MACRO & EVENTS","RESEARCH / REPLAY"],horizontal=True,label_visibility="collapsed",key="decision_nav_v17")
 
-if nav=="MACRO DETAILS":
+if nav=="MACRO & EVENTS":
     safe_render_macro_control_room()
 
 elif nav=="RESEARCH / REPLAY":
-    st.markdown("<div class='section'>Research gates / historical replay</div>",unsafe_allow_html=True)
-    st.markdown("<div class='gate'>This area is secondary. Daily decisions belong in OPPORTUNITIES. Acceptance cases are frozen tests and may not tune the live rules.</div>",unsafe_allow_html=True)
+    st.markdown("<div class='section'>Research / validation · not the daily screen</div>",unsafe_allow_html=True)
+    st.markdown("<div class='gate'>Use this only when you want to inspect historical replay, data coverage, rejected signals or research gates. Daily decisions stay in OPPORTUNITIES.</div>",unsafe_allow_html=True)
     with st.expander("Historical acceptance tests",expanded=False):
         st.dataframe(ACCEPTANCE,use_container_width=True,hide_index=True)
         cases=REPLAY["case"].dropna().unique().tolist() if not REPLAY.empty else []
         if cases:
-            case=st.selectbox("Replay case",cases,key="replay_case_compact_v15")
+            case=st.selectbox("Replay case",cases,key="replay_case_compact_v17")
             rr=REPLAY[REPLAY["case"]==case]
             st.dataframe(rr[["date","phase","scanner_state","evidence_known_then","causal_chain","source_url"]],use_container_width=True,hide_index=True)
-    with st.expander("Data-source registry / known gaps",expanded=True):
+    with st.expander("Data sources / known gaps",expanded=True):
         st.dataframe(SOURCE_REGISTRY,use_container_width=True,hide_index=True)
-        st.markdown("<div class='gate'><b>Still not production-complete:</b> full PIT SEC/IDX fundamentals + estimate revisions; verified holder-capture/unlock/usage for every crypto; physical inventory/forward-curve data for commodities; CFTC/REER/BoP/policy intervention feeds for FX; and a validated option expected-distribution model. Missing critical fields lower the action state instead of being fabricated.</div>",unsafe_allow_html=True)
+        st.markdown("<div class='gate'><b>Not production-complete yet:</b> full point-in-time SEC/IDX fundamentals + estimate revisions; verified tokenholder capture/unlocks/real usage for every crypto; physical inventory/forward-curve data for commodities; CFTC/REER/BoP/intervention feeds for FX; and a validated option expected-distribution model. Missing critical fields must lower conviction rather than be fabricated.</div>",unsafe_allow_html=True)
 
 else:
-    st.markdown("<div class='section'>Macro gate · one-line context</div>",unsafe_allow_html=True)
+    st.markdown("<div class='section'>Right now · macro context that changes sizing</div>",unsafe_allow_html=True)
     if mg:
         event=mg.get("event_override") or "NONE"
-        html="<div class='kpis'>"
-        html+=kpi("Macro action",str(mg.get("action_label","—")),fmt_num(safe_float(mg.get("action_score")),0)+"/100",str(mg.get("headline","")),str(mg.get("action_tone","gray")))
-        html+=kpi("Regime",str(mg.get("regime","—")),"",str(mg.get("regime_human",mg.get("headline",""))),"blue")
-        html+=kpi("Crash state",str(mg.get("crash_state","—")),"","Credit: "+str(mg.get("credit_state","—")),str(mg.get("crash_tone","gray")))
-        html+=kpi("Event override",str(event),"","Only a material active override is shown.","amber" if event!="NONE" else "green")
+        html="<div class='kpis' style='grid-template-columns:repeat(4,minmax(0,1fr))'>"
+        html+=kpi("What to do overall",str(mg.get("action_label","—")),fmt_num(safe_float(mg.get("action_score")),0)+"/100",str(mg.get("headline","")),str(mg.get("action_tone","gray")))
+        html+=kpi("Economy",str(mg.get("regime","—")),"",str(mg.get("regime_human",mg.get("headline",""))),"blue")
+        html+=kpi("Crash setup",str(mg.get("crash_state","—")),"","Credit: "+str(mg.get("credit_state","—")),str(mg.get("crash_tone","gray")))
+        html+=kpi("Event override",str(event),"","Only material active override is shown.","amber" if event!="NONE" else "green")
         html+="</div>"
         st.markdown(html,unsafe_allow_html=True)
+        long_note="Secular bottom-up opportunities can still be owned selectively; macro mainly changes position size and whether leverage is allowed."
+        if any(k in str(mg.get("action_label","")).upper() for k in ["DEFENSIVE","CRISIS"]): long_note="Macro is hostile: prioritize capital preservation; only exceptional bottom-up longs survive and leverage is restricted."
+        st.markdown(f"<div class='plainbox' style='margin-top:7px'><b>Plain English:</b> {mg.get('headline','')} {long_note}</div>",unsafe_allow_html=True)
 
     refreshed=st.session_state.get("intel_refreshed_at_utc","—")
     high=(ranked.get("data_quality",pd.Series(dtype=str))=="HIGH").mean() if not ranked.empty else 0
-    st.caption(f"Automatic intelligence refresh UTC: {refreshed} · scanned {len(ranked)}/{max_assets} selected assets · high-quality rows {high:.0%}. Current-at-fetch does not mean complete PIT coverage.")
+    st.caption(f"Last automatic refresh UTC: {refreshed} · scanned {len(ranked)}/{max_assets} selected assets · current-feed high-quality rows {high:.0%}. This is feed coverage, not full research completeness or PIT readiness.")
 
-    st.markdown("<div class='section'>Opportunities · choose the expression, not another scanner</div>",unsafe_allow_html=True)
-    view=st.radio("Opportunity type",["BUY & HOLD · STOCKS","SPOT / CASH","LEVERAGED LONG / SHORT","OPTIONS · CALL / PUT","EARLY RADAR"],horizontal=True,key="opp_subview")
-    mapkey={"BUY & HOLD · STOCKS":"buyhold","SPOT / CASH":"spot","LEVERAGED LONG / SHORT":"leverage","OPTIONS · CALL / PUT":"options","EARLY RADAR":"radar"}
+    # Immediate top opportunities before any table.
+    st.markdown("<div class='section'>Best things worth looking at now</div>",unsafe_allow_html=True)
+    picks=[]
+    for label,keyname in [("LONG-TERM","buyhold"),("TACTICAL / LEVERAGE","leverage"),("EARLY RADAR","radar")]:
+        d=expr[keyname]
+        if not d.empty:
+            r=d.iloc[0]
+            picks.append((label,r))
+    if picks:
+        h="<div class='top3'>"
+        for label,r in picks[:3]:
+            act=_plain_action_from_row(r,"buyhold") if label=="LONG-TERM" else str(r.get("expression",r.get("research_action","WATCH")))
+            h+=f"<div class='topopp'><div class='kicker'>{label}</div><div class='sym'>{r.get('symbol')} · {act}</div><div class='why'>{_why_now_compact(r)} · {_conviction_label(r)} conviction</div></div>"
+        h+="</div>"
+        st.markdown(h,unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='gate'>No opportunity currently clears the research gate. The engine will not manufacture one.</div>",unsafe_allow_html=True)
+
+    st.markdown("<div class='section'>Opportunities · pick how you want to express the thesis</div>",unsafe_allow_html=True)
+    view=st.radio("Opportunity type",["BUY & HOLD / SELL · STOCKS","SPOT / CASH","LEVERAGED LONG / SHORT","OPTIONS · CALL / PUT","EARLY RADAR"],horizontal=True,key="opp_subview_v17")
+    mapkey={"BUY & HOLD / SELL · STOCKS":"buyhold","SPOT / CASH":"spot","LEVERAGED LONG / SHORT":"leverage","OPTIONS · CALL / PUT":"options","EARLY RADAR":"radar"}
     key=mapkey[view]
     df=expr[key]
     _display_scoreboard(df,view)
 
     if not df.empty:
-        options=[str(x) for x in df["symbol"].head(10).tolist()]
-        selected=st.selectbox("Explain this opportunity",options,key=f"detail_{key}")
+        options=[str(x) for x in df["symbol"].head(14).tolist()]
+        selected=st.selectbox("Open one opportunity",options,key=f"detail_{key}_v17")
         row=df[df["symbol"].astype(str)==selected].iloc[0]
-        st.markdown("<div class='section'>Why this exists · projection · scenario · bottleneck spillover</div>",unsafe_allow_html=True)
-        _render_opportunity_detail(row,ranked,mg,"OPTIONS" if key=="options" else key.upper())
+        st.markdown("<div class='section'>One opportunity · everything you need to decide</div>",unsafe_allow_html=True)
+        _render_opportunity_detail(row,ranked,mg,"OPTIONS" if key=="options" else ("BUYHOLD" if key=="buyhold" else key.upper()))
 
-    # Global near-term scenarios stay compact and automatic; no separate scan tab.
-    st.markdown("<div class='section'>Most supported scenarios that can change the above · max 3</div>",unsafe_allow_html=True)
+    st.markdown("<div class='section'>What could change the answer in the next 1–2 quarters · max 3</div>",unsafe_allow_html=True)
     near=filtered_scenarios(discovered,max_rows=3)
     if near.empty:
-        st.markdown("<div class='gate'>No live scenario clears the multi-source evidence gate right now. Nothing is forced into the dashboard.</div>",unsafe_allow_html=True)
+        st.markdown("<div class='gate'>No global scenario currently clears the multi-source evidence gate. Longer-dated ideas stay hidden unless they are already visibly brewing.</div>",unsafe_allow_html=True)
     else:
         cards="<div class='grid3'>"
-        for i,(_,r) in enumerate(near.iterrows()):
+        for _,r in near.iterrows():
             tone="purple" if "NOVEL" in str(r.get("novelty","")) else ("amber" if any(k in str(r.get("theme","")).lower() for k in ["war","credit","funding","bottleneck","power"]) else "blue")
-            cards+=f"<div class='card'><div class='kicker'>{r.get('horizon','1–2Q')}</div><div class='ct' style='margin-top:5px'>{r.get('theme','')}</div><div class='cn'><b>{int(safe_float(r.get('evidence_count')))} mentions / {int(safe_float(r.get('source_count')))} sources</b><br>{r.get('latest_headline','')}<br><span class='muted'>Evidence-ranked scenario, not a fake probability.</span></div></div>"
+            cards+=f"<div class='card'><div class='kicker'>{r.get('horizon','1–2Q')}</div><div class='ct' style='margin-top:5px'>{r.get('theme','')}</div><div class='cn'>{r.get('latest_headline','')}<br><b>{int(safe_float(r.get('source_count')))} independent sources</b> · evidence-ranked, not fake probability.</div></div>"
         cards+="</div>"
         st.markdown(cards,unsafe_allow_html=True)
 
-st.caption("v1.5 Auto Decision View · opportunities appear automatically; causal chains and scenarios are embedded only where they change an action. No classic technical indicators.")
+st.caption("v1.7 Beginner Decision View · opportunity first, explanation on demand, macro always visible, causal chains only when economically relevant. No classic technical indicators.")

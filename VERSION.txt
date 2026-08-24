@@ -1,2 +1,1 @@
-Opportunity Intelligence Engine v1.6 auto-fixed
-app.py + macro_embedded.py must be deployed together from this same bundle.
+v1.7 Beginner Decision View

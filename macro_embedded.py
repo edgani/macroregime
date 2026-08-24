@@ -559,7 +559,9 @@ def adaptive_scenarios(*, growth: str, lead_value: float, lead_delta: float, wei
                        claims: float, claims_3m: float, ebp_prob: float, hy: float, hy_3m: float,
                        fcig: float, market_structure: str, fiscal_score: float, rates_score: float,
                        energy_score: float, funding_score: float, gpr_pct: float, gpr_change: float,
-                       gscpi: float, gscpi_delta: float, epu_pct: float, spy_ath: float) -> list[dict]:
+                       gscpi: float, gscpi_delta: float, epu_pct: float, spy_ath: float,
+                       interest_gdp: float = np.nan, stress_score: float = np.nan,
+                       fragility_score: float = np.nan, credit_score: float = np.nan) -> list[dict]:
     """Heuristic evidence ranking only. score is NOT probability."""
     scenarios = []
     def add(name, family, impact, rules, confirms, invalidates, transmission, confidence="SCREENED"):
@@ -895,7 +897,7 @@ def render_macro_control_room():
     plain_state, plain_explain = plain_regime(growth,lead,credit_tone,stress_score)
 
     # adaptive scenario ranking
-    scenarios=adaptive_scenarios(growth=growth,lead_value=bbk_lead,lead_delta=lead_delta,wei=wei,inflation_dir=inflation_dir,claims=claims,claims_3m=claims_3m,ebp_prob=ebp_prob,hy=hy,hy_3m=hy_3m,fcig=fcig,market_structure=market_structure,fiscal_score=fiscal_score,rates_score=rates_score,energy_score=energy_score,funding_score=funding_score,gpr_pct=gpr.get("gpr_pct",np.nan),gpr_change=gpr.get("gpr_change",np.nan),gscpi=gscpi,gscpi_delta=gscpi_delta,epu_pct=epu_pct,spy_ath=spy_ath)
+    scenarios=adaptive_scenarios(growth=growth,lead_value=bbk_lead,lead_delta=lead_delta,wei=wei,inflation_dir=inflation_dir,claims=claims,claims_3m=claims_3m,ebp_prob=ebp_prob,hy=hy,hy_3m=hy_3m,fcig=fcig,market_structure=market_structure,fiscal_score=fiscal_score,rates_score=rates_score,energy_score=energy_score,funding_score=funding_score,gpr_pct=gpr.get("gpr_pct",np.nan),gpr_change=gpr.get("gpr_change",np.nan),gscpi=gscpi,gscpi_delta=gscpi_delta,epu_pct=epu_pct,spy_ath=spy_ath,interest_gdp=interest_gdp,stress_score=stress_score,fragility_score=fragility_score,credit_score=credit_score)
     macro_scen=[x for x in scenarios if x["family"] in ["Macro","Positive"]][:3]
     event_scen=[x for x in scenarios if x["family"] in ["Geopolitical","Fiscal"] and x["score"]>=25][:4]
     market_scen=[x for x in scenarios if x["family"]=="Market"][:2]

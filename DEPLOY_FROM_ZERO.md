@@ -1,15 +1,16 @@
 # Deploy from zero — GitHub preview first, then Vercel + Cloud Run
 
-## Stage A — inspect v2.4 before migrating the frontend
+## Stage A — inspect v2.5 before migrating the frontend
 
 1. Extract the ZIP locally.
 2. Replace the files in your GitHub repository with the extracted contents.
 3. Commit and push.
 4. If the repository is already connected to Streamlit Community Cloud, it will redeploy from the new commit. Use this as the **visual approval build**.
 5. Check these three screens first:
-   - Opportunities → Leverage: US, Crypto, FX and Commodity must all be visible. Only qualified rows may say ACTION.
-   - Opportunities → Options: US + BTC/ETH must be visible. Non-qualified BTC/ETH must say thesis gated rather than disappear.
-   - Macro & Events: the first screen should be the projection heatmap + pressure chart rather than long prose.
+   - Opportunities landing: you should understand the screen without reading model axes — Today's Posture, At a glance, Top opportunities now, then How it can be traded.
+   - Opportunities → Leverage / Options: unsupported markets remain visible as WAIT/GATED rather than disappearing.
+   - Advanced · all rows / model gates: full table and evidence chart are available but collapsed by default.
+   - Macro & Events: the first screen remains the compact projection/pressure view rather than long prose.
 
 GitHub itself renders source/README, not a live Streamlit application. The live visual check is the Streamlit deployment attached to the GitHub commit.
 
@@ -84,4 +85,4 @@ NEXT_PUBLIC_OIE_API_URL=https://YOUR-CLOUD-RUN-URL
 7. After changing an environment variable, redeploy so the new value is applied.
 
 ## Why Stage B is intentionally after approval
-The v2.4 change is primarily a decision/UX contract change. Approving the visual hierarchy in the existing research app first prevents doing the same frontend redesign twice.
+The v2.5 change is primarily a decision/UX contract change. Approving the visual hierarchy in the existing research app first prevents doing the same frontend redesign twice.

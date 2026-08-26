@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import html
 import json
 import math
 import os
@@ -42,7 +43,7 @@ from decision_core import (
 )
 
 # ============================================================
-# OPPORTUNITY INTELLIGENCE ENGINE v2.4 VISUAL DECISION SYSTEM
+# OPPORTUNITY INTELLIGENCE ENGINE v2.5 SIMPLE DECISION BOARD
 # ------------------------------------------------------------
 # Goal: high-recall discovery of exceptional opportunities, then
 # high-precision confirmation. No classic technical indicators.
@@ -243,7 +244,13 @@ div[data-baseweb="tab-list"]{gap:6px}button[data-baseweb="tab"]{height:34px;font
 .compact-table div[data-testid="stDataFrame"]{border:1px solid var(--border);border-radius:12px;overflow:hidden}
 div[data-testid="stPlotlyChart"]{border:1px solid var(--border);border-radius:14px;background:#090e15;padding:2px}
 [data-testid="stMetric"]{border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#0b1119}
-@media(max-width:1000px){.kpis,.grid3,.decision-grid,.info4,.top3,.metric-strip{grid-template-columns:1fr 1fr}}
+.today-card{border:1px solid var(--border);border-radius:15px;background:linear-gradient(180deg,#101a27,#0b1119);padding:14px 16px;margin:7px 0 10px}.today-label{font-size:.56rem;color:#8da0b7;letter-spacing:.10em;font-weight:850;text-transform:uppercase}.today-main{font-size:1.25rem;font-weight:900;letter-spacing:-.02em;margin-top:3px}.today-note{font-size:.69rem;color:#a9b5c4;line-height:1.38;margin-top:4px}
+.simple-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:7px 0 12px}.simple-col{border:1px solid var(--border);border-radius:12px;background:#0b1119;padding:10px;min-height:92px}.simple-col .sc-label{font-size:.54rem;letter-spacing:.08em;text-transform:uppercase;font-weight:850}.simple-col .sc-count{font-size:1.25rem;font-weight:900;margin-top:2px}.ticker-chip{display:inline-block;border:1px solid #2a394c;border-radius:999px;padding:3px 7px;margin:4px 3px 0 0;font-size:.58rem;font-weight:800;background:#101824;color:#dfe8f3}
+.pick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0 12px}.pick-card{border:1px solid var(--border);border-radius:13px;background:linear-gradient(180deg,#111925,#0b1119);padding:11px;min-height:132px}.pick-top{display:flex;justify-content:space-between;gap:7px;align-items:flex-start}.pick-symbol{font-size:1.05rem;font-weight:920}.pick-market{font-size:.54rem;color:#8595aa;margin-top:1px}.pick-action{font-size:.70rem;font-weight:900;margin-top:8px}.pick-why{font-size:.61rem;color:#a2afbf;line-height:1.35;margin-top:5px}.pick-meta{font-size:.56rem;color:#7f8da1;line-height:1.35;margin-top:7px}.rank-badge{min-width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#162132;border:1px solid #26364a;font-size:.60rem;font-weight:900}
+.mode-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:8px 0 10px}.mode-card{border:1px solid var(--border);border-radius:11px;background:#0b1119;padding:9px 10px}.mode-name{font-size:.58rem;color:#8c9bae;font-weight:800}.mode-ready{font-size:.82rem;font-weight:900;margin-top:3px}.mode-note{font-size:.54rem;color:#7e8b9d;margin-top:2px}
+.list-card{display:grid;grid-template-columns:90px 1.1fr 1fr .9fr .8fr;gap:8px;align-items:center;border:1px solid var(--border);border-radius:11px;background:#0b1119;padding:8px 10px;margin-bottom:6px}.list-sym{font-size:.82rem;font-weight:900}.list-sub{font-size:.54rem;color:#7f8da1}.list-action{font-size:.64rem;font-weight:850}.list-why,.list-meta{font-size:.57rem;color:#98a6b7;line-height:1.3}
+.simple-help{font-size:.61rem;color:#8d9aac;line-height:1.4;margin:3px 0 8px}
+@media(max-width:1000px){.kpis,.grid3,.decision-grid,.info4,.top3,.metric-strip,.simple-board,.pick-grid,.mode-strip{grid-template-columns:1fr 1fr}.list-card{grid-template-columns:80px 1fr 1fr}.list-meta,.list-why{grid-column:span 1}}
 </style>
 """,
     unsafe_allow_html=True,
@@ -1510,7 +1517,7 @@ def _expression_tables(ranked: pd.DataFrame, mg: Dict[str,Any]) -> Dict[str,pd.D
     """Build expression surfaces without hiding an asset class.
 
     v2.3 only returned *qualified* leverage/options rows. That was safe but visually
-    confusing: FX/commodities/crypto appeared to be missing. v2.4 keeps the same
+    confusing: FX/commodities/crypto appeared to be missing. v2.4+ keeps the same
     fail-closed capital rule but shows monitored rows with an explicit WAIT/GATED
     state. A row is actionable only when `qualified=True`.
     """
@@ -1695,23 +1702,134 @@ def _opportunity_map_frame(ranked: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _render_opportunity_visuals(ranked: pd.DataFrame, expr: Dict[str,pd.DataFrame]) -> None:
-    if ranked.empty or go is None: return
-    left,right=st.columns([1.55,1])
-    with left:
-        f=_opportunity_map_frame(ranked)
-        colors={"US":"#6ea8fe","IHSG":"#b794f4","Crypto":"#f59e0b","FX":"#22c55e","Commodity":"#ef4444"}
-        fig=go.Figure()
-        for m in ["US","IHSG","Crypto","FX","Commodity"]:
-            sub=f[f["Market"]==m].head(14)
-            if sub.empty: continue
-            fig.add_trace(go.Scatter(x=sub["Asymmetry"],y=sub["Evidence"],mode="markers+text",text=sub["Ticker"],textposition="top center",name=m,marker=dict(size=[13 if q=="HIGH" else 10 for q in sub["Quality"]],color=colors[m],line=dict(width=1,color="#081018")),customdata=sub[["Action","Source"]],hovertemplate="<b>%{text}</b><br>Evidence %{y:.0f}<br>Asymmetry %{x:.0f}<br>%{customdata[0]}<br>%{customdata[1]}<extra></extra>"))
-        fig.add_vline(x=0,line_color="rgba(255,255,255,.18)",line_dash="dot"); fig.add_hline(y=0,line_color="rgba(255,255,255,.18)",line_dash="dot")
-        fig.update_layout(title="Opportunity map · evidence × unpriced asymmetry",xaxis_title="Unpriced asymmetry / model score",yaxis_title="Net evidence families")
-        _plotly_base(fig,385,True); st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
-    with right:
-        _render_expression_matrix(expr)
+def _qualified_modes_for_symbol(expr: Dict[str,pd.DataFrame], symbol: str) -> List[Tuple[str,str]]:
+    """Return only genuinely qualified expressions for one underlying."""
+    out=[]
+    labels={"buyhold":"STOCK","spot":"SPOT","leverage":"LEVERAGE","options":"OPTION"}
+    for key in ["buyhold","spot","leverage","options"]:
+        d=expr.get(key,pd.DataFrame())
+        if d.empty or "symbol" not in d.columns:
+            continue
+        sub=d[d["symbol"].astype(str)==str(symbol)]
+        if sub.empty:
+            continue
+        if "qualified" in sub.columns:
+            sub=sub[sub["qualified"].fillna(False).astype(bool)]
+        if sub.empty:
+            continue
+        action=str(sub.iloc[0].get("expression",sub.iloc[0].get("research_action","ACTION")))
+        out.append((labels[key],action))
+    return out
 
+
+def _plain_board_state(row: pd.Series, expr: Dict[str,pd.DataFrame]) -> Dict[str,Any]:
+    symbol=str(row.get("symbol","—"))
+    modes=_qualified_modes_for_symbol(expr,symbol)
+    research=str(row.get("research_action","WATCH") or "WATCH").upper()
+    quality=str(row.get("data_quality","LOW") or "LOW").upper()
+    model=str(row.get("market_model_status","GATED") or "GATED").upper()
+    market=str(row.get("market",""))
+    downside_words=["SHORT","SELL","PUT","BEARISH","EXIT","TRIM","AVOID"]
+    if modes:
+        actions=" · ".join(x[1] for x in modes)
+        downside=any(w in actions.upper() for w in downside_words)
+        return {"bucket":"AVOID / DOWNSIDE" if downside else "ACT NOW","tone":"red" if downside else "green","action":modes[0][1],"modes":modes,"ready":True}
+    if any(w in research for w in downside_words):
+        return {"bucket":"AVOID / DOWNSIDE","tone":"red","action":research,"modes":[],"ready":False}
+    if quality=="LOW" or (market in ["FX","Commodity","Crypto"] and "READY" not in model):
+        return {"bucket":"NOT READY","tone":"gray","action":"WAIT FOR DATA","modes":[],"ready":False}
+    return {"bucket":"WATCH","tone":"amber","action":"WAIT / WATCH","modes":[],"ready":False}
+
+
+def _render_plain_mode_strip(expr: Dict[str,pd.DataFrame]) -> None:
+    specs=[("buyhold","Cash / stock","normal ownership"),("leverage","Leverage","only when risk gate clears"),("options","Options","call / put when edge clears"),("spot","Spot / cash","crypto / FX / commodity")]
+    h="<div class='mode-strip'>"
+    for key,name,note in specs:
+        d=expr.get(key,pd.DataFrame())
+        ready=int(d.get("qualified",pd.Series(dtype=bool)).fillna(False).astype(bool).sum()) if not d.empty and "qualified" in d else 0
+        tone="green" if ready>0 else "gray"; c=COLORS[tone][0]
+        h+=f"<div class='mode-card'><div class='mode-name'>{html.escape(name)}</div><div class='mode-ready' style='color:{c}'>{ready} ready</div><div class='mode-note'>{html.escape(note)}</div></div>"
+    h+="</div>"
+    st.markdown(h,unsafe_allow_html=True)
+
+
+def _render_opportunity_visuals(ranked: pd.DataFrame, expr: Dict[str,pd.DataFrame]) -> None:
+    """Plain-language daily board. No scatter plot or model matrix on the default screen."""
+    if ranked.empty:
+        st.markdown("<div class='gate'><b>No opportunities loaded.</b> The scanner has no valid rows for the selected markets.</div>",unsafe_allow_html=True)
+        return
+
+    states=[]
+    for idx,r in ranked.iterrows():
+        stt=_plain_board_state(r,expr)
+        states.append((idx,stt))
+
+    # 1) Fast traffic-light summary: user should understand the whole universe in seconds.
+    buckets=[("ACT NOW","green"),("WATCH","amber"),("AVOID / DOWNSIDE","red"),("NOT READY","gray")]
+    board="<div class='simple-board'>"
+    for label,tone in buckets:
+        ids=[idx for idx,stt in states if stt["bucket"]==label]
+        syms=[str(ranked.loc[idx].get("symbol","")) for idx in ids[:6]]
+        c=COLORS[tone][0]
+        chips="".join(f"<span class='ticker-chip'>{html.escape(x)}</span>" for x in syms) or "<span class='list-sub'>none</span>"
+        board+=f"<div class='simple-col'><div class='sc-label' style='color:{c}'>{label}</div><div class='sc-count'>{len(ids)}</div><div>{chips}</div></div>"
+    board+="</div>"
+    st.markdown("<div class='section'>At a glance</div>",unsafe_allow_html=True)
+    st.markdown(board,unsafe_allow_html=True)
+
+    # 2) Top picks. Qualified actions first, then strongest watch candidates.
+    order_pos={idx:pos for pos,idx in enumerate(ranked.index.tolist())}
+    def sort_key(item):
+        idx,stt=item
+        # Keep the engine's existing ranking intact. Only move genuinely ready expressions ahead of watch-only rows.
+        ready_priority=0 if bool(stt.get("ready",False)) else 1
+        bucket_priority={"ACT NOW":0,"AVOID / DOWNSIDE":1,"WATCH":2,"NOT READY":3}.get(stt["bucket"],4)
+        return (ready_priority,bucket_priority,order_pos.get(idx,10**9))
+    ordered=sorted(states,key=sort_key)[:4]
+    picks="<div class='pick-grid'>"
+    for rank,(idx,stt) in enumerate(ordered,1):
+        r=ranked.loc[idx]; sym=str(r.get("symbol","—")); market=str(r.get("market","—")); name=str(r.get("name","") or "")
+        c=COLORS[stt["tone"]][0]
+        ev=int(safe_float(r.get("evidence_families")) if np.isfinite(safe_float(r.get("evidence_families"))) else 0)
+        det=int(safe_float(r.get("deterioration_families")) if np.isfinite(safe_float(r.get("deterioration_families"))) else 0)
+        why=_why_now_compact(r)
+        mode_txt=", ".join(x[0] for x in stt["modes"]) if stt["modes"] else "no capital expression yet"
+        extra=""
+        if market in ["US","IHSG"]:
+            try:
+                v=valuation_projection(ranked,r); px=safe_float(r.get("price")); base=safe_float(v.get("fv_base"))
+                if np.isfinite(px) and px>0 and np.isfinite(base):
+                    up=base/px-1
+                    extra=f" · research upside {pct(up)}" if up>=0 else f" · research downside {pct(up)}"
+            except Exception:
+                pass
+        picks+=f"<div class='pick-card'><div class='pick-top'><div><div class='pick-symbol'>{html.escape(sym)}</div><div class='pick-market'>{html.escape(market)} · {html.escape(name[:28])}</div></div><div class='rank-badge'>#{rank}</div></div><div class='pick-action' style='color:{c}'>{html.escape(stt['action'])}</div><div class='pick-why'>{html.escape(why)}</div><div class='pick-meta'>Confidence {_conviction_label(r)} · {ev} supporting / {det} negative · {html.escape(mode_txt)}{html.escape(extra)}</div></div>"
+    picks+="</div>"
+    st.markdown("<div class='section'>Top opportunities now</div>",unsafe_allow_html=True)
+    st.markdown(picks,unsafe_allow_html=True)
+
+    st.markdown("<div class='section'>How it can be traded</div>",unsafe_allow_html=True)
+    _render_plain_mode_strip(expr)
+    st.markdown("<div class='simple-help'>Read it left to right: <b>ACT NOW</b> means the model has earned an expression; <b>WATCH</b> means the thesis is interesting but entry is not earned; <b>NOT READY</b> means missing data/model coverage, not a hidden buy signal.</div>",unsafe_allow_html=True)
+
+
+def _render_expression_cards(df: pd.DataFrame, kind: str) -> None:
+    """Simple ranked list for the chosen expression. Advanced evidence is hidden below."""
+    if df.empty:
+        st.markdown("<div class='gate'><b>Nothing supported in this mode.</b> Change expression or selected markets.</div>",unsafe_allow_html=True)
+        return
+    h=""
+    for _,r in df.head(8).iterrows():
+        q=bool(r.get("qualified",False)); action=str(r.get("expression",r.get("research_action","WATCH")))
+        downside=any(x in action.upper() for x in ["SHORT","PUT","SELL","BEARISH","EXIT","TRIM","AVOID"])
+        tone=("red" if downside else "green") if q else "amber"
+        if (not q) and ("GATED" in action.upper() or str(r.get("data_quality","LOW")).upper()=="LOW"): tone="gray"
+        c=COLORS[tone][0]
+        state="READY" if q else ("DATA GATED" if tone=="gray" else "WATCH")
+        sym=html.escape(str(r.get("symbol","—"))); market=html.escape(str(r.get("market","—")))
+        why=html.escape(_why_now_compact(r)); conf=html.escape(_conviction_label(r)); horizon=html.escape(_plain_horizon(r,kind))
+        h+=f"<div class='list-card'><div><div class='list-sym'>{sym}</div><div class='list-sub'>{market}</div></div><div class='list-action' style='color:{c}'>{html.escape(action)}</div><div class='list-why'>{why}</div><div class='list-meta'>{conf} confidence · {horizon}</div><div class='list-meta' style='color:{c};font-weight:850'>{state}</div></div>"
+    st.markdown(h,unsafe_allow_html=True)
 
 def _render_evidence_flow_chart(df: pd.DataFrame, title: str="Evidence flow vs price-in") -> None:
     if df.empty or go is None: return
@@ -1920,15 +2038,14 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
 st.markdown(
     f"""
 <div class='hero'>
- <div class='hero-title'>Opportunity Intelligence Engine</div>
- <div class='sub'>Visual-first decision terminal: opportunity map → expression coverage → entry stack → deep evidence only when you open it.</div>
+ <div class='hero-title'>Opportunity Engine</div>
+ <div class='sub'>One screen, one job: show what is worth acting on now, what should stay on watch, and what is not ready yet.</div>
  <div class='legend'>
-   {badge('GREEN = qualified / attractive asymmetry','green')}
-   {badge('AMBER = watch / priced-in / needs confirmation','amber')}
-   {badge('RED = deterioration / short-side','red')}
-   {badge('GREY = data/model gated','gray')}
+   {badge('GREEN = ACT NOW','green')}
+   {badge('AMBER = WATCH','amber')}
+   {badge('RED = REDUCE / SHORT-SIDE','red')}
+   {badge('GREY = NOT ENOUGH DATA','gray')}
  </div>
- <div class='sub' style='margin-top:5px'>No classic technical indicators. The scanner runs automatically; refresh is optional, not required.</div>
 </div>
 """,
     unsafe_allow_html=True,
@@ -1953,7 +2070,7 @@ if selected_markets:
 else:
     scan_input=UNIVERSE.iloc[0:0].copy()
 max_assets=len(scan_input)
-scan_signature=(tuple(selected_markets),int(max_assets),"v2.4-visual")
+scan_signature=(tuple(selected_markets),int(max_assets),"v2.5-simple")
 
 # Automatic initial/stale refresh. The user never has to press a scan button.
 existing_records=st.session_state.get("live_scan_records",[])
@@ -2015,22 +2132,23 @@ elif nav=="RESEARCH / REPLAY":
         st.markdown("<div class='gate'><b>Fail-closed rule:</b> missing causal data never gets replaced with price momentum or a technical indicator. The asset stays in Early Radar / GATED until the correct data family is available.</div>",unsafe_allow_html=True)
 
 else:
-    # VISUAL-FIRST DAILY SCREEN. Deep text is intentionally hidden under expanders.
-    qualified_total=sum(int(d.get("qualified",pd.Series(dtype=bool)).fillna(False).astype(bool).sum()) for d in [expr.get("buyhold",pd.DataFrame()),expr.get("spot",pd.DataFrame()),expr.get("leverage",pd.DataFrame()),expr.get("options",pd.DataFrame())] if not d.empty)
-    high=(ranked.get("data_quality",pd.Series(dtype=str))=="HIGH").mean() if not ranked.empty else 0
-    best_long="—"; best_hedge="—"
-    for k in ["buyhold","spot","leverage"]:
-        d=expr.get(k,pd.DataFrame())
-        if not d.empty:
-            q=d[d.get("qualified",pd.Series(index=d.index,dtype=bool)).fillna(False).astype(bool)] if "qualified" in d else d
-            if not q.empty and best_long=="—": best_long=str(q.iloc[0].get("symbol","—"))
-    od=expr.get("options",pd.DataFrame())
-    if not od.empty:
-        oq=od[od.get("qualified",pd.Series(index=od.index,dtype=bool)).fillna(False).astype(bool)] if "qualified" in od else od
-        if not oq.empty: best_hedge=str(oq.iloc[0].get("symbol","—"))
-    mh="<div class='metric-strip'>"
-    for a,b,c in [("MACRO",mg.get("action_label","GATED"),mg.get("regime","—")),("ACTIONABLE",str(qualified_total),"qualified expressions"),("BEST LONG",best_long,"first qualified"),("OPTION / HEDGE",best_hedge,"first qualified"),("DATA",f"{high:.0%}","high-quality current rows")]: mh+=f"<div class='metric-mini'><div class='m1'>{a}</div><div class='m2'>{b}</div><div class='m3'>{c}</div></div>"
-    mh+="</div>"; st.markdown(mh,unsafe_allow_html=True)
+    # SIMPLE DAILY SCREEN. The first viewport answers: posture, act/watch/avoid, and top names.
+    macro_label=str(mg.get("action_label","MACRO GATED"))
+    macro_upper=macro_label.upper()
+    if any(x in macro_upper for x in ["DEFENSIVE","CRISIS"]):
+        macro_guide="Be selective. Prefer cash/stock and only take leverage when it is explicitly marked READY."
+        macro_tone="amber"
+    elif "RISK-ON" in macro_upper:
+        macro_guide="Backdrop is supportive. Prioritize qualified longs, but still wait for the entry gate instead of chasing."
+        macro_tone="green"
+    elif "GATED" in macro_upper:
+        macro_guide="Macro data is incomplete. Discovery can continue, but leverage upgrades stay blocked."
+        macro_tone="gray"
+    else:
+        macro_guide="Mixed backdrop. Let asset-specific evidence decide; keep sizing selective."
+        macro_tone="amber"
+    mc=COLORS[macro_tone][0]
+    st.markdown(f"<div class='today-card'><div class='today-label'>TODAY'S POSTURE</div><div class='today-main' style='color:{mc}'>{html.escape(macro_label)}</div><div class='today-note'>{html.escape(macro_guide)}</div></div>",unsafe_allow_html=True)
 
     _render_opportunity_visuals(ranked,expr)
 
@@ -2039,10 +2157,16 @@ else:
     mapkey={"BUY & HOLD / SELL · STOCKS":"buyhold","SPOT / CASH":"spot","LEVERAGED LONG / SHORT":"leverage","OPTIONS · CALL / PUT":"options","EARLY RADAR":"radar"}; key=mapkey[view]
     df=expr[key]
     a_count=int(df.get("qualified",pd.Series(dtype=bool)).fillna(False).astype(bool).sum()) if not df.empty and "qualified" in df else 0
-    c1,c2,c3=st.columns(3); c1.metric("Qualified",a_count); c2.metric("Monitored",len(df)); c3.metric("Markets",df["market"].nunique() if not df.empty and "market" in df else 0)
-    _render_evidence_flow_chart(df,view.title())
-    _render_expression_readiness(key)
-    _display_scoreboard(df,view)
+    c1,c2,c3=st.columns(3)
+    c1.metric("Ready now",a_count)
+    c2.metric("On watch",max(0,len(df)-a_count))
+    c3.metric("Markets covered",df["market"].nunique() if not df.empty and "market" in df else 0)
+    st.markdown("<div class='simple-help'>The list below is intentionally simple: <b>action → reason → confidence → status</b>. Open one ticker only when you want the detailed entry logic.</div>",unsafe_allow_html=True)
+    _render_expression_cards(df,key)
+    with st.expander("Advanced · all rows / model gates",expanded=False):
+        _render_expression_readiness(key)
+        _display_scoreboard(df,view)
+        _render_evidence_flow_chart(df,view.title())
 
     if not df.empty:
         options=[str(x) for x in df["symbol"].head(24).tolist()]
@@ -2058,4 +2182,4 @@ else:
             showcols=[c for c in ["theme","horizon","latest_headline","source_count"] if c in near.columns]
             st.dataframe(near[showcols],use_container_width=True,hide_index=True)
 
-st.caption("v2.4 Visual Decision System · opportunity first, macro compact, scenarios only when supported, causal chains only when economically relevant, and every unsupported asset class fails closed. No classic technical indicators.")
+st.caption("v2.5 Simple Decision Board · plain-language actions first, complexity hidden by default, and unsupported asset classes fail closed. No classic technical indicators.")

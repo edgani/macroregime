@@ -1,4 +1,4 @@
-# Known limitations — v2.3
+# Known limitations — v2.5
 
 These are deliberate gates, not hidden assumptions.
 
@@ -13,5 +13,5 @@ These are deliberate gates, not hidden assumptions.
 9. **Earliest execution helper handles weekends but not exchange holidays.** A formal PIT backtest should use an exchange calendar.
 10. **Live Streamlit/network runtime depends on public providers.** The code fails closed when critical feeds are unavailable.
 
-## v2.4 presentation note
-FX, commodity and crypto rows are deliberately visible even when their capital gate is closed. `WAIT/GATED` is a visibility state, not a recommendation. This fixes v2.3's confusing disappearing-market behavior without weakening the fail-closed model.
+## v2.5 presentation note
+FX, commodity and crypto rows remain visible even when their capital gate is closed. `WAIT/GATED` is a visibility state, not a recommendation. v2.5 additionally removes the abstract scatter/heatmap from the default daily screen; advanced model visuals remain available only when the user opens the advanced section.

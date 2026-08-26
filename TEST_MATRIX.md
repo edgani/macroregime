@@ -1,4 +1,4 @@
-# Test Matrix — v2.4
+# Test Matrix — v2.5
 
 | Layer | Test | Status |
 |---|---|---|
@@ -13,7 +13,7 @@
 | replay | publication/execution timestamp contract | PASS |
 | robustness | negative controls / fuzz | PASS |
 | walk-forward | purge/embargo mechanics | PASS |
-| visual | map/heatmap/evidence/decision-stack functions | PASS |
+| visual | simple board / top cards / mode strip / collapsed advanced view | PASS |
 | live Streamlit browser render | deployment environment required | PENDING RUNTIME |
 | live network adapters | deployment environment required | PENDING RUNTIME |
 | full-universe real PIT/OOS alpha | historical datasets required | GATED |

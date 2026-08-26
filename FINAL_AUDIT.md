@@ -1,4 +1,4 @@
-# Final Audit — v2.4 Visual Decision System
+# Final Audit — v2.5 Simple Decision Board
 
 ## PASS
 - Python compile / AST contract
@@ -7,13 +7,15 @@
 - Replay publication-time guards
 - Negative controls and fuzz/property tests
 - Synthetic purged/embargo walk-forward machinery
-- Visual-first functions present
+- Plain-language daily board functions present
 - Leverage presentation visibly includes US / Crypto / FX / Commodity
 - Options presentation visibly includes US + BTC/ETH
 - IHSG remains cash-only
-- Deep prose moved behind collapsed daily-screen expander
+- Default Opportunities view no longer requires interpreting a scatter plot or coverage heatmap
+- Full table, readiness gates and evidence chart are collapsed under Advanced
+- Deep thesis/valuation/causal-chain prose remains collapsed
 
 ## INTENTIONAL GATES
 - A visible FX/commodity/crypto WAIT row is not an actionable trade.
 - Full PIT/OOS causal datasets remain required before production-alpha claims.
-- Current container cannot execute a live Streamlit render or live public endpoints; deployment runtime remains the final visual/network smoke test.
+- This container could not install/launch Streamlit because external package access is unavailable; deployment runtime remains the final browser/network smoke test.

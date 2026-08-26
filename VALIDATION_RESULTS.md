@@ -1,9 +1,8 @@
-# Validation Results — v2.4 Visual Decision System
+# Validation Results — v2.5 Simple Decision Board
 
 Fresh working-tree run:
 
 - `python -m py_compile app.py` — PASS
-- `python -m compileall .` — PASS
 - `python tests/run_all.py` — **12 PASS / 0 NONPASS / 12 TOTAL**
 
 Covered suites:
@@ -20,4 +19,6 @@ Covered suites:
 11. walk-forward machinery
 12. visual/expression visibility contract
 
-Important distinction: the walk-forward suite validates chronology/purge/embargo mechanics. It does not magically convert missing full-universe PIT datasets into proven market alpha.
+The visual contract now checks the simple daily hierarchy: At a glance → Top opportunities now → How it can be traded → advanced detail collapsed.
+
+Important distinction: the walk-forward suite validates chronology/purge/embargo mechanics. It does not convert missing full-universe PIT datasets into proven market alpha.

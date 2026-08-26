@@ -1,1 +1,1 @@
-2.4-visual-decision
+2.5-simple-decision-board

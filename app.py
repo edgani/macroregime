@@ -36,8 +36,13 @@ try:
 except Exception:
     yf = None
 
+from decision_core import (
+    neutral_percentile_rank, entry_decision, expression_decision,
+    get_prior_checkpoint, save_checkpoint, compute_revision_edge,
+)
+
 # ============================================================
-# OPPORTUNITY INTELLIGENCE ENGINE v1.7 BEGINNER DECISION VIEW
+# OPPORTUNITY INTELLIGENCE ENGINE v2.3 VALIDATED DECISION SYSTEM
 # ------------------------------------------------------------
 # Goal: high-recall discovery of exceptional opportunities, then
 # high-precision confirmation. No classic technical indicators.
@@ -54,8 +59,8 @@ except Exception:
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
-STATE = ROOT / "state"
-STATE.mkdir(exist_ok=True)
+STATE = Path(os.environ.get("OIE_STATE_DIR", str(ROOT / "state")))
+STATE.mkdir(parents=True, exist_ok=True)
 
 st.set_page_config(
     page_title="Opportunity Intelligence",
@@ -171,10 +176,8 @@ def clamp(x: float, lo: float, hi: float) -> float:
 
 
 def percentile_rank(s: pd.Series, value: float) -> float:
-    x = pd.to_numeric(s, errors="coerce").dropna()
-    if not np.isfinite(value) or x.empty:
-        return np.nan
-    return float((x <= value).mean())
+    # Tie-neutral midrank: identical peers map to 50th percentile, not all to 100th.
+    return neutral_percentile_rank(pd.to_numeric(s, errors="coerce").dropna().tolist(), value)
 
 
 def robust_quantiles(values: Sequence[float]) -> Tuple[float, float, float]:
@@ -227,7 +230,7 @@ header[data-testid="stHeader"]{background:transparent}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.card{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:9px;min-height:104px}.ct{font-size:.69rem;font-weight:840}.cn{font-size:.60rem;color:#8f9cad;line-height:1.28;margin-top:4px}
 .small{font-size:.60rem;color:#8f9cad;line-height:1.32}.big{font-size:1.28rem;font-weight:860}.muted{color:#8f9cad}.row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.055);font-size:.65rem}.row:last-child{border-bottom:none}.right{text-align:right}
 .chainbox{padding:8px 9px;border:1px solid var(--border);border-radius:10px;background:#0c131d;font-size:.64rem;line-height:1.45;color:#d3dde8}.gate{border:1px solid #39485c;border-radius:9px;background:rgba(80,97,126,.10);padding:7px 8px;color:#aeb9c8;font-size:.60rem;line-height:1.3}
-.plainbox{border:1px solid var(--border);border-radius:12px;background:#0c131d;padding:10px 12px;font-size:.73rem;line-height:1.45;color:#dbe6f2}.plainbox b{color:#fff}.decision-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.decision-card{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:9px;min-height:80px}.dv{font-size:.82rem;font-weight:850;margin-top:4px}.dn{font-size:.58rem;color:#8f9cad;line-height:1.28;margin-top:3px}.info4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.info-card{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:9px;min-height:105px}.info-title{font-size:.64rem;font-weight:850}.info-text{font-size:.60rem;color:#9aa7b7;line-height:1.38;margin-top:5px}.top3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.topopp{border:1px solid var(--border);border-radius:12px;background:linear-gradient(180deg,#111925,#0c131d);padding:10px;min-height:94px}.topopp .sym{font-size:1.0rem;font-weight:880}.topopp .why{font-size:.60rem;color:#91a0b1;line-height:1.32;margin-top:4px}
+.plainbox{border:1px solid var(--border);border-radius:12px;background:#0c131d;padding:10px 12px;font-size:.73rem;line-height:1.45;color:#dbe6f2}.plainbox b{color:#fff}.decision-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.decision-card{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:9px;min-height:80px}.dv{font-size:.82rem;font-weight:850;margin-top:4px}.dn{font-size:.58rem;color:#8f9cad;line-height:1.28;margin-top:3px}.info4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.info-card{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:9px;min-height:105px}.info-title{font-size:.64rem;font-weight:850}.info-text{font-size:.60rem;color:#9aa7b7;line-height:1.38;margin-top:5px}.top3{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.topopp{border:1px solid var(--border);border-radius:12px;background:linear-gradient(180deg,#111925,#0c131d);padding:10px;min-height:94px}.topopp .sym{font-size:1.0rem;font-weight:880}.topopp .why{font-size:.60rem;color:#91a0b1;line-height:1.32;margin-top:4px}
 .stagebar{display:flex;gap:4px;align-items:center;flex-wrap:wrap}.stage{padding:4px 7px;border-radius:8px;font-size:.58rem;font-weight:820;border:1px solid var(--border);background:#0c131d}.stage.on{box-shadow:0 0 0 1px rgba(255,255,255,.06) inset}
 .matrix{width:100%;border-collapse:separate;border-spacing:4px}.matrix th{font-size:.55rem;color:#8291a4;text-transform:uppercase;letter-spacing:.05em;text-align:left}.matrix td{border:1px solid var(--border);border-radius:8px;padding:7px;background:#0c131d;vertical-align:top}.mv{font-size:.67rem;font-weight:830}.mn{font-size:.55rem;color:#8d9aac;margin-top:2px}
 div[data-baseweb="tab-list"]{gap:6px}button[data-baseweb="tab"]{height:34px;font-size:.71rem}
@@ -451,6 +454,26 @@ def fetch_defillama_revenue(slug: str) -> pd.Series:
         except Exception:
             continue
     return pd.Series(dtype=float)
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def fetch_defillama_holders_revenue(slug: str) -> pd.Series:
+    """Tokenholder income (buybacks/burns/distributions) when DefiLlama tracks it."""
+    if not slug:
+        return pd.Series(dtype=float)
+    url=f"https://api.llama.fi/summary/fees/{urllib.parse.quote(slug)}?dataType=dailyHoldersRevenue"
+    try:
+        r=requests.get(url,headers=HEADERS,timeout=15)
+        if r.status_code!=200: return pd.Series(dtype=float)
+        j=r.json(); chart=j.get("totalDataChart") or j.get("totalDataChartBreakdown") or []
+        rows=[]
+        if isinstance(chart,list):
+            for item in chart:
+                if isinstance(item,list) and len(item)>=2 and isinstance(item[1],(int,float)):
+                    rows.append((pd.to_datetime(item[0],unit="s",errors="coerce"),float(item[1])))
+        return pd.Series(dict(rows)).sort_index() if rows else pd.Series(dtype=float)
+    except Exception:
+        return pd.Series(dtype=float)
 
 
 # -----------------------------
@@ -746,25 +769,47 @@ def base_family_from_market(market: str) -> str:
 def _snapshot_one(r: pd.Series) -> Dict[str, Any]:
     market, symbol, name = str(r["market"]), str(r["symbol"]), str(r["name"])
     external_id = str(r.get("external_id") or "")
+    llama_slug = str(r.get("defillama_slug") or "")
     # Asset-class adapters are intentionally different. Do not waste company-financial
     # calls on FX/commodities, and do not trust Yahoo aliases for crypto economics.
     if market == "Crypto":
         snap=dict(AssetSnapshot(market=market,symbol=symbol,name=name).__dict__)
+        snap.update({"crypto_fdv":np.nan,"fdv_premium":np.nan,"circulating_ratio":np.nan,"revenue_30d":np.nan,"revenue_growth_30d":np.nan,"annualized_revenue":np.nan,"mcap_to_revenue":np.nan,"holders_revenue_30d":np.nan,"holder_capture_ratio":np.nan,"holder_capture_status":"GATED","market_model_status":"PARTIAL / ECONOMICS"})
         if external_id:
             j=fetch_coingecko(external_id)
             md=(j or {}).get("market_data",{}) or {}
             snap["price"]=safe_float((md.get("current_price",{}) or {}).get("usd"))
             snap["market_cap"]=safe_float((md.get("market_cap",{}) or {}).get("usd"))
             snap["crypto_fdv"]=safe_float((md.get("fully_diluted_valuation",{}) or {}).get("usd"))
-            snap["data_quality"]="MEDIUM" if np.isfinite(snap["price"]) and np.isfinite(snap["market_cap"]) else "LOW"
-        snap["source_coverage"]="CoinGecko market/supply + optional DeFiLlama economics"
+            circ=safe_float(md.get("circulating_supply")); maxs=safe_float(md.get("max_supply")); total=safe_float(md.get("total_supply"))
+            denom=maxs if np.isfinite(maxs) and maxs>0 else total
+            snap["circulating_ratio"]=circ/denom if np.isfinite(circ) and np.isfinite(denom) and denom>0 else np.nan
+            snap["fdv_premium"]=snap["crypto_fdv"]/snap["market_cap"]-1 if np.isfinite(snap["crypto_fdv"]) and np.isfinite(snap["market_cap"]) and snap["market_cap"]>0 else np.nan
+            rev=fetch_defillama_revenue(llama_slug)
+            if len(rev)>=30:
+                snap["revenue_30d"]=float(rev.iloc[-30:].sum())
+            if len(rev)>=60:
+                prev=float(rev.iloc[-60:-30].sum())
+                snap["revenue_growth_30d"]=snap["revenue_30d"]/prev-1 if prev>0 and np.isfinite(snap["revenue_30d"]) else np.nan
+            snap["annualized_revenue"]=snap["revenue_30d"]*12 if np.isfinite(snap["revenue_30d"]) else np.nan
+            snap["mcap_to_revenue"]=snap["market_cap"]/snap["annualized_revenue"] if np.isfinite(snap["market_cap"]) and np.isfinite(snap["annualized_revenue"]) and snap["annualized_revenue"]>0 else np.nan
+            holders=fetch_defillama_holders_revenue(llama_slug)
+            snap["holders_revenue_30d"]=float(holders.iloc[-30:].sum()) if len(holders)>=30 else np.nan
+            snap["holder_capture_ratio"]=snap["holders_revenue_30d"]/snap["revenue_30d"] if np.isfinite(snap["holders_revenue_30d"]) and np.isfinite(snap["revenue_30d"]) and snap["revenue_30d"]>0 else np.nan
+            if np.isfinite(snap["holder_capture_ratio"]): snap["holder_capture_status"]="TRACKED"
+            valid=sum(np.isfinite(snap.get(k,np.nan)) for k in ["price","market_cap","fdv_premium","circulating_ratio","revenue_growth_30d","holder_capture_ratio"])
+            snap["data_quality"]="HIGH" if valid>=4 else ("MEDIUM" if valid>=2 else "LOW")
+        snap["source_coverage"]="CoinGecko market/supply + DeFiLlama protocol economics; holder capture/usage remains gated unless independently confirmed"
     elif market in ["FX","Commodity"]:
         snap=dict(fetch_price_only_snapshot(market,symbol,name))
-        snap["source_coverage"]="Yahoo market price/history; physical/relative-macro adapters still gated"
+        snap["market_model_status"]="GATED / NEEDS RELATIVE-MACRO" if market=="FX" else "GATED / NEEDS PHYSICAL BALANCE"
+        snap["source_coverage"]="Yahoo market price/history only; direction/leverage cannot be promoted without dedicated causal data"
     else:
         snap=dict(fetch_yfinance_snapshot(market,symbol,name))
-        snap["source_coverage"]="Yahoo market + public company financial metadata"
+        snap["market_model_status"]="RESEARCH READY / CURRENT DATA"
+        snap["source_coverage"]="Yahoo market + public company financial metadata; PIT SEC/IDX and estimate-revision history still required for production validation"
     snap["external_id"] = external_id
+    snap["defillama_slug"] = llama_slug
     snap["notes"] = str(r.get("notes") or "")
     snap["refreshed_at_utc"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     return snap
@@ -787,39 +832,118 @@ def build_snapshot_frame(rows: pd.DataFrame, max_assets: int = 20) -> pd.DataFra
 
 
 def add_cross_sectional_evidence(df: pd.DataFrame) -> pd.DataFrame:
+    """Asset-class-specific evidence. Never score FX/commodities with stock earnings fields."""
     if df.empty:
         return df
-    out = df.copy()
-    metrics = ["revenue_growth_yoy","eps_growth_yoy","gross_margin_change","fcf_growth_yoy","net_margin"]
-    for m in metrics:
-        out[f"{m}_rank"] = np.nan
-    # rank within sector where enough peers, else within market
-    for idx, r in out.iterrows():
-        peers = out[(out["market"]==r["market"]) & (out["sector"]==r["sector"])]
-        if len(peers) < 4:
-            peers = out[out["market"]==r["market"]]
-        for m in metrics:
-            out.at[idx,f"{m}_rank"] = percentile_rank(peers[m], safe_float(r[m]))
+    out=df.copy()
+    for c in ["evidence_families","deterioration_families"]:
+        out[c]=0
+    out["evidence_basis"]=""
+    if "market_model_status" not in out.columns:
+        out["market_model_status"]="GATED"
 
-    evidence_cols = [f"{m}_rank" for m in metrics[:4]]
-    out["evidence_families"] = out[evidence_cols].apply(lambda row: int(sum(np.isfinite(v) and v >= 0.75 for v in row)), axis=1)
-    out["deterioration_families"] = out[evidence_cols].apply(lambda row: int(sum(np.isfinite(v) and v <= 0.25 for v in row)), axis=1)
+    stock_metrics=["revenue_growth_yoy","eps_growth_yoy","gross_margin_change","fcf_growth_yoy","net_margin"]
+    for m in stock_metrics:
+        out[f"{m}_rank"]=np.nan
+    # Stocks: causal fundamental inflection + cross-sectional confirmation.
+    for market in ["US","IHSG"]:
+        idxs=out.index[out["market"].eq(market)].tolist()
+        for idx in idxs:
+            r=out.loc[idx]
+            peers=out[(out["market"]==market) & (out.get("sector",pd.Series(index=out.index,dtype=str))==r.get("sector"))]
+            if len(peers)<4:
+                peers=out[out["market"]==market]
+            for m in stock_metrics:
+                if m in out.columns:
+                    out.at[idx,f"{m}_rank"]=percentile_rank(peers[m],safe_float(r.get(m)))
+            er=[safe_float(out.at[idx,f"{m}_rank"]) for m in stock_metrics[:4]]
+            ev=int(sum(np.isfinite(v) and v>=.75 for v in er))
+            det=int(sum(np.isfinite(v) and v<=.25 for v in er))
+            out.at[idx,"evidence_families"]=ev; out.at[idx,"deterioration_families"]=det
+            out.at[idx,"evidence_basis"]="revenue + EPS + margin + FCF inflection"
+            out.at[idx,"market_model_status"]="RESEARCH READY / CURRENT DATA"
 
-    def stage(n: int, d: int) -> str:
-        if n >= 4: return "HIGH-CONVICTION CANDIDATE"
-        if n >= 3: return "CONFIRMED INFLECTION"
-        if n >= 2: return "WATCH"
-        if d >= 3: return "DETERIORATION WATCH"
+    # Crypto: economics / dilution / scarcity. Revenue existence alone is never a buy rule.
+    cidx=out.index[out["market"].eq("Crypto")].tolist()
+    if cidx:
+        cp=out.loc[cidx].copy()
+        for metric in ["revenue_growth_30d","fdv_premium","circulating_ratio","mcap_to_revenue","holder_capture_ratio","holders_revenue_30d"]:
+            if metric not in out.columns: out[metric]=np.nan
+        for idx in cidx:
+            r=out.loc[idx]
+            rg_rank=percentile_rank(cp["revenue_growth_30d"],safe_float(r.get("revenue_growth_30d")))
+            fdv_rank=percentile_rank(cp["fdv_premium"],safe_float(r.get("fdv_premium")))
+            circ_rank=percentile_rank(cp["circulating_ratio"],safe_float(r.get("circulating_ratio")))
+            val_rank=percentile_rank(cp["mcap_to_revenue"],safe_float(r.get("mcap_to_revenue")))
+            ev=0; det=0; basis=[]
+            if np.isfinite(rg_rank) and rg_rank>=.70: ev+=1; basis.append("revenue acceleration")
+            if np.isfinite(fdv_rank) and fdv_rank<=.35: ev+=1; basis.append("lower dilution/FDV premium")
+            if np.isfinite(circ_rank) and circ_rank>=.65: ev+=1; basis.append("higher circulating ratio")
+            if safe_float(r.get("holders_revenue_30d"))>0: ev+=1; basis.append("tracked tokenholder income")
+            if np.isfinite(val_rank) and val_rank<=.35 and safe_float(r.get("annualized_revenue"))>0: ev+=1; basis.append("economic value vs peers")
+            if np.isfinite(rg_rank) and rg_rank<=.30: det+=1
+            if np.isfinite(fdv_rank) and fdv_rank>=.70: det+=1
+            if np.isfinite(circ_rank) and circ_rank<=.30: det+=1
+            out.at[idx,"evidence_families"]=ev; out.at[idx,"deterioration_families"]=det
+            out.at[idx,"evidence_basis"]=" + ".join(basis) if basis else "economics incomplete; usage/holder-capture confirmation required"
+            ready = np.isfinite(safe_float(r.get("holder_capture_ratio"))) and np.isfinite(safe_float(r.get("revenue_growth_30d"))) and np.isfinite(safe_float(r.get("fdv_premium")))
+            out.at[idx,"market_model_status"]="RESEARCH READY / VALUE CAPTURE" if ready else "PARTIAL / ECONOMICS"
+
+    # FX and commodities are included in the universe, but not promoted from price history alone.
+    for market,status,basis in [
+        ("FX","GATED / NEEDS RELATIVE-MACRO","needs rates/REER/BoP/positioning/policy data"),
+        ("Commodity","GATED / NEEDS PHYSICAL BALANCE","needs inventory/production/consumption/curve/spare-capacity data"),
+    ]:
+        idxs=out.index[out["market"].eq(market)].tolist()
+        for idx in idxs:
+            out.at[idx,"evidence_families"]=0; out.at[idx,"deterioration_families"]=0
+            out.at[idx,"evidence_basis"]=basis; out.at[idx,"market_model_status"]=status
+            if str(out.at[idx,"data_quality"]).upper()=="HIGH": out.at[idx,"data_quality"]="MEDIUM"
+
+    def stage_row(r: pd.Series) -> str:
+        n=int(safe_float(r.get("evidence_families")) if np.isfinite(safe_float(r.get("evidence_families"))) else 0)
+        d=int(safe_float(r.get("deterioration_families")) if np.isfinite(safe_float(r.get("deterioration_families"))) else 0)
+        market=str(r.get("market"))
+        if market in ["FX","Commodity"]: return "DATA GATED / EARLY RADAR"
+        if market=="Crypto":
+            status=str(r.get("market_model_status",""))
+            if d>=3: return "DETERIORATION WATCH"
+            if "RESEARCH READY" in status and n>=4: return "CONFIRMED VALUE-CAPTURE INFLECTION"
+            if n>=3: return "WATCH · ECONOMICS CONFIRMING"
+            return "DISCOVERED / NEEDS USAGE + CAPTURE"
+        if n>=4: return "HIGH-CONVICTION CANDIDATE"
+        if n>=3: return "CONFIRMED INFLECTION"
+        if n>=2: return "WATCH"
+        if d>=3: return "DETERIORATION WATCH"
         return "DISCOVERED / NEEDS MORE EVIDENCE"
-    out["stage"] = [stage(int(n),int(d)) for n,d in zip(out["evidence_families"],out["deterioration_families"])]
+    out["stage"]=[stage_row(r) for _,r in out.iterrows()]
     return out
+
+def sector_multiple_context(scan: pd.DataFrame, row: pd.Series) -> Dict[str, Any]:
+    """Transparent valuation context. Never fall back from a sparse sector to the entire market.
+
+    A whole-market fallback was convenient but conceptually wrong (e.g. valuing a bank against a
+    semiconductor). We now prefer forward P/E because the projection is NTM-like, then trailing P/E
+    only when there are at least four same-sector peers. Otherwise fair value is GATED.
+    """
+    market=str(row.get("market")); sector=str(row.get("sector") or "Unknown"); symbol=str(row.get("symbol"))
+    peers=scan[(scan.get("market",pd.Series(index=scan.index,dtype=str)).astype(str)==market) &
+               (scan.get("sector",pd.Series(index=scan.index,dtype=str)).astype(str)==sector) &
+               (scan.get("symbol",pd.Series(index=scan.index,dtype=str)).astype(str)!=symbol)].copy()
+    for metric,label,upper in [("forward_pe","same-sector forward P/E",120),("trailing_pe","same-sector trailing P/E",200)]:
+        if metric not in peers.columns: continue
+        vals=pd.to_numeric(peers[metric],errors="coerce")
+        vals=vals[(vals>0)&(vals<upper)].dropna()
+        if len(vals)>=4:
+            q25,q50,q75=robust_quantiles(vals.tolist())
+            conf="HIGH" if len(vals)>=8 else "MEDIUM"
+            return {"pe25":q25,"pemed":q50,"pe75":q75,"peer_count":int(len(vals)),"valuation_basis":label,"valuation_confidence":conf}
+    return {"pe25":np.nan,"pemed":np.nan,"pe75":np.nan,"peer_count":0,"valuation_basis":"GATED · insufficient same-sector peers","valuation_confidence":"GATED"}
 
 
 def sector_multiple_bands(scan: pd.DataFrame, row: pd.Series) -> Tuple[float,float,float]:
-    peers = scan[(scan["market"]==row["market"]) & (scan["sector"]==row["sector"]) & (scan["trailing_pe"]>0) & (scan["trailing_pe"]<200)]
-    if len(peers) < 4:
-        peers = scan[(scan["market"]==row["market"]) & (scan["trailing_pe"]>0) & (scan["trailing_pe"]<200)]
-    return robust_quantiles(peers["trailing_pe"].tolist())
+    c=sector_multiple_context(scan,row)
+    return c["pe25"],c["pemed"],c["pe75"]
 
 
 def scenario_growth_bands(row: pd.Series) -> Tuple[float,float,float]:
@@ -839,15 +963,16 @@ def scenario_growth_bands(row: pd.Series) -> Tuple[float,float,float]:
 
 
 def valuation_projection(scan: pd.DataFrame, row: pd.Series) -> Dict[str, Any]:
-    pe25,pemed,pe75 = sector_multiple_bands(scan,row)
+    ctx=sector_multiple_context(scan,row)
+    pe25,pemed,pe75=ctx["pe25"],ctx["pemed"],ctx["pe75"]
     eps = safe_float(row.get("eps_ttm")); price=safe_float(row.get("price"))
     g_bear,g_base,g_bull = scenario_growth_bands(row)
-    out = {"pe25":pe25,"pemed":pemed,"pe75":pe75,"g_bear":g_bear,"g_base":g_base,"g_bull":g_bull}
+    out = {**ctx,"g_bear":g_bear,"g_base":g_base,"g_bull":g_bull}
     if not np.isfinite(eps) or eps <= 0 or not np.isfinite(price) or not np.isfinite(pemed):
         out.update({"bear_eps":np.nan,"base_eps":np.nan,"bull_eps":np.nan,"fv_bear":np.nan,"fv_base":np.nan,"fv_bull":np.nan,"implied_eps":np.nan,"expectation_gap":np.nan})
+        if not np.isfinite(eps) or eps<=0: out["valuation_basis"]="GATED · positive EPS base unavailable"
         return out
     bear_eps = eps*(1+g_bear); base_eps=eps*(1+g_base); bull_eps=eps*(1+g_bull)
-    # Cross-sectional multiple bands make the assumptions visible and comparable.
     fv_bear = max(0,bear_eps)*pe25 if np.isfinite(pe25) else np.nan
     fv_base = max(0,base_eps)*pemed if np.isfinite(pemed) else np.nan
     fv_bull = max(0,bull_eps)*pe75 if np.isfinite(pe75) else np.nan
@@ -858,29 +983,50 @@ def valuation_projection(scan: pd.DataFrame, row: pd.Series) -> Dict[str, Any]:
 
 
 def action_from_relative_rank(scan: pd.DataFrame) -> pd.DataFrame:
-    out = scan.copy()
-    gaps=[]
+    """Research-state actions using absolute, interpretable evidence + valuation gates.
+
+    We deliberately removed gap percentile ranking from the action decision because a small seed
+    universe can make percentile ranks unstable and overfit. A missing/weak valuation basis fails
+    closed instead of becoming a BUY/SHORT.
+    """
+    out=scan.copy()
+    gaps=[]; vconf=[]; vbasis=[]; pcount=[]
     for _,r in out.iterrows():
-        gaps.append(valuation_projection(out,r).get("expectation_gap",np.nan))
-    out["expectation_gap"] = gaps
-    out["gap_rank"] = out.groupby("market")["expectation_gap"].rank(pct=True)
+        if str(r.get("market")) in ["US","IHSG"]:
+            val=valuation_projection(out,r)
+            gaps.append(val.get("expectation_gap",np.nan)); vconf.append(val.get("valuation_confidence","GATED")); vbasis.append(val.get("valuation_basis","GATED")); pcount.append(val.get("peer_count",0))
+        else:
+            gaps.append(np.nan); vconf.append("N/A"); vbasis.append("asset-class model"); pcount.append(0)
+    out["expectation_gap"]=gaps; out["valuation_confidence"]=vconf; out["valuation_basis"]=vbasis; out["valuation_peer_count"]=pcount
     actions=[]
     for _,r in out.iterrows():
-        n=int(r.get("evidence_families",0)); d=int(r.get("deterioration_families",0)); gr=safe_float(r.get("gap_rank")); market=str(r.get("market"))
-        if d>=3 and np.isfinite(gr) and gr<=0.25:
-            action = "SELL / AVOID" if market=="IHSG" else ("SHORT / PUT CANDIDATE" if market=="US" else "BEARISH CANDIDATE")
-        elif n>=3 and np.isfinite(gr) and gr>=0.80:
-            action = "BUILD CANDIDATE"
-        elif n>=2 and np.isfinite(gr) and gr>=0.60:
-            action = "SELECTIVE ADD / WATCH"
-        elif n>=2:
-            action = "HOLD / NEEDS BETTER PRICE"
+        n=int(safe_float(r.get("evidence_families")) if np.isfinite(safe_float(r.get("evidence_families"))) else 0)
+        d=int(safe_float(r.get("deterioration_families")) if np.isfinite(safe_float(r.get("deterioration_families"))) else 0)
+        gap=safe_float(r.get("expectation_gap")); market=str(r.get("market")); status=str(r.get("market_model_status","")); vc=str(r.get("valuation_confidence","GATED"))
+        if market in ["FX","Commodity"]:
+            action="WATCH / DATA GATED"
+        elif market=="Crypto":
+            if d>=3: action="BEARISH / AVOID"
+            elif "RESEARCH READY" in status and n>=4 and str(r.get("data_quality","LOW")).upper()=="HIGH": action="BUILD CANDIDATE"
+            elif n>=3 and str(r.get("data_quality","LOW")).upper()=="HIGH": action="SELECTIVE ADD / WATCH"
+            else: action="WATCH / NO FORCED TRADE"
+        elif vc=="GATED" or not np.isfinite(gap):
+            action="WATCH / VALUATION GATED" if n>=2 else "WATCH / NO FORCED TRADE"
+        elif d>=3 and gap<=-0.20:
+            action="SELL / AVOID" if market=="IHSG" else "SHORT / PUT CANDIDATE"
+        elif n>=3 and gap>=0.20:
+            action="BUILD CANDIDATE"
+        elif n>=2 and gap>=0.10:
+            action="SELECTIVE ADD / WATCH"
+        elif n>=2 and gap>-0.20:
+            action="HOLD / NEEDS BETTER PRICE"
+        elif d>=2 and gap<=-0.20:
+            action="SELL / AVOID" if market=="IHSG" else "BEARISH CANDIDATE"
         else:
-            action = "WATCH / NO FORCED TRADE"
+            action="WATCH / NO FORCED TRADE"
         actions.append(action)
-    out["research_action"] = actions
+    out["research_action"]=actions
     return out
-
 
 def deep_crypto_metrics(symbol_row: pd.Series) -> Dict[str, Any]:
     cid = str(symbol_row.get("external_id") or "")
@@ -891,17 +1037,20 @@ def deep_crypto_metrics(symbol_row: pd.Series) -> Dict[str, Any]:
     mcap = safe_float((md.get("market_cap",{}) or {}).get("usd"))
     fdv = safe_float((md.get("fully_diluted_valuation",{}) or {}).get("usd"))
     circ = safe_float(md.get("circulating_supply")); total=safe_float(md.get("total_supply")); maxs=safe_float(md.get("max_supply"))
-    slug = cid
+    slug = str(symbol_row.get("defillama_slug") or "")
     revenue = fetch_defillama_revenue(slug)
     rev30 = float(revenue.iloc[-30:].sum()) if len(revenue)>=30 else np.nan
     prev30 = float(revenue.iloc[-60:-30].sum()) if len(revenue)>=60 else np.nan
     rev_growth = rev30/prev30-1 if np.isfinite(rev30) and np.isfinite(prev30) and prev30>0 else np.nan
     annualized = rev30*12 if np.isfinite(rev30) else np.nan
+    holders=fetch_defillama_holders_revenue(slug)
+    holders30=float(holders.iloc[-30:].sum()) if len(holders)>=30 else np.nan
     return {
         "market_cap":mcap,"fdv":fdv,"fdv_premium":fdv/mcap-1 if mcap>0 and np.isfinite(fdv) else np.nan,
         "circulating_supply":circ,"total_supply":total,"max_supply":maxs,
         "circulating_ratio":circ/maxs if np.isfinite(circ) and np.isfinite(maxs) and maxs>0 else np.nan,
         "revenue_30d":rev30,"revenue_growth_30d":rev_growth,"annualized_revenue":annualized,
+        "holders_revenue_30d":holders30,"holder_capture_ratio":holders30/rev30 if np.isfinite(holders30) and np.isfinite(rev30) and rev30>0 else np.nan,
         "mcap_to_revenue":mcap/annualized if mcap>0 and annualized>0 else np.nan,
     }
 
@@ -967,6 +1116,8 @@ ACTION_TIER = {
     "SELECTIVE ADD / WATCH": 4,
     "HOLD / NEEDS BETTER PRICE": 3,
     "WATCH / NO FORCED TRADE": 2,
+    "WATCH / VALUATION GATED": 2,
+    "WATCH / DATA GATED": 1,
     "SHORT / PUT CANDIDATE": 4,
     "SELL / AVOID": 4,
     "BEARISH CANDIDATE": 4,
@@ -974,15 +1125,16 @@ ACTION_TIER = {
 
 
 def rank_opportunities(df: pd.DataFrame) -> pd.DataFrame:
-    """Research ordering only; not a return probability or production score."""
+    """Research ordering only; never a probability. Uses absolute expectation gap, not seed-universe percentiles."""
     if df.empty:
         return df
     out=df.copy()
     out["_action_tier"]=out.get("research_action",pd.Series(index=out.index,dtype=object)).map(ACTION_TIER).fillna(1)
     out["_evidence"]=pd.to_numeric(out.get("evidence_families",0),errors="coerce").fillna(0)
-    out["_gap"]=pd.to_numeric(out.get("gap_rank",np.nan),errors="coerce").fillna(-1)
+    out["_gap"]=pd.to_numeric(out.get("expectation_gap",np.nan),errors="coerce").fillna(-9)
     out["_quality"]=out.get("data_quality",pd.Series(index=out.index,dtype=object)).map({"HIGH":2,"MEDIUM":1,"LOW":0}).fillna(0)
-    return out.sort_values(["_action_tier","_evidence","_gap","_quality"],ascending=False)
+    out["_vconf"]=out.get("valuation_confidence",pd.Series(index=out.index,dtype=object)).map({"HIGH":2,"MEDIUM":1,"GATED":0,"N/A":1}).fillna(0)
+    return out.sort_values(["_action_tier","_evidence","_vconf","_gap","_quality"],ascending=False)
 
 
 def infer_specific_root(name: str, symbol: str, evidence: Dict[str,Any]) -> str:
@@ -1172,6 +1324,47 @@ def fetch_option_snapshot(symbol: str, direction: str = "CALL") -> Dict[str, Any
         return {"error": str(exc)}
 
 
+@st.cache_data(ttl=900, show_spinner=False)
+def fetch_deribit_option_snapshot(symbol: str, direction: str = "CALL") -> Dict[str, Any]:
+    """Public Deribit option snapshot for BTC/ETH only. No API key required.
+    Directional thesis still has to pass the crypto economics/risk gate first.
+    """
+    base={"BTC-USD":"BTC","ETH-USD":"ETH"}.get(str(symbol).upper())
+    if not base:
+        return {"error":"crypto options adapter currently supports liquid BTC/ETH Deribit markets only"}
+    try:
+        idx=requests.get("https://www.deribit.com/api/v2/public/get_index_price",params={"index_name":f"{base.lower()}_usd"},headers=HEADERS,timeout=12)
+        idx.raise_for_status(); spot=safe_float((idx.json().get("result") or {}).get("index_price"))
+        ins=requests.get("https://www.deribit.com/api/v2/public/get_instruments",params={"currency":base,"kind":"option","expired":"false"},headers=HEADERS,timeout=15)
+        ins.raise_for_status(); instruments=ins.json().get("result") or []
+        now_ms=int(pd.Timestamp.now(tz="UTC").timestamp()*1000); want="call" if direction.upper()=="CALL" else "put"
+        candidates=[]
+        for x in instruments:
+            if str(x.get("option_type","")).lower()!=want: continue
+            exp=safe_float(x.get("expiration_timestamp")); strike=safe_float(x.get("strike"))
+            if not np.isfinite(exp) or not np.isfinite(strike): continue
+            days=(exp-now_ms)/86400000
+            if days<14 or days>150: continue
+            dte_pen=abs(days-60); strike_pen=abs(strike-spot)/spot if np.isfinite(spot) and spot>0 else 9
+            candidates.append((dte_pen+strike_pen*30,days,strike,x.get("instrument_name")))
+        if not candidates: return {"error":"no usable BTC/ETH option expiry"}
+        _,days,strike,name=sorted(candidates,key=lambda z:z[0])[0]
+        bs=requests.get("https://www.deribit.com/api/v2/public/get_book_summary_by_instrument",params={"instrument_name":name},headers=HEADERS,timeout=12)
+        bs.raise_for_status(); rows=bs.json().get("result") or []
+        if not rows: return {"error":"empty Deribit book summary"}
+        r=rows[0]; bid=safe_float(r.get("bid_price")); ask=safe_float(r.get("ask_price")); mark=safe_float(r.get("mark_price"))
+        mid=(bid+ask)/2 if np.isfinite(bid) and np.isfinite(ask) and ask>=bid else mark
+        spread=(ask-bid)/mid if np.isfinite(mid) and mid>0 and np.isfinite(bid) and np.isfinite(ask) else np.nan
+        iv=safe_float(r.get("mark_iv")); iv=iv/100 if np.isfinite(iv) and iv>2 else iv
+        oi=safe_float(r.get("open_interest")); prem_usd=mid*spot if np.isfinite(mid) and np.isfinite(spot) else np.nan
+        liquid=bool(np.isfinite(spread) and spread<=.15 and np.isfinite(oi) and oi>=10)
+        return {"symbol":symbol,"direction":direction.upper(),"venue":"Deribit","instrument":name,"days":round(days,1),"spot":spot,"strike":strike,
+                "bid":bid,"ask":ask,"mid":mid,"premium_usd":prem_usd,"spread":spread,"iv":iv,"open_interest":oi,
+                "implied_move":iv*np.sqrt(days/365) if np.isfinite(iv) else np.nan,"liquidity":"PASS" if liquid else "WEAK / CHECK MANUALLY","error":""}
+    except Exception as exc:
+        return {"error":str(exc)}
+
+
 def _scan_age_seconds() -> float:
     raw=st.session_state.get("intel_refreshed_at_utc")
     if not raw:
@@ -1188,7 +1381,7 @@ def _scan_age_seconds() -> float:
 def _run_intelligence(scan_input: pd.DataFrame, scan_signature: Tuple[Any,...], max_assets: int, force: bool=False) -> None:
     """Automatic, bounded refresh. Cache TTLs prevent endpoint hammering."""
     if force:
-        for _fn in [fetch_yfinance_snapshot,fetch_price_only_snapshot,fetch_coingecko,fetch_defillama_revenue,google_news_rss,discover_live_scenarios,fetch_option_snapshot]:
+        for _fn in [fetch_yfinance_snapshot,fetch_price_only_snapshot,fetch_coingecko,fetch_defillama_revenue,fetch_defillama_holders_revenue,google_news_rss,discover_live_scenarios,fetch_option_snapshot,fetch_deribit_option_snapshot]:
             try: _fn.clear()
             except Exception: pass
     try:
@@ -1205,8 +1398,9 @@ def _run_intelligence(scan_input: pd.DataFrame, scan_signature: Tuple[Any,...], 
             fresh["research_action"]="WATCH / NO FORCED TRADE"
             fresh["evidence_families"]=0
             fresh["deterioration_families"]=0
-            fresh["gap_rank"]=np.nan
             fresh["expectation_gap"]=np.nan
+            fresh["valuation_confidence"]="GATED"
+            fresh["valuation_basis"]="GATED · scan repair"
             st.session_state["scan_repair_error"]=str(exc)
     try:
         scen=discover_live_scenarios(max_queries=8)
@@ -1268,6 +1462,20 @@ def _why_now_compact(row: pd.Series) -> str:
     return note if note else "Early evidence; needs deeper causal confirmation"
 
 
+def _asset_currency(row: pd.Series) -> str:
+    market=str(row.get("market",""))
+    if market=="IHSG": return "Rp"
+    if market=="FX": return ""
+    return "$"
+
+def _fmt_asset_price(row: pd.Series, x: float, digits: int=2) -> str:
+    if not np.isfinite(safe_float(x)): return "—"
+    cur=_asset_currency(row)
+    if cur=="Rp": return f"Rp{safe_float(x):,.0f}"
+    if cur=="": return f"{safe_float(x):,.4f}"
+    return fmt_money(safe_float(x),cur,digits)
+
+
 def _macro_fit(mg: Dict[str,Any], direction: str="LONG") -> str:
     label=str(mg.get("action_label","MACRO GATED")).upper(); crash=str(mg.get("crash_state",""))
     if "MACRO GATED" in label: return "GATED"
@@ -1295,37 +1503,77 @@ def _expression_tables(ranked: pd.DataFrame, mg: Dict[str,Any]) -> Dict[str,pd.D
         return {"buyhold":empty,"spot":empty,"leverage":empty,"options":empty,"radar":empty}
     out=ranked.copy()
     action=out.get("research_action",pd.Series(index=out.index,dtype=str)).fillna("").astype(str)
-    qual=out.get("data_quality",pd.Series(index=out.index,dtype=str)).fillna("LOW").astype(str)
+    qual=out.get("data_quality",pd.Series(index=out.index,dtype=str)).fillna("LOW").astype(str).str.upper()
     ev=pd.to_numeric(out.get("evidence_families",0),errors="coerce").fillna(0)
     det=pd.to_numeric(out.get("deterioration_families",0),errors="coerce").fillna(0)
+    status=out.get("market_model_status",pd.Series(index=out.index,dtype=str)).fillna("GATED").astype(str)
 
-    # Ownership view includes both entry and exit states. IHSG remains cash-only.
+    # Long-term ownership: stocks only. IHSG remains cash-only by product design.
     buyhold=out[out["market"].isin(["US","IHSG"]) & action.str.contains("BUILD|SELECTIVE ADD|HOLD|SELL|AVOID",regex=True,na=False)].copy()
     if not buyhold.empty:
         buyhold["expression"]=[_plain_action_from_row(r,"buyhold") for _,r in buyhold.iterrows()]
 
-    # Cash/spot expressions for crypto / FX / commodities.
+    # Spot/cash: crypto, FX, commodities. Gated assets are not manufactured into directional trades.
     spot=out[out["market"].isin(["Crypto","FX","Commodity"]) & action.str.contains("BUILD|SELECTIVE ADD|HOLD|BEARISH|SELL|SHORT",regex=True,na=False)].copy()
     if not spot.empty:
         spot["expression"]=["SPOT LONG / BUILD" if any(k in a for k in ["BUILD","SELECTIVE ADD"]) else ("HOLD / CASH" if "HOLD" in a else "BEARISH / AVOID") for a in spot["research_action"].astype(str)]
 
-    # Leverage must be earned. IHSG is excluded by design.
-    long_ok=action.str.contains("BUILD",na=False) & (ev>=3) & qual.eq("HIGH") & _macro_allows_long_leverage(mg)
-    short_ok=action.str.contains("SHORT|SELL|BEARISH",regex=True,na=False) & (det>=3) & qual.eq("HIGH")
+    # Leverage: supported across US/FX/Commodity/Crypto, but only emitted when that asset-class causal model is actually ready.
+    # Current free/public adapters make US research-ready; the other classes remain fail-closed until their missing causal feeds arrive.
+    long_signal=action.str.contains("BUILD|SELECTIVE ADD",regex=True,na=False)
+    short_signal=action.str.contains("SHORT|SELL|BEARISH",regex=True,na=False)
+    model_ready=status.str.contains("RESEARCH READY",case=False,na=False)
+    long_ok=long_signal & (ev>=3) & qual.eq("HIGH") & model_ready & _macro_allows_long_leverage(mg)
+    short_ok=short_signal & (det>=3) & qual.eq("HIGH") & model_ready
     lev=out[(out["market"]!="IHSG") & (long_ok|short_ok)].copy()
     if not lev.empty:
-        lev["expression"]=["LEVERAGED LONG" if "BUILD" in a else "LEVERAGED SHORT" for a in lev["research_action"].astype(str)]
-        lev["risk_gate"]="EARNED / RESEARCH"
+        lev["expression"]=["LEVERAGED LONG" if any(k in a for k in ["BUILD","SELECTIVE ADD"]) else "LEVERAGED SHORT" for a in lev["research_action"].astype(str)]
+        lev["risk_gate"]="EARNED · CAUSAL MODEL + DATA + MACRO"
 
-    # Options shortlist only; live IV/liquidity is checked after selection.
-    opt=out[(out["market"]=="US") & ((action.str.contains("BUILD",na=False) & (ev>=3) & qual.eq("HIGH")) | (action.str.contains("SHORT|SELL",regex=True,na=False) & (det>=3) & qual.eq("HIGH")))].copy()
+    # Options: US stocks and liquid BTC/ETH crypto options are supported at the adapter level.
+    # A thesis still has to clear the asset-class evidence gate; adapter support alone never creates an option trade.
+    us_opt=(out["market"].eq("US") & (((action.str.contains("BUILD|SELECTIVE ADD",regex=True,na=False)) & (ev>=3) & qual.eq("HIGH")) | (action.str.contains("SHORT|SELL",regex=True,na=False) & (det>=3) & qual.eq("HIGH"))))
+    crypto_symbol=out["symbol"].astype(str).str.upper().isin(["BTC-USD","ETH-USD"])
+    crypto_model_ready=status.str.contains("RESEARCH READY",case=False,na=False)
+    crypto_opt=(out["market"].eq("Crypto") & crypto_symbol & crypto_model_ready & (ev>=3) & qual.eq("HIGH") & action.str.contains("BUILD|SELECTIVE ADD|BEARISH",regex=True,na=False))
+    opt=out[us_opt|crypto_opt].copy()
     if not opt.empty:
-        opt["expression"]=["CALL CANDIDATE" if "BUILD" in a else "PUT CANDIDATE" for a in opt["research_action"].astype(str)]
-        opt["option_edge"]="CHECK LIVE IV / LIQUIDITY"
+        opt["expression"]=["PUT CANDIDATE" if any(k in a for k in ["SHORT","SELL","BEARISH"]) else "CALL CANDIDATE" for a in opt["research_action"].astype(str)]
+        opt["option_edge"]=["CHECK DERIBIT IV / LIQUIDITY" if m=="Crypto" else "CHECK US OPTION IV / LIQUIDITY" for m in opt["market"].astype(str)]
 
     used=set(pd.concat([x for x in [buyhold,spot,lev,opt] if not x.empty],axis=0).index.tolist()) if any(not x.empty for x in [buyhold,spot,lev,opt]) else set()
-    radar=out[~out.index.isin(used)].copy().head(15)
+    radar=out[~out.index.isin(used)].copy()
+    # Keep highest-evidence early items first, but never hide gated markets completely.
+    if not radar.empty:
+        radar=radar.sort_values([c for c in ["evidence_families","data_quality"] if c in radar.columns],ascending=False,kind="stable").head(20)
     return {"buyhold":buyhold,"spot":spot,"leverage":lev,"options":opt,"radar":radar}
+
+
+def _expression_readiness(kind: str) -> List[Tuple[str,str,str]]:
+    """Visible truth table: what is supported versus still data-gated."""
+    k=kind.lower()
+    if k=="buyhold":
+        return [("US stocks","ACTIVE","current fundamentals + valuation research model"),("IHSG","ACTIVE · CASH ONLY","current fundamentals; no short/leverage/options")]
+    if k=="spot":
+        return [("Crypto","PARTIAL","CoinGecko + DefiLlama; holder capture/usage not universal"),("FX","GATED DIRECTION","needs relative-macro/positioning/REER/BoP"),("Commodities","GATED DIRECTION","needs physical balances/curve/spare capacity")]
+    if k=="leverage":
+        return [("US stocks","ACTIVE WHEN EARNED","fundamental + valuation + macro/risk gates"),("Crypto","ADAPTER READY · THESIS GATED","needs holder capture/usage/unlocks before leverage"),("FX","GATED","needs relative macro + positioning/policy model"),("Commodities","GATED","needs physical balance + curve model"),("IHSG","NOT ALLOWED","cash ownership only")]
+    if k=="options":
+        return [("US stocks","ACTIVE WHEN EARNED","listed calls/puts + live IV/liquidity check"),("BTC / ETH","DERIBIT ADAPTER READY · THESIS GATED","crypto economics must clear first"),("Other crypto","NOT SUPPORTED","no forced illiquid options"),("IHSG / FX / commodities","NOT IN CURRENT PRODUCT","no fake option surface")]
+    return [("All selected markets","EARLY RADAR","high recall; no capital action until the correct asset-class model confirms")]
+
+def _render_expression_readiness(kind: str) -> None:
+    rows=_expression_readiness(kind)
+    if not rows: return
+    html="<div class='grid3' style='grid-template-columns:repeat(%d,minmax(0,1fr))'>" % min(5,len(rows))
+    for market,status,note in rows:
+        stxt=status.upper()
+        tone="green" if "ACTIVE" in stxt else ("amber" if any(x in stxt for x in ["PARTIAL","ADAPTER READY"]) else "gray")
+        c=COLORS[tone][0]
+        html+=f"<div class='card' style='min-height:78px'><div class='kicker'>{market}</div><div class='ct' style='color:{c};margin-top:4px'>{status}</div><div class='cn'>{note}</div></div>"
+    html+="</div>"
+    st.markdown(html,unsafe_allow_html=True)
+
 
 def _display_scoreboard(df: pd.DataFrame, kind: str) -> None:
     if df.empty:
@@ -1368,8 +1616,12 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
     root=infer_specific_root(str(row.get("name","")),str(row.get("symbol","")),ev)
     val=valuation_projection(ranked,row) if str(row.get("market")) in ["US","IHSG"] else {}
     pin,pintone=price_in_label(val)
-    action=_plain_action_from_row(row,"buyhold") if view_kind=="BUYHOLD" else str(row.get("expression",row.get("research_action","WATCH")))
-    atone="green" if any(x in action for x in ["BUILD","LONG","CALL","SELECTIVE ADD"]) else ("red" if any(x in action for x in ["SELL","SHORT","PUT","BEARISH"]) else "amber")
+    raw_action=_plain_action_from_row(row,"buyhold") if view_kind=="BUYHOLD" else str(row.get("expression",row.get("research_action","WATCH")))
+    prior_cp=get_prior_checkpoint(str(row.get("symbol","")), STATE)
+    entry=entry_decision(row.to_dict(), val, mg, prior_cp)
+    expr=expression_decision(row.to_dict(), entry, mg)
+    action=entry.get("entry_action",raw_action) if view_kind in ["BUYHOLD","SPOT","RADAR"] else raw_action
+    atone="green" if any(x in action for x in ["BUILD","ADD","CORE","LONG","CALL","STARTER"]) else ("red" if any(x in action for x in ["SELL","SHORT","PUT","BEARISH","EXIT"]) else "amber")
     thesis=opportunity_thesis_summary(row,ev,root)
     conf=_conviction_label(row); horizon=_plain_horizon(row,view_kind); asym=_asymmetry_label(row,val)
     px=safe_float(row.get("price")); base=safe_float(val.get("fv_base")) if val else np.nan; bull=safe_float(val.get("fv_bull")) if val else np.nan; bear=safe_float(val.get("fv_bear")) if val else np.nan
@@ -1380,12 +1632,12 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
 
     st.markdown(f"<div class='plainbox'><b>{row.get('symbol')} · {row.get('name')}</b><br>{thesis}</div>",unsafe_allow_html=True)
     cards="<div class='decision-grid'>"
-    cards+=f"<div class='decision-card'><div class='kicker'>ACTION NOW</div><div class='dv' style='color:{COLORS[atone][0]}'>{action}</div><div class='dn'>What to do with this asset now.</div></div>"
-    cards+=f"<div class='decision-card'><div class='kicker'>CURRENT PRICE</div><div class='dv'>{fmt_money(px)}</div><div class='dn'>Latest scanned price.</div></div>"
-    cards+=f"<div class='decision-card'><div class='kicker'>BASE FAIR VALUE</div><div class='dv'>{fmt_money(base) if np.isfinite(base) else 'GATED'}</div><div class='dn'>Research range, not a precise target.</div></div>"
+    cards+=f"<div class='decision-card'><div class='kicker'>ENTRY / ACTION NOW</div><div class='dv' style='color:{COLORS[atone][0]}'>{action}</div><div class='dn'>Detection is not entry. Current stage: {entry.get('entry_stage','DISCOVER')}.</div></div>"
+    cards+=f"<div class='decision-card'><div class='kicker'>CURRENT PRICE</div><div class='dv'>{_fmt_asset_price(row,px)}</div><div class='dn'>Latest scanned price.</div></div>"
+    cards+=f"<div class='decision-card'><div class='kicker'>BASE FAIR VALUE</div><div class='dv'>{_fmt_asset_price(row,base) if np.isfinite(base) else 'GATED'}</div><div class='dn'>Research range, not a precise target.</div></div>"
     cards+=f"<div class='decision-card'><div class='kicker'>BASE UPSIDE</div><div class='dv'>{pct(upside) if np.isfinite(upside) else 'GATED'}</div><div class='dn'>Versus current price.</div></div>"
     cards+=f"<div class='decision-card'><div class='kicker'>HORIZON</div><div class='dv'>{horizon}</div><div class='dn'>When thesis should resolve.</div></div>"
-    cards+=f"<div class='decision-card'><div class='kicker'>CONVICTION</div><div class='dv'>{conf}</div><div class='dn'>Evidence + data quality, not probability.</div></div>"
+    cards+=f"<div class='decision-card'><div class='kicker'>ENTRY SIZE</div><div class='dv'>{entry.get('allocation_guide','0%')}</div><div class='dn'>Conviction {conf}. Sizing guide, not calibrated probability.</div></div>"
     cards+="</div>"
     st.markdown(cards,unsafe_allow_html=True)
 
@@ -1398,15 +1650,28 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
     info+="</div>"
     st.markdown(info,unsafe_allow_html=True)
 
+    st.markdown("**Entry logic · why detection is not automatically a trade**")
+    entry_rows=[]
+    for reason in entry.get("reasons",[]) or []:
+        entry_rows.append({"Type":"Supports entry","Evidence":reason})
+    for gate in entry.get("gates",[]) or []:
+        entry_rows.append({"Type":"Gate / wait","Evidence":gate})
+    rev_edge=safe_float(entry.get("revision_edge"))
+    if np.isfinite(rev_edge):
+        entry_rows.append({"Type":"Fair value vs price revision","Evidence":f"FV revision minus price revision = {rev_edge*100:.1f}pp"})
+    entry_rows.append({"Type":"Best expression after entry","Evidence":f"{expr.get('best_expression','WATCH')} · {expr.get('why','')}"})
+    st.dataframe(pd.DataFrame(entry_rows),use_container_width=True,hide_index=True)
+    st.caption("Lifecycle: DISCOVER → STARTER → CORE → ADD/HOLD → NO CHASE → TRIM/EXIT. Option/leverage are expressions after entry is earned, never discovery signals.")
+
     if str(row.get("market")) in ["US","IHSG"]:
         proj=pd.DataFrame([
-            ["Bear",pct(val.get("g_bear",np.nan)),fmt_num(val.get("bear_eps",np.nan),2),fmt_money(bear), pct(bear/px-1) if np.isfinite(bear) and np.isfinite(px) and px>0 else "—"],
-            ["Base",pct(val.get("g_base",np.nan)),fmt_num(val.get("base_eps",np.nan),2),fmt_money(base), pct(upside) if np.isfinite(upside) else "—"],
-            ["Bull",pct(val.get("g_bull",np.nan)),fmt_num(val.get("bull_eps",np.nan),2),fmt_money(bull), pct(bull/px-1) if np.isfinite(bull) and np.isfinite(px) and px>0 else "—"],
+            ["Bear",pct(val.get("g_bear",np.nan)),fmt_num(val.get("bear_eps",np.nan),2),_fmt_asset_price(row,bear), pct(bear/px-1) if np.isfinite(bear) and np.isfinite(px) and px>0 else "—"],
+            ["Base",pct(val.get("g_base",np.nan)),fmt_num(val.get("base_eps",np.nan),2),_fmt_asset_price(row,base), pct(upside) if np.isfinite(upside) else "—"],
+            ["Bull",pct(val.get("g_bull",np.nan)),fmt_num(val.get("bull_eps",np.nan),2),_fmt_asset_price(row,bull), pct(bull/px-1) if np.isfinite(bull) and np.isfinite(px) and px>0 else "—"],
         ],columns=["Scenario","Earnings change","Projected NTM EPS","Research fair value","vs current"])
         st.markdown("**Projection / fair value / what today's price assumes**")
         st.dataframe(proj,use_container_width=True,hide_index=True)
-        st.caption(f"Current price implies ~{fmt_num(val.get('implied_eps',np.nan),2)} EPS at the scanned peer-median multiple vs base projection ~{fmt_num(val.get('base_eps',np.nan),2)}. Fair value is a transparent research range until PIT/OOS validation passes.")
+        st.caption(f"Valuation basis: {val.get('valuation_basis','GATED')} · peers {int(safe_float(val.get('peer_count',0)) if np.isfinite(safe_float(val.get('peer_count',0))) else 0)} · confidence {val.get('valuation_confidence','GATED')}. Current price implies ~{fmt_num(val.get('implied_eps',np.nan),2)} EPS at that multiple vs base projection ~{fmt_num(val.get('base_eps',np.nan),2)}. If same-sector valuation evidence is insufficient, fair value stays GATED rather than using the whole market as a fake peer set.")
     elif str(row.get("market"))=="Crypto":
         urow=UNIVERSE[UNIVERSE["symbol"]==row.get("symbol")]
         cm=deep_crypto_metrics(urow.iloc[0]) if not urow.empty else {}
@@ -1415,6 +1680,7 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
             st.dataframe(pd.DataFrame([{
                 "Market cap":fmt_money(cm.get("market_cap",np.nan)),"FDV premium":pct(cm.get("fdv_premium",np.nan)),
                 "30D revenue":fmt_money(cm.get("revenue_30d",np.nan)),"Revenue acceleration":pct(cm.get("revenue_growth_30d",np.nan)),
+                "30D holder income":fmt_money(cm.get("holders_revenue_30d",np.nan)),"Holder capture":pct(cm.get("holder_capture_ratio",np.nan)),
                 "Mcap / annualized revenue":fmt_num(cm.get("mcap_to_revenue",np.nan),1)+"x"
             }]),use_container_width=True,hide_index=True)
             st.caption("Revenue alone is never a buy rule. Holder capture, dilution/unlocks and real usage must agree.")
@@ -1442,19 +1708,24 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
             showcols=[c for c in ["market","symbol","name","research_action","price","data_quality","notes"] if c in exposed.columns]
             st.dataframe(exposed[showcols],use_container_width=True,hide_index=True)
 
-    if view_kind=="OPTIONS" and str(row.get("market"))=="US":
-        direction="CALL" if "CALL" in action or "BUILD" in str(row.get("research_action")) else "PUT"
-        od=fetch_option_snapshot(str(row.get("symbol")),direction)
+    if view_kind=="OPTIONS" and str(row.get("market")) in ["US","Crypto"]:
+        direction="CALL" if "CALL" in action or any(k in str(row.get("research_action")) for k in ["BUILD","SELECTIVE ADD"]) else "PUT"
+        od=fetch_option_snapshot(str(row.get("symbol")),direction) if str(row.get("market"))=="US" else fetch_deribit_option_snapshot(str(row.get("symbol")),direction)
         st.markdown("**Live option expression check**")
         if od.get("error"):
-            st.warning("Option chain unavailable: "+str(od.get("error")))
+            st.warning("Option market unavailable/gated: "+str(od.get("error")))
         else:
             st.dataframe(pd.DataFrame([{
-                "Direction":od.get("direction"),"Expiry":od.get("expiry"),"Days":od.get("days"),"Spot":od.get("spot"),
-                "Strike":od.get("strike"),"Mid":od.get("mid"),"Bid/ask spread":pct(od.get("spread",np.nan)),
+                "Venue":od.get("venue","US listed"),"Direction":od.get("direction"),"Instrument":od.get("instrument","—"),"Expiry":od.get("expiry","—"),"Days":od.get("days"),"Spot":od.get("spot"),
+                "Strike":od.get("strike"),"Mid":od.get("mid"),"Premium USD":od.get("premium_usd",np.nan),"Bid/ask spread":pct(od.get("spread",np.nan)),
                 "IV":pct(od.get("iv",np.nan)),"Implied move":pct(od.get("implied_move",np.nan)),"OI":od.get("open_interest"),"Liquidity":od.get("liquidity")
             }]),use_container_width=True,hide_index=True)
-            st.caption("Directional thesis ≠ automatically buy the option. IV/liquidity/expiry must still offer a sensible expression.")
+            st.caption("Directional thesis ≠ automatically buy the option. IV, liquidity, expiry and catalyst timing must justify the expression. Crypto adapter is intentionally limited to liquid BTC/ETH Deribit options.")
+
+    try:
+        save_checkpoint(str(row.get("symbol","")), price=px, fv_base=base, entry_stage=str(entry.get("entry_stage","DISCOVER")), default_root=STATE)
+    except Exception:
+        pass
 
     if ev.get("items"):
         with st.expander("Latest evidence / sources",expanded=False):
@@ -1489,6 +1760,8 @@ st.sidebar.markdown(f"{badge('AUTO · ~30 MIN CACHE','green')}",unsafe_allow_htm
 force_refresh=st.sidebar.button("Refresh now (optional)",use_container_width=True)
 st.sidebar.caption("No button is required. First load and market-selection changes scan automatically. Cached public data prevents repeated endpoint hammering.")
 with st.sidebar.expander("Data / research gates",expanded=False):
+    st.write("Universe", f"SEED + adaptive discovery · {len(UNIVERSE)} mapped assets")
+    st.caption("Not yet a full US/IDX exchange enumeration. Unknown opportunities can enter through scenario/news discovery, but full-universe recall remains a research gate.")
     st.write("Action model", "✅" if PRODUCTION_ACTION_MODEL_VALIDATED else "🔒 research state")
     st.write("Fair value", "✅" if PRODUCTION_FAIR_VALUE_MODEL_VALIDATED else "🔒 research range")
     st.write("Event probability", "✅" if PRODUCTION_EVENT_PROBABILITY_VALIDATED else "🔒 evidence ranking only")
@@ -1499,7 +1772,7 @@ if selected_markets:
 else:
     scan_input=UNIVERSE.iloc[0:0].copy()
 max_assets=len(scan_input)
-scan_signature=(tuple(selected_markets),int(max_assets),"v1.7")
+scan_signature=(tuple(selected_markets),int(max_assets),"v2.3-validated")
 
 # Automatic initial/stale refresh. The user never has to press a scan button.
 existing_records=st.session_state.get("live_scan_records",[])
@@ -1527,7 +1800,7 @@ mg=st.session_state.get("macro_gate_snapshot",{}) or {}
 ranked=rank_opportunities(scan[scan.get("error",pd.Series(index=scan.index,dtype=str)).fillna("")==""] if not scan.empty and "error" in scan else scan)
 expr=_expression_tables(ranked,mg)
 
-nav=st.radio("Workspace",["OPPORTUNITIES","MACRO & EVENTS","RESEARCH / REPLAY"],horizontal=True,label_visibility="collapsed",key="decision_nav_v17")
+nav=st.radio("Workspace",["OPPORTUNITIES","MACRO & EVENTS","RESEARCH / REPLAY"],horizontal=True,label_visibility="collapsed",key="decision_nav_v20")
 
 if nav=="MACRO & EVENTS":
     safe_render_macro_control_room()
@@ -1539,43 +1812,60 @@ elif nav=="RESEARCH / REPLAY":
         st.dataframe(ACCEPTANCE,use_container_width=True,hide_index=True)
         cases=REPLAY["case"].dropna().unique().tolist() if not REPLAY.empty else []
         if cases:
-            case=st.selectbox("Replay case",cases,key="replay_case_compact_v17")
+            case=st.selectbox("Replay case",cases,key="replay_case_compact_v20")
             rr=REPLAY[REPLAY["case"]==case]
             st.dataframe(rr[["date","phase","scanner_state","evidence_known_then","causal_chain","source_url"]],use_container_width=True,hide_index=True)
-    with st.expander("Data sources / known gaps",expanded=True):
+    with st.expander("Data sources / readiness",expanded=True):
         st.dataframe(SOURCE_REGISTRY,use_container_width=True,hide_index=True)
-        st.markdown("<div class='gate'><b>Not production-complete yet:</b> full point-in-time SEC/IDX fundamentals + estimate revisions; verified tokenholder capture/unlocks/real usage for every crypto; physical inventory/forward-curve data for commodities; CFTC/REER/BoP/intervention feeds for FX; and a validated option expected-distribution model. Missing critical fields must lower conviction rather than be fabricated.</div>",unsafe_allow_html=True)
+        readiness=pd.DataFrame([
+            ["Universe coverage","PARTIAL · SEED + ADAPTIVE DISCOVERY","full US + IDX + broader crypto enumeration / stage-1 screening still required for maximum recall"],
+            ["Macro / cross-asset regime","CURRENT MONITORING READY","PIT probability calibration still locked"],
+            ["US stock buy/hold/sell","RESEARCH READY","PIT SEC + estimate-revision history still needed for production validation"],
+            ["IHSG buy/hold/sell","RESEARCH READY · CASH ONLY","full IDX PIT/corporate-action feed still needed"],
+            ["US leverage","SUPPORTED WHEN EARNED","requires high data + evidence + macro/risk gate"],
+            ["FX leverage","DATA GATED","relative macro, REER, BoP, positioning, intervention history"],
+            ["Commodity leverage","DATA GATED","physical balances, inventory, curve/carry, spare capacity"],
+            ["Crypto spot","PARTIAL","holder capture, unlock schedule and real usage are not universal"],
+            ["Crypto leverage","THESIS GATED","adapter exists; leverage disabled until crypto causal data is complete"],
+            ["US stock options","SUPPORTED WHEN EARNED","live option chain; expected-distribution model remains research state"],
+            ["BTC/ETH options","DERIBIT ADAPTER READY · THESIS GATED","only liquid BTC/ETH; no fake options for illiquid tokens"],
+        ],columns=["Layer","Current status","What is still missing"])
+        st.dataframe(readiness,use_container_width=True,hide_index=True)
+        st.markdown("<div class='gate'><b>Fail-closed rule:</b> missing causal data never gets replaced with price momentum or a technical indicator. The asset stays in Early Radar / GATED until the correct data family is available.</div>",unsafe_allow_html=True)
 
 else:
-    st.markdown("<div class='section'>Right now · macro context that changes sizing</div>",unsafe_allow_html=True)
+    st.markdown("<div class='section'>Right now · what the macro backdrop means for every opportunity</div>",unsafe_allow_html=True)
     if mg:
-        event=mg.get("event_override") or "NONE"
-        html="<div class='kpis' style='grid-template-columns:repeat(4,minmax(0,1fr))'>"
-        html+=kpi("What to do overall",str(mg.get("action_label","—")),fmt_num(safe_float(mg.get("action_score")),0)+"/100",str(mg.get("headline","")),str(mg.get("action_tone","gray")))
-        html+=kpi("Economy",str(mg.get("regime","—")),"",str(mg.get("regime_human",mg.get("headline",""))),"blue")
+        event=mg.get("event_override") or "NONE ACTIVE"
+        top_path=(mg.get("top_paths") or mg.get("macro_scenarios") or [])
+        top_path_name=(top_path[0].get("name") if top_path and isinstance(top_path[0],dict) else "NO DOMINANT PATH")
+        html="<div class='kpis' style='grid-template-columns:repeat(5,minmax(0,1fr))'>"
+        html+=kpi("Portfolio posture",str(mg.get("action_label","—")),"",str(mg.get("headline","")),str(mg.get("action_tone","gray")))
+        html+=kpi("Economy",str(mg.get("regime","—")),"",str(mg.get("regime_explain",mg.get("headline",""))),"blue")
         html+=kpi("Crash setup",str(mg.get("crash_state","—")),"","Credit: "+str(mg.get("credit_state","—")),str(mg.get("crash_tone","gray")))
-        html+=kpi("Event override",str(event),"","Only material active override is shown.","amber" if event!="NONE" else "green")
+        html+=kpi("Most supported 1–2Q path",str(top_path_name),"","Evidence-ranked, not fake probability.","blue")
+        html+=kpi("Event override",str(event),"","Only a material real-world transmission is promoted.","amber" if event!="NONE ACTIVE" else "green")
         html+="</div>"
         st.markdown(html,unsafe_allow_html=True)
-        long_note="Secular bottom-up opportunities can still be owned selectively; macro mainly changes position size and whether leverage is allowed."
-        if any(k in str(mg.get("action_label","")).upper() for k in ["DEFENSIVE","CRISIS"]): long_note="Macro is hostile: prioritize capital preservation; only exceptional bottom-up longs survive and leverage is restricted."
-        st.markdown(f"<div class='plainbox' style='margin-top:7px'><b>Plain English:</b> {mg.get('headline','')} {long_note}</div>",unsafe_allow_html=True)
+        long_note="Strong secular opportunities may still be owned; macro mainly changes position size, timing and whether leverage is allowed."
+        if any(k in str(mg.get("action_label","")).upper() for k in ["DEFENSIVE","CRISIS"]): long_note="Macro is hostile: preserve capital first; leverage is restricted and only exceptional bottom-up longs survive."
+        st.markdown(f"<div class='plainbox' style='margin-top:7px'><b>What this means:</b> {mg.get('headline','')} {long_note}</div>",unsafe_allow_html=True)
 
     refreshed=st.session_state.get("intel_refreshed_at_utc","—")
     high=(ranked.get("data_quality",pd.Series(dtype=str))=="HIGH").mean() if not ranked.empty else 0
-    st.caption(f"Last automatic refresh UTC: {refreshed} · scanned {len(ranked)}/{max_assets} selected assets · current-feed high-quality rows {high:.0%}. This is feed coverage, not full research completeness or PIT readiness.")
+    st.caption(f"Last automatic refresh UTC: {refreshed} · scanned {len(ranked)}/{max_assets} selected mapped assets · current-feed high-quality rows {high:.0%}. Universe is SEED + adaptive discovery, not full-exchange enumeration; feed coverage is not PIT/model readiness.")
 
     # Immediate top opportunities before any table.
     st.markdown("<div class='section'>Best things worth looking at now</div>",unsafe_allow_html=True)
     picks=[]
-    for label,keyname in [("LONG-TERM","buyhold"),("TACTICAL / LEVERAGE","leverage"),("EARLY RADAR","radar")]:
+    for label,keyname in [("LONG-TERM","buyhold"),("LEVERAGE","leverage"),("OPTIONS","options"),("EARLY RADAR","radar")]:
         d=expr[keyname]
         if not d.empty:
             r=d.iloc[0]
             picks.append((label,r))
     if picks:
         h="<div class='top3'>"
-        for label,r in picks[:3]:
+        for label,r in picks[:4]:
             act=_plain_action_from_row(r,"buyhold") if label=="LONG-TERM" else str(r.get("expression",r.get("research_action","WATCH")))
             h+=f"<div class='topopp'><div class='kicker'>{label}</div><div class='sym'>{r.get('symbol')} · {act}</div><div class='why'>{_why_now_compact(r)} · {_conviction_label(r)} conviction</div></div>"
         h+="</div>"
@@ -1584,15 +1874,16 @@ else:
         st.markdown("<div class='gate'>No opportunity currently clears the research gate. The engine will not manufacture one.</div>",unsafe_allow_html=True)
 
     st.markdown("<div class='section'>Opportunities · pick how you want to express the thesis</div>",unsafe_allow_html=True)
-    view=st.radio("Opportunity type",["BUY & HOLD / SELL · STOCKS","SPOT / CASH","LEVERAGED LONG / SHORT","OPTIONS · CALL / PUT","EARLY RADAR"],horizontal=True,key="opp_subview_v17")
+    view=st.radio("Opportunity type",["BUY & HOLD / SELL · STOCKS","LEVERAGED LONG / SHORT","OPTIONS · CALL / PUT","SPOT / CASH","EARLY RADAR"],horizontal=True,key="opp_subview_v20")
     mapkey={"BUY & HOLD / SELL · STOCKS":"buyhold","SPOT / CASH":"spot","LEVERAGED LONG / SHORT":"leverage","OPTIONS · CALL / PUT":"options","EARLY RADAR":"radar"}
     key=mapkey[view]
+    _render_expression_readiness(key)
     df=expr[key]
     _display_scoreboard(df,view)
 
     if not df.empty:
         options=[str(x) for x in df["symbol"].head(14).tolist()]
-        selected=st.selectbox("Open one opportunity",options,key=f"detail_{key}_v17")
+        selected=st.selectbox("Open one opportunity",options,key=f"detail_{key}_v20")
         row=df[df["symbol"].astype(str)==selected].iloc[0]
         st.markdown("<div class='section'>One opportunity · everything you need to decide</div>",unsafe_allow_html=True)
         _render_opportunity_detail(row,ranked,mg,"OPTIONS" if key=="options" else ("BUYHOLD" if key=="buyhold" else key.upper()))
@@ -1609,4 +1900,4 @@ else:
         cards+="</div>"
         st.markdown(cards,unsafe_allow_html=True)
 
-st.caption("v1.7 Beginner Decision View · opportunity first, explanation on demand, macro always visible, causal chains only when economically relevant. No classic technical indicators.")
+st.caption("v2.0 Final Decision System · opportunity first, macro compact, scenarios only when supported, causal chains only when economically relevant, and every unsupported asset class fails closed. No classic technical indicators.")

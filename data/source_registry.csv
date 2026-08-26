@@ -1,9 +1,19 @@
-family,source,coverage,role
-US fundamentals,SEC EDGAR / company filings,US equities,PLANNED / NOT YET WIRED — point-in-time primary-source fundamentals
-Market data,Yahoo Finance via yfinance,US/IHSG/FX/commodities/crypto,price and public financial metadata; price is context not technical signal
-Crypto economics,DefiLlama,Crypto,protocol fees/revenue/value-capture candidates
-Crypto supply,CoinGecko,Crypto,market cap/FDV/circulating and max-supply context
-Macro,FRED / Federal Reserve,Cross-asset,macro regime/credit/rates context
-Fiscal,US Treasury FiscalData,Cross-asset,fiscal/debt constraints
-Scenario discovery,Google News RSS broad queries,Cross-asset,novel event/theme discovery; never numeric probability
-Industry / primary sources,Company IR / IEA / agencies,Cross-asset,causal validation and bottleneck evidence
+family,source,coverage,role,status
+US fundamentals,Yahoo Finance / company public financial metadata,US equities,current quarterly fundamentals + price context,WIRED
+US primary filings,SEC EDGAR / company filings,US equities,point-in-time primary-source fundamentals and filing dates,PIT PARSER WIRED · FULL HISTORY DOWNLOAD REQUIRED FOR EMPIRICAL OOS
+IHSG fundamentals,Yahoo Finance / public issuer data,IHSG,current fundamentals + price context,WIRED PARTIAL
+IHSG primary filings,IDX / issuer filings,IHSG,point-in-time financials corporate actions ownership dilution,DISCOVERY/PIT ADAPTER WIRED · NORMALIZED HISTORY REQUIRED FOR EMPIRICAL OOS
+Market data,Yahoo Finance via yfinance,US/IHSG/FX/commodities,price/history context only; never a classic technical signal,WIRED
+Crypto economics,DefiLlama,Crypto,protocol fees/revenue acceleration,WIRED PARTIAL
+Crypto supply,CoinGecko,Crypto,market cap FDV circulating/max-supply context,WIRED
+Crypto holder capture / usage,Protocol-specific primary/on-chain feeds,Crypto,holder revenue buybacks burns unlock schedules real usage,REQUIRED FOR HIGH CONVICTION
+US options,Yahoo Finance listed option chains,US equities,expiry strike IV spread OI liquidity expression check,WIRED
+Crypto options,Deribit public API,BTC/ETH,liquid BTC/ETH call/put IV spread OI expression check,WIRED ADAPTER / THESIS GATED
+Macro,FRED / Federal Reserve,Cross-asset,growth inflation labor credit rates financial conditions,WIRED
+Fiscal,US Treasury FiscalData,Cross-asset,fiscal/debt constraints,WIRED
+Geopolitical / supply,AI-GPR GSCPI EPU public feeds,Cross-asset,event transmission sensors,WIRED
+Scenario discovery,Google News RSS broad queries,Cross-asset,novel event/theme discovery; evidence ranking not probability,WIRED
+FX causal data,BIS/FRED/CFTC/central banks/BoP sources,FX,rate differential REER BoP positioning intervention reaction,REQUIRED BEFORE LEVERAGE
+Commodity physical data,EIA/USDA/IEA/exchange/public agency feeds,Commodities,inventory production consumption spare capacity curve/carry,REQUIRED BEFORE LEVERAGE
+Industry / primary sources,Company IR / IEA / agencies,Cross-asset,causal validation bottleneck evidence and normalization,PARTIAL / EVENT-DRIVEN
+Macro vintages,ALFRED / FRED vintage CSV,US macro,point-in-time macro observations as known on historical vintage dates,VINTAGE ADAPTER WIRED · FULL HISTORICAL PANEL REQUIRED FOR EMPIRICAL OOS

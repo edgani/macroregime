@@ -1,1 +1,1 @@
-v1.7 Beginner Decision View
+2.3-validated-release

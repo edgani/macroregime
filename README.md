@@ -1,74 +1,54 @@
-# Opportunity Intelligence Engine v2.3 — Validated Release
+# Opportunity Intelligence Engine v2.4 — Visual Decision System
 
-Beginner-first Streamlit decision system for US stocks, IHSG, FX, commodities and crypto.
+This release fixes the two biggest daily-use problems in v2.3:
 
-## Daily workflow
+1. **FX / commodities / crypto were easy to mistake as “missing”** because fail-closed leverage/options tables only returned qualified trades. v2.4 keeps those markets visible and labels non-qualified rows `WAIT / GATED` instead of deleting them from the surface.
+2. **The page was too text-heavy.** v2.4 makes the daily screen visual-first and collapses deep research prose.
 
-`MACRO GATE → OPPORTUNITY DISCOVERY → ENTRY → EXPRESSION → SCENARIO/FALSIFIER`
+## Daily visual hierarchy
 
-The scanner runs automatically on first load and after the configured cache interval. `Refresh now` is optional.
+- 5 compact top metrics
+- Opportunity map: evidence × unpriced asymmetry
+- Expression coverage heatmap: US / IHSG / Crypto / FX / Commodity × cash / spot / leverage / options
+- Expression-specific evidence/asymmetry chart
+- Compact action table (`● ACTION` vs `○ WAIT`)
+- Selected-opportunity decision stack
+- Deep thesis / valuation / causal chain / sources hidden under one expander
+- Macro NOW→+4Q heatmap + top pressure bars + max 3 paths
 
-### Entry is separate from detection
+## Expression contract
 
-Lifecycle:
+- **US:** cash stock, leverage when earned, listed calls/puts when earned.
+- **IHSG:** cash-only by design.
+- **Crypto:** spot/value-capture research; leverage remains gated until the crypto-specific causal/leverage data clears. BTC/ETH Deribit rows are visible in Options even when the thesis is not yet qualified.
+- **FX:** leverage surface is visible. A row remains WAIT until the dedicated relative-macro / REER / BoP / positioning / policy model clears.
+- **Commodity:** leverage surface is visible. A row remains WAIT until physical balance / inventory / curve / spare-capacity evidence clears.
 
-`DISCOVER → STARTER → CORE → ADD/HOLD → NO CHASE → TRIM/EXIT`
+The system does **not** turn missing data into a price-momentum signal. Visibility is not permission to trade.
 
-Early detection is never treated as a full-size entry. The entry layer uses causal/fundamental evidence, valuation/asymmetry, data quality, fair-value revision versus price revision, and the macro/crash gate. Options and leverage are selected only after entry is earned.
-
-### Expression policy
-
-- US stocks: cash ownership, leveraged long/short when earned, listed call/put candidates.
-- IHSG: cash stock only. No short/leverage/options.
-- Crypto: spot; leverage only when the crypto causal/economics model is ready; BTC/ETH listed crypto-option adapter.
-- FX: visible in radar/spot context; leverage remains fail-closed until relative macro, REER/BoP, positioning and intervention/policy evidence are wired for that observation.
-- Commodities: visible in radar/spot context; leverage remains fail-closed until physical balance, inventory, curve and spare-capacity evidence are wired.
-
-## Macro Control Room
-
-The macro page is intentionally compact:
-
-1. Action now
-2. Economy
-3. Crash setup
-4. Credit
-5. Event override
-6. Top three things that matter
-7. NOW / +1Q / +2Q / +4Q projection grid
-8. Top supported scenarios and explicit invalidation conditions
-
-If fewer than 55% of critical macro families are available, the engine switches to `HOLD / MACRO GATED`; leverage upgrades are disabled instead of filling missing data with neutral assumptions.
-
-## Point-in-time safeguards
-
-- SEC CompanyFacts PIT parser filters facts by filing availability date.
-- IDX company/financial-report discovery adapters are included.
-- ALFRED/FRED vintage CSV adapter is included.
-- Historical replay fixtures include known after-close publication timing and earliest regular-session execution dates.
-- Same-sector valuation fails closed when peer evidence is insufficient.
-- Tie-neutral percentile ranking maps identical peers to the 50th percentile instead of falsely ranking all as 100th percentile.
-
-## Run
+## Run locally
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Windows: `run_windows.bat`
-
-Linux: `bash run_linux.sh`
+Windows: `run_windows.bat`  
+Linux: `./run_linux.sh`
 
 ## Validation
 
-Run from the extracted package:
+Run:
 
 ```bash
 python tests/run_all.py
 ```
 
-The release was frozen only after a clean-extract rerun of the bundled suite. See `VALIDATION_RESULTS.md`, `TEST_MATRIX.md`, `FINAL_AUDIT.md`, and `KNOWN_LIMITATIONS.md`.
+v2.4 adds `test_visual_contract.py`, which checks that the visual functions exist and that FX/commodity/crypto no longer disappear from the leverage/options presentation contract.
 
-## Important scope statement
-
-This release is software/logic validated, not a claim of production-proven alpha. Real survivorship-safe full-universe PIT/OOS performance, complete historical options surfaces, global macro vintages, and several asset-class-specific historical feeds require data that is not bundled. Those components remain visibly gated rather than generating fake conviction.
+See:
+- `VISUAL_CHANGELOG.md`
+- `TEST_MATRIX.md`
+- `VALIDATION_RESULTS.md`
+- `KNOWN_LIMITATIONS.md`
+- `DEPLOY_FROM_ZERO.md`

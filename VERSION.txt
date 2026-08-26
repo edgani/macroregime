@@ -1,1 +1,1 @@
-2.3-validated-release
+2.4-visual-decision

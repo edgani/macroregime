@@ -27,11 +27,13 @@ assert 'Where the economy is going' in renderer
 assert 'What would change the action?' in renderer
 
 # Expression contract.
-assert 'US stocks","ACTIVE WHEN EARNED' in app
-assert 'BTC / ETH","DERIBIT ADAPTER READY' in app
-assert 'FX","GATED"' in app
-assert 'Commodities","GATED"' in app
+assert 'US","ACTIVE WHEN EARNED' in app
+assert 'BTC / ETH","VISIBLE · DERIBIT' in app
+assert 'FX","VISIBLE' in app
+assert 'Commodity","VISIBLE' in app
 assert 'IHSG","NOT ALLOWED"' in app
+assert 'Expression coverage · nothing disappears when gated' in app
+assert 'Opportunity map · evidence × unpriced asymmetry' in app
 
 
 # Valuation must fail closed when same-sector peer evidence is weak; no whole-market fallback or seed percentile action.

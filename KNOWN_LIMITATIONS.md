@@ -12,3 +12,6 @@ These are deliberate gates, not hidden assumptions.
 8. **Macro numerical crash/scenario probabilities remain gated.** Macro states and scenario evidence are descriptive/conditional until full vintage calibration is complete.
 9. **Earliest execution helper handles weekends but not exchange holidays.** A formal PIT backtest should use an exchange calendar.
 10. **Live Streamlit/network runtime depends on public providers.** The code fails closed when critical feeds are unavailable.
+
+## v2.4 presentation note
+FX, commodity and crypto rows are deliberately visible even when their capital gate is closed. `WAIT/GATED` is a visibility state, not a recommendation. This fixes v2.3's confusing disappearing-market behavior without weakening the fail-closed model.

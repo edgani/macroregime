@@ -41,9 +41,16 @@ from decision_core import (
     neutral_percentile_rank, entry_decision, expression_decision,
     get_prior_checkpoint, save_checkpoint, compute_revision_edge,
 )
+from ihsg_transaction import (
+    eod_transaction_snapshot,
+    intraday_transaction_snapshot,
+    combine_transaction_layers,
+    transaction_evidence_delta,
+    transaction_summary_text,
+)
 
 # ============================================================
-# OPPORTUNITY INTELLIGENCE ENGINE v2.5 SIMPLE DECISION BOARD
+# OPPORTUNITY INTELLIGENCE ENGINE v2.6 · IHSG TRANSACTION INTELLIGENCE
 # ------------------------------------------------------------
 # Goal: high-recall discovery of exceptional opportunities, then
 # high-precision confirmation. No classic technical indicators.
@@ -291,6 +298,8 @@ class AssetSnapshot:
     fcf_growth_yoy: float = np.nan
     price_change_20d: float = np.nan
     realized_vol_20d: float = np.nan
+    avg_value_20d: float = np.nan
+    avg_volume_20d: float = np.nan
     history_rows: int = 0
     data_quality: str = "LOW"
     error: str = ""
@@ -371,6 +380,12 @@ def fetch_yfinance_snapshot(market: str, symbol: str, name: str) -> Dict[str, An
                     snap.price_change_20d = float(close.iloc[-1] / close.iloc[-21] - 1)
                     ret = np.log(close / close.shift(1)).dropna().iloc[-20:]
                     snap.realized_vol_20d = float(ret.std(ddof=1) * np.sqrt(252)) if len(ret) >= 10 else np.nan
+                if "Volume" in hist.columns:
+                    vol = pd.to_numeric(hist["Volume"], errors="coerce").reindex(close.index)
+                    tail = pd.DataFrame({"close": close, "volume": vol}).dropna().tail(20)
+                    if not tail.empty:
+                        snap.avg_volume_20d = float(tail["volume"].mean())
+                        snap.avg_value_20d = float((tail["close"] * tail["volume"]).mean())
 
         inc = getattr(t, "quarterly_income_stmt", pd.DataFrame())
         cf = getattr(t, "quarterly_cashflow", pd.DataFrame())
@@ -782,6 +797,50 @@ def base_family_from_market(market: str) -> str:
     }.get(market,"Cross-asset opportunity")
 
 
+def _secret_or_env(name: str) -> str:
+    """Read server-side API keys without ever exposing them in the UI or repository."""
+    v = str(os.environ.get(name, "") or "").strip()
+    if v:
+        return v
+    try:
+        if name in st.secrets:
+            return str(st.secrets.get(name, "") or "").strip()
+    except Exception:
+        pass
+    return ""
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def fetch_ihsg_transaction_eod(symbol: str, price: float, adv_value_20d: float) -> Dict[str, Any]:
+    token = _secret_or_env("INDEX_ALPHA_API_KEY")
+    if not token:
+        return {"eod_status": "GATED · INDEX_ALPHA_API_KEY MISSING", "eod_errors": ["Configure server-side secret to enable broker attribution."]}
+    return eod_transaction_snapshot(
+        symbol,
+        token,
+        lookback_days=int(os.environ.get("OIE_IHSG_BROKER_LOOKBACK", "5")),
+        price=safe_float(price),
+        adv_value_20d=safe_float(adv_value_20d),
+    )
+
+
+@st.cache_data(ttl=90, show_spinner=False)
+def fetch_ihsg_transaction_intraday(symbol: str) -> Dict[str, Any]:
+    token = _secret_or_env("INVEZGO_API_KEY")
+    if not token:
+        return {"intraday_status": "GATED · INVEZGO_API_KEY MISSING", "intraday_errors": ["Configure server-side secret to enable live microstructure."]}
+    # Queue is deliberately not polled on the broad scan. Order-book + intraday data
+    # cover the fast layer without burning quota; raw queue can be enabled later for
+    # a focused ticker microscope.
+    return intraday_transaction_snapshot(symbol, token, include_queue=False)
+
+
+def fetch_ihsg_transaction_snapshot(symbol: str, price: float, adv_value_20d: float) -> Dict[str, Any]:
+    eod = fetch_ihsg_transaction_eod(symbol, price, adv_value_20d)
+    intra = fetch_ihsg_transaction_intraday(symbol)
+    return combine_transaction_layers(eod, intra, price=safe_float(price))
+
+
 def _snapshot_one(r: pd.Series) -> Dict[str, Any]:
     market, symbol, name = str(r["market"]), str(r["symbol"]), str(r["name"])
     external_id = str(r.get("external_id") or "")
@@ -824,6 +883,10 @@ def _snapshot_one(r: pd.Series) -> Dict[str, Any]:
         snap=dict(fetch_yfinance_snapshot(market,symbol,name))
         snap["market_model_status"]="RESEARCH READY / CURRENT DATA"
         snap["source_coverage"]="Yahoo market + public company financial metadata; PIT SEC/IDX and estimate-revision history still required for production validation"
+        if market == "IHSG":
+            tx = fetch_ihsg_transaction_snapshot(symbol, safe_float(snap.get("price")), safe_float(snap.get("avg_value_20d")))
+            snap.update(tx)
+            snap["source_coverage"] += "; IHSG transaction layer = Index Alpha EOD broker attribution + Invezgo intraday/order-book when API keys are configured"
     snap["external_id"] = external_id
     snap["defillama_slug"] = llama_slug
     snap["notes"] = str(r.get("notes") or "")
@@ -878,6 +941,16 @@ def add_cross_sectional_evidence(df: pd.DataFrame) -> pd.DataFrame:
             out.at[idx,"evidence_families"]=ev; out.at[idx,"deterioration_families"]=det
             out.at[idx,"evidence_basis"]="revenue + EPS + margin + FCF inflection"
             out.at[idx,"market_model_status"]="RESEARCH READY / CURRENT DATA"
+
+    # IHSG transaction intelligence contributes AT MOST one evidence family. This prevents
+    # feature multiplication from overwhelming fundamentals and keeps missing data fail-closed.
+    for idx in out.index[out["market"].eq("IHSG")].tolist():
+        ev_add, det_add, tx_basis = transaction_evidence_delta(out.loc[idx].to_dict())
+        if ev_add or det_add:
+            out.at[idx,"evidence_families"] = int(out.at[idx,"evidence_families"]) + int(ev_add)
+            out.at[idx,"deterioration_families"] = int(out.at[idx,"deterioration_families"]) + int(det_add)
+        base = str(out.at[idx,"evidence_basis"] or "")
+        out.at[idx,"evidence_basis"] = (base + " + " + tx_basis).strip(" +")
 
     # Crypto: economics / dilution / scarcity. Revenue existence alone is never a buy rule.
     cidx=out.index[out["market"].eq("Crypto")].tolist()
@@ -1397,7 +1470,7 @@ def _scan_age_seconds() -> float:
 def _run_intelligence(scan_input: pd.DataFrame, scan_signature: Tuple[Any,...], max_assets: int, force: bool=False) -> None:
     """Automatic, bounded refresh. Cache TTLs prevent endpoint hammering."""
     if force:
-        for _fn in [fetch_yfinance_snapshot,fetch_price_only_snapshot,fetch_coingecko,fetch_defillama_revenue,fetch_defillama_holders_revenue,google_news_rss,discover_live_scenarios,fetch_option_snapshot,fetch_deribit_option_snapshot]:
+        for _fn in [fetch_yfinance_snapshot,fetch_price_only_snapshot,fetch_coingecko,fetch_defillama_revenue,fetch_defillama_holders_revenue,google_news_rss,discover_live_scenarios,fetch_option_snapshot,fetch_deribit_option_snapshot,fetch_ihsg_transaction_eod,fetch_ihsg_transaction_intraday]:
             try: _fn.clear()
             except Exception: pass
     try:
@@ -1467,6 +1540,14 @@ def _asymmetry_label(row: pd.Series, val: Dict[str,Any]) -> str:
 
 def _why_now_compact(row: pd.Series) -> str:
     bits=[]
+    if str(row.get("market"))=="IHSG":
+        tx_state=str(row.get("transaction_state","")).upper()
+        tx_cov=str(row.get("transaction_coverage","LOW")).upper()
+        tx_score=safe_float(row.get("transaction_score"))
+        if tx_cov in ["MEDIUM","HIGH"] and tx_state and tx_state not in ["NEUTRAL / MIXED","DATA GATED"]:
+            label=f"transaction: {tx_state.lower()}"
+            if np.isfinite(tx_score): label += f" ({tx_score:.0f}/100)"
+            bits.append((999.0,label))
     rg=safe_float(row.get("revenue_growth_yoy")); eg=safe_float(row.get("eps_growth_yoy")); gm=safe_float(row.get("gross_margin_change")); fcf=safe_float(row.get("fcf_growth_yoy"))
     if np.isfinite(rg): bits.append((abs(rg), f"revenue {'accelerating' if rg>0 else 'weakening'} {pct(rg)}"))
     if np.isfinite(eg): bits.append((abs(eg), f"EPS {'accelerating' if eg>0 else 'weakening'} {pct(eg)}"))
@@ -1854,6 +1935,9 @@ def _render_compact_selected(row: pd.Series, ranked: pd.DataFrame, mg: Dict[str,
     ev=safe_float(row.get("evidence_families")); det=safe_float(row.get("deterioration_families")); px=safe_float(row.get("price")); base=safe_float(val.get("fv_base")) if val else np.nan
     q=bool(row.get("qualified",False)); action=str(row.get("expression",row.get("research_action","WATCH")))
     cells=[("ACTION",action,"ACTION" if q else "WAIT"),("ENTRY",str(entry.get("entry_stage","DISCOVER")),str(entry.get("allocation_guide","0%"))),("EVIDENCE",f"{int(ev) if np.isfinite(ev) else 0} ↑ / {int(det) if np.isfinite(det) else 0} ↓",str(row.get("data_quality","LOW"))),("PRICE",_fmt_asset_price(row,px),"current"),("BASE FV",_fmt_asset_price(row,base) if np.isfinite(base) else "GATED","same-sector only")]
+    if str(row.get("market"))=="IHSG":
+        txs=safe_float(row.get("transaction_score")); tx_state=str(row.get("transaction_state","DATA GATED"))
+        cells.append(("TRANSACTION",f"{txs:.0f}/100" if np.isfinite(txs) else "GATED",tx_state))
     h="<div class='metric-strip'>"
     for a,b,c in cells: h+=f"<div class='metric-mini'><div class='m1'>{a}</div><div class='m2'>{b}</div><div class='m3'>{c}</div></div>"
     h+="</div>"; st.markdown(h,unsafe_allow_html=True)
@@ -1948,6 +2032,28 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
     info+=f"<div class='info-card'><div class='info-title'>WHAT KILLS THE THESIS?</div><div class='info-text'>{falsifier}</div></div>"
     info+="</div>"
     st.markdown(info,unsafe_allow_html=True)
+
+    if str(row.get("market"))=="IHSG":
+        st.markdown("**IHSG Transaction Intelligence · broker inventory + live microstructure**")
+        tx_score=safe_float(row.get("transaction_score"))
+        tx_rows=[
+            {"Layer":"State","Reading":str(row.get("transaction_state","DATA GATED")),"Why it matters":"Research state only; not a calibrated probability or standalone entry."},
+            {"Layer":"Coverage","Reading":str(row.get("transaction_coverage","LOW")),"Why it matters":"Missing provider/API data lowers coverage instead of being imputed."},
+            {"Layer":"Research score","Reading":f"{tx_score:.0f}/100" if np.isfinite(tx_score) else "GATED","Why it matters":"Bounded evidence score, not win probability."},
+            {"Layer":"Broker persistence edge","Reading":pct(safe_float(row.get("persistence_edge"))),"Why it matters":"Top accumulating brokers persistent vs top distributing brokers."},
+            {"Layer":"Buyer concentration","Reading":pct(safe_float(row.get("buyer_top3_share"))),"Why it matters":"Top-3 share of positive broker inventory transfer."},
+            {"Layer":"NG / crossing contamination","Reading":pct(safe_float(row.get("crossing_transfer_risk"))),"Why it matters":"High negotiated-market share is discounted as non-directional transfer risk."},
+            {"Layer":"Foreign flow intensity","Reading":pct(safe_float(row.get("foreign_flow_intensity"))),"Why it matters":"Foreign buy-sell imbalance relative to foreign gross flow."},
+            {"Layer":"Accumulator execution cost","Reading":_fmt_asset_price(row,safe_float(row.get("accumulator_cost"))),"Why it matters":"Execution-cost proxy of top accumulating brokers; not beneficial-owner cost."},
+            {"Layer":"Order-book imbalance","Reading":pct(safe_float(row.get("order_book_imbalance"))),"Why it matters":"Visible depth only; low weight because orders can cancel."},
+            {"Layer":"Aggressive flow","Reading":pct(safe_float(row.get("aggressive_flow_imbalance"))),"Why it matters":"Only shown when provider returns HAKA/HAKI-type fields; otherwise gated."},
+            {"Layer":"Absorption","Reading":str(row.get("absorption_side","GATED")),"Why it matters":"Requires aggressive-flow vs price disagreement; never inferred from a static wall alone."},
+        ]
+        st.dataframe(pd.DataFrame(tx_rows),use_container_width=True,hide_index=True)
+        eod_err=row.get("eod_errors",[]); in_err=row.get("intraday_errors",[])
+        if eod_err or in_err:
+            st.caption("Transaction data notes: " + " | ".join([str(x) for x in (list(eod_err) if isinstance(eod_err,list) else [eod_err]) + (list(in_err) if isinstance(in_err,list) else [in_err]) if x][:4]))
+        st.caption("Accounting guardrail: broker net across the whole market sums to ~0. The engine therefore measures broker-level persistence/concentration and group flow, not a fictitious total-market broker net buy.")
 
     st.markdown("**Entry logic · why detection is not automatically a trade**")
     entry_rows=[]
@@ -2064,13 +2170,16 @@ with st.sidebar.expander("Data / research gates",expanded=False):
     st.write("Fair value", "✅" if PRODUCTION_FAIR_VALUE_MODEL_VALIDATED else "🔒 research range")
     st.write("Event probability", "✅" if PRODUCTION_EVENT_PROBABILITY_VALIDATED else "🔒 evidence ranking only")
     st.caption("Current public adapters are current-at-fetch, but full PIT production coverage is still being built.")
+    st.write("IHSG EOD broker", "✅ Index Alpha" if _secret_or_env("INDEX_ALPHA_API_KEY") else "🔒 add INDEX_ALPHA_API_KEY")
+    st.write("IHSG intraday", "✅ Invezgo" if _secret_or_env("INVEZGO_API_KEY") else "🔒 add INVEZGO_API_KEY")
+    st.caption("Transaction data is optional-safe: without keys the IHSG layer stays DATA GATED and cannot silently create a buy signal.")
 
 if selected_markets:
     scan_input=UNIVERSE[UNIVERSE["market"].isin(selected_markets)].copy().reset_index(drop=True)
 else:
     scan_input=UNIVERSE.iloc[0:0].copy()
 max_assets=len(scan_input)
-scan_signature=(tuple(selected_markets),int(max_assets),"v2.5-simple")
+scan_signature=(tuple(selected_markets),int(max_assets),"v2.6-ihsg-transaction")
 
 # Automatic initial/stale refresh. The user never has to press a scan button.
 existing_records=st.session_state.get("live_scan_records",[])
@@ -2119,7 +2228,7 @@ elif nav=="RESEARCH / REPLAY":
             ["Universe coverage","PARTIAL · SEED + ADAPTIVE DISCOVERY","full US + IDX + broader crypto enumeration / stage-1 screening still required for maximum recall"],
             ["Macro / cross-asset regime","CURRENT MONITORING READY","PIT probability calibration still locked"],
             ["US stock buy/hold/sell","RESEARCH READY","PIT SEC + estimate-revision history still needed for production validation"],
-            ["IHSG buy/hold/sell","RESEARCH READY · CASH ONLY","full IDX PIT/corporate-action feed still needed"],
+            ["IHSG buy/hold/sell","RESEARCH READY · CASH ONLY","transaction layer uses Index Alpha + Invezgo when keys are configured; full PIT validation still required"],
             ["US leverage","SUPPORTED WHEN EARNED","requires high data + evidence + macro/risk gate"],
             ["FX leverage","DATA GATED","relative macro, REER, BoP, positioning, intervention history"],
             ["Commodity leverage","DATA GATED","physical balances, inventory, curve/carry, spare capacity"],
@@ -2182,4 +2291,4 @@ else:
             showcols=[c for c in ["theme","horizon","latest_headline","source_count"] if c in near.columns]
             st.dataframe(near[showcols],use_container_width=True,hide_index=True)
 
-st.caption("v2.5 Simple Decision Board · plain-language actions first, complexity hidden by default, and unsupported asset classes fail closed. No classic technical indicators.")
+st.caption("v2.6 · IHSG Transaction Intelligence integrated. Plain-language actions first; broker/microstructure evidence is bounded, fail-closed, and never a standalone entry. No classic technical indicators.")

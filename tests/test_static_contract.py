@@ -3,7 +3,7 @@ import ast, pathlib, re
 root=pathlib.Path(__file__).resolve().parents[1]
 app=(root/'app.py').read_text(encoding='utf-8')
 macro=(root/'macro_embedded.py').read_text(encoding='utf-8')
-for f in ['app.py','macro_embedded.py','decision_core.py','data_adapters.py']:
+for f in ['app.py','macro_embedded.py','decision_core.py','data_adapters.py','ihsg_transaction.py']:
     ast.parse((root/f).read_text(encoding='utf-8'))
 # no classic TA computation names in executable app contract
 for bad in ['ta.rsi','ta.macd','stochastic(','bollinger']:

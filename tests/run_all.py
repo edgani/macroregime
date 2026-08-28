@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 TESTS=[
  'tests/self_test.py','tests/final_contract.py','tests/test_static_contract.py','tests/test_decision_core.py',
- 'tests/test_data_adapters.py','tests/test_macro_logic.py','tests/test_macro_snapshot.py','tests/test_replay_timestamps.py','tests/test_negative_controls.py','tests/test_fuzz.py','tests/test_walkforward.py','tests/test_visual_contract.py'
+ 'tests/test_data_adapters.py','tests/test_ihsg_transaction.py','tests/test_macro_logic.py','tests/test_macro_snapshot.py','tests/test_replay_timestamps.py','tests/test_negative_controls.py','tests/test_fuzz.py','tests/test_walkforward.py','tests/test_visual_contract.py'
 ]
 results=[]
 for rel in TESTS:

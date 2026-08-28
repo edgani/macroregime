@@ -15,3 +15,14 @@ These are deliberate gates, not hidden assumptions.
 
 ## v2.5 presentation note
 FX, commodity and crypto rows remain visible even when their capital gate is closed. `WAIT/GATED` is a visibility state, not a recommendation. v2.5 additionally removes the abstract scatter/heatmap from the default daily screen; advanced model visuals remain available only when the user opens the advanced section.
+
+
+## v2.6 IHSG transaction layer
+
+- Broker code is **not** treated as a beneficial owner. One broker can represent many clients and desks.
+- Negotiated-market activity is discounted as transfer/crossing contamination; it is not assumed to be directional accumulation.
+- Order-book depth is visible liquidity and can be cancelled, so it receives low model weight.
+- Intraday absorption requires aggressive-flow fields plus price response. If HAKA/HAKI-like fields are absent, the engine reports `GATED` rather than inferring absorption from a static order-book wall.
+- Queue tracking is available at the adapter level but is not used by the broad scanner until a stable queue response contract is validated.
+- Index Alpha history begins 2025-01-01 on standard coverage, so long-cycle walk-forward validation requires additional licensed/historical data.
+- The transaction score is not a win probability and has not yet passed full point-in-time out-of-sample calibration.

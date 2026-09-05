@@ -1,6 +1,6 @@
 # Deploy from zero — GitHub preview first, then Vercel + Cloud Run
 
-## Stage A — inspect v2.5 before migrating the frontend
+## Stage A — run v3.1 locally / Streamlit research build
 
 1. Extract the ZIP locally.
 2. Replace the files in your GitHub repository with the extracted contents.
@@ -85,4 +85,4 @@ NEXT_PUBLIC_OIE_API_URL=https://YOUR-CLOUD-RUN-URL
 7. After changing an environment variable, redeploy so the new value is applied.
 
 ## Why Stage B is intentionally after approval
-The v2.5 change is primarily a decision/UX contract change. Approving the visual hierarchy in the existing research app first prevents doing the same frontend redesign twice.
+The v3.1 change is primarily a decision/UX contract change. Approving the visual hierarchy in the existing research app first prevents doing the same frontend redesign twice.

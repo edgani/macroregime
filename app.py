@@ -48,9 +48,14 @@ from ihsg_transaction import (
     transaction_evidence_delta,
     transaction_summary_text,
 )
+from market_memory import MarketMemory
+from verticals import enrich_with_memory, snapshot_features, available_families_from_row
+from opportunity_kernel import VERTICAL_REQUIREMENTS, vertical_readiness, earliness_from_components
+from defillama_adapter import chain_snapshot as defillama_chain_snapshot
+from story_optionality import apply_story_optionality
 
 # ============================================================
-# OPPORTUNITY INTELLIGENCE ENGINE v2.6 · IHSG TRANSACTION INTELLIGENCE
+# OPPORTUNITY INTELLIGENCE ENGINE v3.1 · MARKET OPPORTUNITY OS
 # ------------------------------------------------------------
 # Goal: high-recall discovery of exceptional opportunities, then
 # high-precision confirmation. No classic technical indicators.
@@ -71,7 +76,7 @@ STATE = Path(os.environ.get("OIE_STATE_DIR", str(ROOT / "state")))
 STATE.mkdir(parents=True, exist_ok=True)
 
 st.set_page_config(
-    page_title="Opportunity Intelligence · Visual",
+    page_title="Market Opportunity OS · v3.1",
     page_icon="◎",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -208,6 +213,8 @@ ACCEPTANCE = read_csv("acceptance_tests.csv")
 REPLAY = read_csv("replay_phases.csv")
 DISCOVERY_QUERIES = read_csv("scenario_discovery_queries.csv")
 SOURCE_REGISTRY = read_csv("source_registry.csv")
+ONCHAIN_WATCHLIST = read_csv("onchain_watchlist.csv")
+MEMORY = MarketMemory(STATE / "market_memory.sqlite")
 
 # -----------------------------
 # Styling
@@ -292,6 +299,23 @@ class AssetSnapshot:
     fcf_ttm: float = np.nan
     gross_margin: float = np.nan
     net_margin: float = np.nan
+    net_margin_change: float = np.nan
+    net_income_ttm: float = np.nan
+    operating_cash_flow_ttm: float = np.nan
+    capex_ttm: float = np.nan
+    rd_ttm: float = np.nan
+    rd_to_revenue: float = np.nan
+    capex_to_revenue: float = np.nan
+    total_cash: float = np.nan
+    total_debt: float = np.nan
+    shares_outstanding: float = np.nan
+    shares_change_yoy: float = np.nan
+    eps_estimate_next_year: float = np.nan
+    eps_estimate_next_year_30d_ago: float = np.nan
+    eps_revisions_up_30d: float = np.nan
+    eps_revisions_down_30d: float = np.nan
+    analyst_count_next_year: float = np.nan
+    revenue_estimate_growth_next_year: float = np.nan
     revenue_growth_yoy: float = np.nan
     eps_growth_yoy: float = np.nan
     gross_margin_change: float = np.nan
@@ -353,6 +377,25 @@ def _ttm(s: Optional[pd.Series]) -> float:
     return float(x.iloc[:4].sum()) if len(x) >= 4 else np.nan
 
 
+def _latest(s: Optional[pd.Series]) -> float:
+    x=_series_latest4(s)
+    return float(x.iloc[0]) if len(x) else np.nan
+
+
+def _level_change_yoy(s: Optional[pd.Series]) -> float:
+    x=_series_latest4(s)
+    if len(x)<5 or x.iloc[4]==0: return np.nan
+    return float(x.iloc[0]/x.iloc[4]-1)
+
+
+def _analysis_cell(df: Any, row: str, col: str) -> float:
+    try:
+        if df is None or getattr(df,'empty',True): return np.nan
+        return safe_float(df.loc[row,col])
+    except Exception:
+        return np.nan
+
+
 @st.cache_data(ttl=1800, show_spinner=False)
 def fetch_yfinance_snapshot(market: str, symbol: str, name: str) -> Dict[str, Any]:
     snap = AssetSnapshot(market=market, symbol=symbol, name=name)
@@ -389,14 +432,19 @@ def fetch_yfinance_snapshot(market: str, symbol: str, name: str) -> Dict[str, An
 
         inc = getattr(t, "quarterly_income_stmt", pd.DataFrame())
         cf = getattr(t, "quarterly_cashflow", pd.DataFrame())
+        bs = getattr(t, "quarterly_balance_sheet", pd.DataFrame())
         rev = _pick_row(inc, ["Total Revenue", "Operating Revenue", "Revenue"])
         gross = _pick_row(inc, ["Gross Profit"])
         net = _pick_row(inc, ["Net Income", "Net Income Common Stockholders"])
         eps = _pick_row(inc, ["Diluted EPS", "Basic EPS"])
+        rd = _pick_row(inc, ["Research And Development", "Research Development"])
+        ocf = _pick_row(cf, ["Operating Cash Flow", "Total Cash From Operating Activities"])
+        capex = _pick_row(cf, ["Capital Expenditure", "Capital Expenditures"])
         fcf = _pick_row(cf, ["Free Cash Flow"])
+        cash = _pick_row(bs, ["Cash Cash Equivalents And Short Term Investments", "Cash And Cash Equivalents", "Cash"])
+        debt = _pick_row(bs, ["Total Debt"])
+        shares = _pick_row(bs, ["Ordinary Shares Number", "Share Issued"])
         if fcf is None:
-            ocf = _pick_row(cf, ["Operating Cash Flow", "Total Cash From Operating Activities"])
-            capex = _pick_row(cf, ["Capital Expenditure", "Capital Expenditures"])
             if ocf is not None and capex is not None:
                 fcf = pd.to_numeric(ocf, errors="coerce") + pd.to_numeric(capex, errors="coerce")
 
@@ -405,14 +453,39 @@ def fetch_yfinance_snapshot(market: str, symbol: str, name: str) -> Dict[str, An
         if not np.isfinite(snap.eps_ttm) and np.isfinite(snap.market_cap) and np.isfinite(snap.trailing_pe) and snap.trailing_pe != 0 and np.isfinite(snap.price):
             snap.eps_ttm = snap.price / snap.trailing_pe
         snap.fcf_ttm = _ttm(fcf)
+        snap.net_income_ttm = _ttm(net)
+        snap.operating_cash_flow_ttm = _ttm(ocf)
+        snap.capex_ttm = _ttm(capex)
+        snap.rd_ttm = _ttm(rd)
         snap.revenue_growth_yoy = _yoy_from_quarters(rev)
         snap.eps_growth_yoy = _yoy_from_quarters(eps)
         snap.fcf_growth_yoy = _yoy_from_quarters(fcf)
         snap.gross_margin = _margin_latest(gross, rev)
         snap.net_margin = _margin_latest(net, rev)
         snap.gross_margin_change = _margin_change_yoy(gross, rev)
+        snap.net_margin_change = _margin_change_yoy(net, rev)
+        snap.rd_to_revenue = snap.rd_ttm/snap.revenue_ttm if np.isfinite(snap.rd_ttm) and np.isfinite(snap.revenue_ttm) and snap.revenue_ttm>0 else np.nan
+        snap.capex_to_revenue = abs(snap.capex_ttm)/snap.revenue_ttm if np.isfinite(snap.capex_ttm) and np.isfinite(snap.revenue_ttm) and snap.revenue_ttm>0 else np.nan
+        snap.total_cash = _latest(cash)
+        snap.total_debt = _latest(debt)
+        snap.shares_outstanding = _latest(shares)
+        snap.shares_change_yoy = _level_change_yoy(shares)
         if not np.isfinite(snap.trailing_pe) and np.isfinite(snap.price) and np.isfinite(snap.eps_ttm) and snap.eps_ttm > 0:
             snap.trailing_pe = snap.price / snap.eps_ttm
+        if market == "US":
+            try:
+                et = t.get_eps_trend()
+                er = t.get_eps_revisions()
+                ee = t.get_earnings_estimate()
+                re = t.get_revenue_estimate()
+                snap.eps_estimate_next_year = _analysis_cell(et, "+1y", "current")
+                snap.eps_estimate_next_year_30d_ago = _analysis_cell(et, "+1y", "30daysAgo")
+                snap.eps_revisions_up_30d = _analysis_cell(er, "+1y", "upLast30days")
+                snap.eps_revisions_down_30d = _analysis_cell(er, "+1y", "downLast30days")
+                snap.analyst_count_next_year = _analysis_cell(ee, "+1y", "numberOfAnalysts")
+                snap.revenue_estimate_growth_next_year = _analysis_cell(re, "+1y", "growth")
+            except Exception:
+                pass
         valid = sum(np.isfinite(v) for v in [snap.price, snap.revenue_growth_yoy, snap.gross_margin, snap.eps_ttm, snap.market_cap])
         snap.data_quality = "HIGH" if valid >= 5 else ("MEDIUM" if valid >= 3 else "LOW")
         return dict(snap.__dict__)
@@ -952,6 +1025,32 @@ def add_cross_sectional_evidence(df: pd.DataFrame) -> pd.DataFrame:
         base = str(out.at[idx,"evidence_basis"] or "")
         out.at[idx,"evidence_basis"] = (base + " + " + tx_basis).strip(" +")
 
+    # Story / expectation optionality contributes AT MOST one family and never from "loss" alone.
+    # US requires analyst revisions to confirm; IHSG requires improving economics with survivable financing.
+    for idx in out.index[out["market"].isin(["US","IHSG"])].tolist():
+        r=out.loc[idx]
+        market=str(r.get("market"))
+        story_state=str(r.get("story_state", ""))
+        fin=str(r.get("financing_risk", "DATA GATED"))
+        story_score=safe_float(r.get("story_optionality_score"))
+        cred=safe_float(r.get("story_credibility_score"))
+        base=str(out.at[idx,"evidence_basis"] or "")
+        if market=="US":
+            rev_state=str(r.get("expectation_revision_state", "DATA GATED"))
+            if rev_state=="UPWARD REVISION" and np.isfinite(story_score) and story_score>=60 and np.isfinite(cred) and cred>=55 and fin!="HIGH":
+                out.at[idx,"evidence_families"]=int(out.at[idx,"evidence_families"])+1
+                out.at[idx,"evidence_basis"]=(base+" + expectation optionality + upward analyst revisions").strip(" +")
+            elif rev_state=="DOWNWARD REVISION" and ("BAD LOSS" in story_state or fin=="HIGH"):
+                out.at[idx,"deterioration_families"]=int(out.at[idx,"deterioration_families"])+1
+                out.at[idx,"evidence_basis"]=(base+" + negative expectation revision").strip(" +")
+        else:
+            if "EARLY STORY CANDIDATE" in story_state and np.isfinite(story_score) and story_score>=70 and np.isfinite(cred) and cred>=60 and fin!="HIGH":
+                out.at[idx,"evidence_families"]=int(out.at[idx,"evidence_families"])+1
+                out.at[idx,"evidence_basis"]=(base+" + narrative optionality + improving economics").strip(" +")
+            elif "BAD LOSS" in story_state or fin=="HIGH":
+                out.at[idx,"deterioration_families"]=int(out.at[idx,"deterioration_families"])+1
+                out.at[idx,"evidence_basis"]=(base+" + weak loss quality / financing risk").strip(" +")
+
     # Crypto: economics / dilution / scarcity. Revenue existence alone is never a buy rule.
     cidx=out.index[out["market"].eq("Crypto")].tolist()
     if cidx:
@@ -1000,6 +1099,10 @@ def add_cross_sectional_evidence(df: pd.DataFrame) -> pd.DataFrame:
             if "RESEARCH READY" in status and n>=4: return "CONFIRMED VALUE-CAPTURE INFLECTION"
             if n>=3: return "WATCH · ECONOMICS CONFIRMING"
             return "DISCOVERED / NEEDS USAGE + CAPTURE"
+        if market=="IHSG" and str(r.get("story_state",""))=="EARLY STORY CANDIDATE" and n>=2:
+            return "EARLY STORY CANDIDATE"
+        if market=="US" and str(r.get("expectation_optionality_state",""))=="INFLECTION + REVISIONS CONFIRM" and n>=2:
+            return "EXPECTATION INFLECTION"
         if n>=4: return "HIGH-CONVICTION CANDIDATE"
         if n>=3: return "CONFIRMED INFLECTION"
         if n>=2: return "WATCH"
@@ -1051,23 +1154,60 @@ def scenario_growth_bands(row: pd.Series) -> Tuple[float,float,float]:
     return bear,base,bull
 
 
+def sector_sales_context(scan: pd.DataFrame, row: pd.Series) -> Dict[str, Any]:
+    """Same-sector Price/Sales context for loss-making companies; never market-wide fallback."""
+    market=str(row.get("market")); sector=str(row.get("sector") or "Unknown"); symbol=str(row.get("symbol"))
+    peers=scan[(scan.get("market",pd.Series(index=scan.index,dtype=str)).astype(str)==market) &
+               (scan.get("sector",pd.Series(index=scan.index,dtype=str)).astype(str)==sector) &
+               (scan.get("symbol",pd.Series(index=scan.index,dtype=str)).astype(str)!=symbol)].copy()
+    if len(peers)<4:
+        return {"ps25":np.nan,"psmed":np.nan,"ps75":np.nan,"peer_count":0,"valuation_basis":"GATED · insufficient same-sector P/S peers","valuation_confidence":"GATED"}
+    mcap=pd.to_numeric(peers.get("market_cap",pd.Series(index=peers.index,dtype=float)),errors="coerce")
+    rev=pd.to_numeric(peers.get("revenue_ttm",pd.Series(index=peers.index,dtype=float)),errors="coerce")
+    ps=(mcap/rev).replace([np.inf,-np.inf],np.nan)
+    ps=ps[(ps>0.15)&(ps<40)].dropna()
+    if len(ps)<4:
+        return {"ps25":np.nan,"psmed":np.nan,"ps75":np.nan,"peer_count":int(len(ps)),"valuation_basis":"GATED · insufficient valid same-sector P/S peers","valuation_confidence":"GATED"}
+    q25,q50,q75=robust_quantiles(ps.tolist())
+    return {"ps25":q25,"psmed":q50,"ps75":q75,"peer_count":int(len(ps)),"valuation_basis":"same-sector Price/Sales · loss-making fallback","valuation_confidence":"HIGH" if len(ps)>=8 else "MEDIUM"}
+
+
 def valuation_projection(scan: pd.DataFrame, row: pd.Series) -> Dict[str, Any]:
     ctx=sector_multiple_context(scan,row)
     pe25,pemed,pe75=ctx["pe25"],ctx["pemed"],ctx["pe75"]
     eps = safe_float(row.get("eps_ttm")); price=safe_float(row.get("price"))
     g_bear,g_base,g_bull = scenario_growth_bands(row)
     out = {**ctx,"g_bear":g_bear,"g_base":g_base,"g_bull":g_bull}
-    if not np.isfinite(eps) or eps <= 0 or not np.isfinite(price) or not np.isfinite(pemed):
-        out.update({"bear_eps":np.nan,"base_eps":np.nan,"bull_eps":np.nan,"fv_bear":np.nan,"fv_base":np.nan,"fv_bull":np.nan,"implied_eps":np.nan,"expectation_gap":np.nan})
-        if not np.isfinite(eps) or eps<=0: out["valuation_basis"]="GATED · positive EPS base unavailable"
+    if np.isfinite(eps) and eps > 0 and np.isfinite(price) and np.isfinite(pemed):
+        bear_eps = eps*(1+g_bear); base_eps=eps*(1+g_base); bull_eps=eps*(1+g_bull)
+        fv_bear = max(0,bear_eps)*pe25 if np.isfinite(pe25) else np.nan
+        fv_base = max(0,base_eps)*pemed if np.isfinite(pemed) else np.nan
+        fv_bull = max(0,bull_eps)*pe75 if np.isfinite(pe75) else np.nan
+        implied_eps = price/pemed if pemed>0 else np.nan
+        gap = (base_eps-implied_eps)/abs(implied_eps) if np.isfinite(implied_eps) and implied_eps!=0 else np.nan
+        out.update({"bear_eps":bear_eps,"base_eps":base_eps,"bull_eps":bull_eps,"fv_bear":fv_bear,"fv_base":fv_base,"fv_bull":fv_bull,"implied_eps":implied_eps,"expectation_gap":gap,"valuation_mode":"P/E"})
         return out
-    bear_eps = eps*(1+g_bear); base_eps=eps*(1+g_base); bull_eps=eps*(1+g_bull)
-    fv_bear = max(0,bear_eps)*pe25 if np.isfinite(pe25) else np.nan
-    fv_base = max(0,base_eps)*pemed if np.isfinite(pemed) else np.nan
-    fv_bull = max(0,bull_eps)*pe75 if np.isfinite(pe75) else np.nan
-    implied_eps = price/pemed if pemed>0 else np.nan
-    gap = (base_eps-implied_eps)/abs(implied_eps) if np.isfinite(implied_eps) and implied_eps!=0 else np.nan
-    out.update({"bear_eps":bear_eps,"base_eps":base_eps,"bull_eps":bull_eps,"fv_bear":fv_bear,"fv_base":fv_base,"fv_bull":fv_bull,"implied_eps":implied_eps,"expectation_gap":gap})
+
+    # Loss-making fallback: use same-sector P/S, projected revenue and current market cap.
+    # This is intentionally unavailable when same-sector peers are sparse.
+    revenue=safe_float(row.get("revenue_ttm")); mcap=safe_float(row.get("market_cap"))
+    psctx=sector_sales_context(scan,row)
+    ps25,psmed,ps75=psctx["ps25"],psctx["psmed"],psctx["ps75"]
+    out.update(psctx)
+    if np.isfinite(revenue) and revenue>0 and np.isfinite(mcap) and mcap>0 and np.isfinite(price) and np.isfinite(psmed):
+        rev_bear=max(0,revenue*(1+g_bear)); rev_base=max(0,revenue*(1+g_base)); rev_bull=max(0,revenue*(1+g_bull))
+        mc_bear=rev_bear*ps25 if np.isfinite(ps25) else np.nan
+        mc_base=rev_base*psmed
+        mc_bull=rev_bull*ps75 if np.isfinite(ps75) else np.nan
+        fv_bear=price*(mc_bear/mcap) if np.isfinite(mc_bear) else np.nan
+        fv_base=price*(mc_base/mcap)
+        fv_bull=price*(mc_bull/mcap) if np.isfinite(mc_bull) else np.nan
+        gap=mc_base/mcap-1
+        implied_revenue=mcap/psmed if psmed>0 else np.nan
+        out.update({"bear_eps":np.nan,"base_eps":np.nan,"bull_eps":np.nan,"fv_bear":fv_bear,"fv_base":fv_base,"fv_bull":fv_bull,"implied_eps":np.nan,"implied_revenue":implied_revenue,"expectation_gap":gap,"valuation_mode":"P/S LOSS-MAKING"})
+        return out
+    out.update({"bear_eps":np.nan,"base_eps":np.nan,"bull_eps":np.nan,"fv_bear":np.nan,"fv_base":np.nan,"fv_bull":np.nan,"implied_eps":np.nan,"expectation_gap":np.nan,"valuation_mode":"GATED"})
+    if not np.isfinite(revenue) or revenue<=0: out["valuation_basis"]="GATED · positive revenue base unavailable"
     return out
 
 
@@ -1196,6 +1336,129 @@ def infer_root_from_evidence(name: str, evidence: Dict[str,Any]) -> str:
     return candidates[0] if candidates else ""
 
 
+
+# -----------------------------
+# v3 Market Opportunity OS · universal memory + vertical radar
+# -----------------------------
+@st.cache_data(ttl=1800, show_spinner=False)
+def fetch_defillama_chain_snapshot(chain: str) -> Dict[str, Any]:
+    """Free DeFiLlama ecosystem snapshot. Failure is visible and never promoted to a signal."""
+    return defillama_chain_snapshot(chain)
+
+
+def _memory_enrich_and_record(fresh: pd.DataFrame) -> pd.DataFrame:
+    """Compute change from prior snapshots first, then append what is known now.
+
+    This ordering is deliberate: the current observation is never allowed into its own baseline.
+    """
+    if fresh.empty:
+        return fresh
+    out = enrich_with_memory(fresh, MEMORY)
+    observed = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    for _, r in out.iterrows():
+        try:
+            MEMORY.record_snapshot(
+                str(r.get("symbol", "")), str(r.get("market", "")), snapshot_features(r),
+                state=str(r.get("change_state", "")), source_quality=str(r.get("data_quality", "LOW")),
+                observed_at_utc=observed,
+            )
+        except Exception:
+            pass
+    return out
+
+
+def _onchain_radar_frame() -> pd.DataFrame:
+    items=[]
+    for _, r in ONCHAIN_WATCHLIST.iterrows():
+        if str(r.get("entity_type","")).lower() == "chain":
+            items.append((str(r.get("entity") or ""),str(r.get("defillama_id") or r.get("entity") or ""),str(r.get("notes") or "")))
+    rows=[]
+    def one(item):
+        entity,chain,notes=item
+        snap=fetch_defillama_chain_snapshot(chain)
+        d={"Entity":entity or chain,"Type":"Chain","Notes":notes}; d.update(snap)
+        changes=[safe_float(d.get("tvl_7d")),safe_float(d.get("stablecoins_7d")),safe_float(d.get("dex_volume_7d_change")),safe_float(d.get("fees_7d_change")),safe_float(d.get("revenue_7d_change"))]
+        finite=[x for x in changes if np.isfinite(x)]
+        d["change_breadth"]=(sum(x>0 for x in finite)/len(finite)) if finite else np.nan
+        d["change_strength"]=float(np.nanmedian(finite)) if finite else np.nan
+        if len(finite)<3: d["state"]="DATA GATED"
+        elif d["change_breadth"]>=.75 and d["change_strength"]>0: d["state"]="ACCELERATING"
+        elif d["change_breadth"]>=.60: d["state"]="EMERGING"
+        elif d["change_breadth"]<=.25: d["state"]="FADING"
+        else: d["state"]="MIXED / QUIET"
+        return d
+    with ThreadPoolExecutor(max_workers=min(7,max(1,len(items)))) as ex:
+        futs=[ex.submit(one,x) for x in items]
+        for fut in as_completed(futs):
+            try: rows.append(fut.result())
+            except Exception as exc: rows.append({"Entity":"unknown","state":"DATA GATED","defillama_errors":[str(exc)],"source_quality":"LOW"})
+    return pd.DataFrame(rows).sort_values(["state","Entity"]) if rows else pd.DataFrame()
+
+
+def _market_status_frame(scan: pd.DataFrame) -> pd.DataFrame:
+    rows=[]
+    labels=[("On-chain",None),("Crypto","Crypto"),("US Stocks","US"),("IHSG","IHSG"),("Forex","FX"),("Commodities","Commodity")]
+    for label,m in labels:
+        if m is None:
+            rows.append({"Vertical":label,"Status":"PARTIAL · DEFILLAMA WIRED","Coverage":"ecosystem/capital wired; wallet quality/social remain gated","Candidates":"—"})
+            continue
+        sub=scan[scan.get("market",pd.Series(index=scan.index,dtype=str)).astype(str)==m] if not scan.empty else pd.DataFrame()
+        if sub.empty:
+            rows.append({"Vertical":label,"Status":"NO DATA","Coverage":"—","Candidates":0}); continue
+        statuses=sub.get("vertical_status",pd.Series(index=sub.index,dtype=str)).fillna("GATED").astype(str)
+        ready=int((statuses=="READY").sum()); partial=int((statuses=="PARTIAL").sum())
+        status="READY" if ready==len(sub) else ("PARTIAL" if (ready+partial)>0 else "GATED")
+        cov=pd.to_numeric(sub.get("vertical_core_coverage",pd.Series(index=sub.index,dtype=float)),errors="coerce").mean()
+        rows.append({"Vertical":label,"Status":status,"Coverage":pct(cov,0) if np.isfinite(cov) else "GATED","Candidates":len(sub)})
+    return pd.DataFrame(rows)
+
+
+def _render_control_room(ranked: pd.DataFrame, mg: Dict[str,Any]) -> None:
+    st.markdown("<div class='section'>Market Opportunity OS · control room</div>",unsafe_allow_html=True)
+    counts=MEMORY.counts()
+    c1,c2,c3,c4=st.columns(4)
+    c1.metric("Memory snapshots",counts.get("snapshots",0)); c2.metric("Tracked entities",counts.get("entities",0))
+    c3.metric("Markets",ranked["market"].nunique() if not ranked.empty and "market" in ranked else 0)
+    c4.metric("Macro",str(mg.get("regime","GATED"))[:24])
+    st.dataframe(_market_status_frame(ranked),use_container_width=True,hide_index=True)
+    st.caption("Kernel is shared; data and causal logic are market-specific. Missing data stays gated instead of being replaced by price momentum.")
+    if not ranked.empty:
+        cols=[c for c in ["market","symbol","research_action","change_state","sequence_signature","memory_observations","vertical_status","vertical_missing_core"] if c in ranked.columns]
+        st.markdown("<div class='section'>Cross-market change board</div>",unsafe_allow_html=True)
+        st.dataframe(ranked[cols].head(30),use_container_width=True,hide_index=True)
+
+
+def _render_verticals(ranked: pd.DataFrame) -> None:
+    st.markdown("<div class='section'>Vertical engines · same kernel, different evidence</div>",unsafe_allow_html=True)
+    tabs=st.tabs(["ON-CHAIN","CRYPTO","US STOCKS","IHSG","FOREX","COMMODITIES"])
+    with tabs[0]:
+        st.caption("Core: ecosystem + capital + usage + quality + memory. Wallet/social/narrative are independent adapters and must not be faked from TVL.")
+        oc=_onchain_radar_frame()
+        if oc.empty:
+            st.warning("On-chain watchlist unavailable.")
+        else:
+            show=oc.copy()
+            for c in ["tvl_7d","tvl_30d","stablecoins_7d","stablecoins_30d","dex_volume_7d_change","fees_7d_change","revenue_7d_change","change_breadth"]:
+                if c in show: show[c]=show[c].map(lambda x:pct(safe_float(x),1))
+            cols=[c for c in ["Entity","state","tvl","tvl_7d","stablecoins","stablecoins_7d","dex_volume_24h","dex_volume_7d_change","fees_24h","fees_7d_change","revenue_24h","revenue_7d_change","source_quality"] if c in show]
+            st.dataframe(show[cols],use_container_width=True,hide_index=True)
+            st.caption("DeFiLlama confirmation deliberately separates TVL from stablecoins, DEX activity, fees and revenue so token-price repricing cannot masquerade as broad ecosystem growth.")
+    def _market_tab(tab, market, title, core_note):
+        with tab:
+            st.caption(core_note)
+            sub=ranked[ranked.get("market",pd.Series(index=ranked.index,dtype=str)).astype(str)==market] if not ranked.empty else pd.DataFrame()
+            if sub.empty:
+                st.info(f"No {title} rows loaded."); return
+            story_cols=[]
+            if market=="US": story_cols=["loss_type","expectation_optionality_state","expectation_optionality_score","expectation_revision_state","financing_risk"]
+            elif market=="IHSG": story_cols=["loss_type","story_state","story_optionality_score","story_credibility_score","financing_risk"]
+            cols=[c for c in ["symbol","name","research_action","stage"]+story_cols+["change_state","sequence_signature","memory_observations","vertical_status","vertical_core_coverage","vertical_missing_core","data_quality"] if c in sub]
+            st.dataframe(sub[cols],use_container_width=True,hide_index=True)
+    _market_tab(tabs[1],"Crypto","crypto","Liquid crypto requires spot/leverage/positioning evidence; current value-capture data is useful but leverage remains gated until OI/funding/liquidation adapters are complete.")
+    _market_tab(tabs[2],"US","US stocks","Core: fundamentals + estimate revisions + capital flow + causal chain + valuation + memory. Current build has fundamentals + live Yahoo analyst trend/revisions + loss-making P/S fallback; Market Memory makes revision snapshots PIT going forward. Capital-flow history remains gated.")
+    _market_tab(tabs[3],"IHSG","IHSG","Core: fundamentals + broker flow + foreign flow + corporate actions + valuation + memory. Broker summary is bounded to one evidence family and cannot overpower fundamentals. Loss-making narrative optionality is separate and only activates when economics improve and financing is survivable.")
+    _market_tab(tabs[4],"FX","FX","Core: relative rates + macro surprise + central banks + positioning + valuation + memory. Price-only rows remain DATA GATED by design.")
+    _market_tab(tabs[5],"Commodity","commodities","Core: physical supply/demand + inventory + curve + positioning + memory. Price-only rows remain DATA GATED by design.")
 
 # -----------------------------
 # Decision-view helpers
@@ -1480,7 +1743,8 @@ def _run_intelligence(scan_input: pd.DataFrame, scan_signature: Tuple[Any,...], 
     fresh=build_snapshot_frame(scan_input,max_assets=max_assets) if not scan_input.empty else pd.DataFrame()
     if not fresh.empty:
         try:
-            fresh=action_from_relative_rank(add_cross_sectional_evidence(fresh))
+            fresh=action_from_relative_rank(add_cross_sectional_evidence(apply_story_optionality(fresh)))
+            fresh=_memory_enrich_and_record(fresh)
         except Exception as exc:
             fresh["error"]=fresh.get("error","")
             fresh["stage"]="DISCOVERED / NEEDS MORE EVIDENCE"
@@ -1491,6 +1755,11 @@ def _run_intelligence(scan_input: pd.DataFrame, scan_signature: Tuple[Any,...], 
             fresh["valuation_confidence"]="GATED"
             fresh["valuation_basis"]="GATED · scan repair"
             st.session_state["scan_repair_error"]=str(exc)
+        try:
+            if "change_state" not in fresh.columns:
+                fresh=_memory_enrich_and_record(fresh)
+        except Exception as exc:
+            st.session_state["memory_refresh_error"]=str(exc)
     try:
         scen=discover_live_scenarios(max_queries=8)
     except Exception as exc:
@@ -2144,7 +2413,7 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
 st.markdown(
     f"""
 <div class='hero'>
- <div class='hero-title'>Opportunity Engine</div>
+ <div class='hero-title'>Market Opportunity OS</div>
  <div class='sub'>One screen, one job: show what is worth acting on now, what should stay on watch, and what is not ready yet.</div>
  <div class='legend'>
    {badge('GREEN = ACT NOW','green')}
@@ -2179,7 +2448,7 @@ if selected_markets:
 else:
     scan_input=UNIVERSE.iloc[0:0].copy()
 max_assets=len(scan_input)
-scan_signature=(tuple(selected_markets),int(max_assets),"v2.6-ihsg-transaction")
+scan_signature=(tuple(selected_markets),int(max_assets),"v3.0-market-opportunity-os")
 
 # Automatic initial/stale refresh. The user never has to press a scan button.
 existing_records=st.session_state.get("live_scan_records",[])
@@ -2207,9 +2476,15 @@ mg=st.session_state.get("macro_gate_snapshot",{}) or {}
 ranked=rank_opportunities(scan[scan.get("error",pd.Series(index=scan.index,dtype=str)).fillna("")==""] if not scan.empty and "error" in scan else scan)
 expr=_expression_tables(ranked,mg)
 
-nav=st.radio("Workspace",["OPPORTUNITIES","MACRO & EVENTS","RESEARCH / REPLAY"],horizontal=True,label_visibility="collapsed",key="decision_nav_v20")
+nav=st.radio("Workspace",["CONTROL ROOM","OPPORTUNITIES","VERTICALS","MACRO & EVENTS","RESEARCH / REPLAY"],horizontal=True,label_visibility="collapsed",key="decision_nav_v30")
 
-if nav=="MACRO & EVENTS":
+if nav=="CONTROL ROOM":
+    _render_control_room(ranked,mg)
+
+elif nav=="VERTICALS":
+    _render_verticals(ranked)
+
+elif nav=="MACRO & EVENTS":
     _render_macro_visual_room()
 
 elif nav=="RESEARCH / REPLAY":
@@ -2291,4 +2566,4 @@ else:
             showcols=[c for c in ["theme","horizon","latest_headline","source_count"] if c in near.columns]
             st.dataframe(near[showcols],use_container_width=True,hide_index=True)
 
-st.caption("v2.6 · IHSG Transaction Intelligence integrated. Plain-language actions first; broker/microstructure evidence is bounded, fail-closed, and never a standalone entry. No classic technical indicators.")
+st.caption("v3.0 · Market Opportunity OS. Shared change/sequence/memory kernel; market-specific causal gates; DeFiLlama on-chain radar; no classic technical indicators.")

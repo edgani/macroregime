@@ -1,25 +1,63 @@
-# Opportunity Intelligence Engine v2.6 — IHSG Transaction Intelligence
+# Market Opportunity OS v3.1
 
-This release keeps the v2.4 research and capital-safety logic but redesigns the daily Opportunities page for immediate comprehension.
+This release upgrades **Opportunity Intelligence Engine v2.6 — IHSG Transaction Intelligence** into one cross-market architecture with a shared intelligence kernel and market-specific verticals.
 
-## Daily hierarchy
+## Product structure
 
-1. **Today's posture** — one macro state plus one plain-language implication.
-2. **At a glance** — ACT NOW / WATCH / AVOID-DOWNSIDE / NOT READY counts with ticker chips.
-3. **Top opportunities now** — up to four cards showing the action, why it matters, confidence, evidence balance, and available expression.
-4. **How it can be traded** — stock / leverage / options / spot readiness counts.
-5. **Expression desk** — a simple ranked list. Advanced tables, model gates, and the evidence chart are collapsed by default.
-6. **Selected opportunity** — entry logic and deeper research only after the user opens a ticker.
+- **CONTROL ROOM** — cross-market posture, data readiness, Market Memory and change board.
+- **OPPORTUNITIES** — the existing decision-first opportunity desk.
+- **VERTICALS** — separate engines for On-chain, Crypto, US Stocks, IHSG, Forex and Commodities.
+- **MACRO & EVENTS** — macro/risk context; it is a governor, not a universal alpha score.
+- **RESEARCH / REPLAY** — validation, rejected signals, readiness and historical replay.
 
-## Expression contract
+## Shared kernel
 
-- **US:** cash stock, leverage when earned, listed calls/puts when earned.
-- **IHSG:** cash-only by design.
-- **Crypto:** spot/value-capture research; leverage remains gated until crypto-specific causal/leverage data clears. BTC/ETH Deribit rows stay visible in Options.
-- **FX:** leverage rows stay visible but remain WAIT until relative-macro / REER / BoP / positioning / policy data clears.
-- **Commodity:** leverage rows stay visible but remain WAIT until physical balance / inventory / curve / spare-capacity evidence clears.
+Every vertical uses the same research contract:
 
-The system does **not** turn missing data into a momentum signal. Visibility is not permission to trade.
+`VALIDATE → BASELINE → CHANGE → SEQUENCE → QUALITY → STATE → EARLINESS/CROWDING → PAYOFF/RISK → DECISION → OUTCOME → MARKET MEMORY`
+
+The engine deliberately avoids a single giant Alpha Score. Independent evidence families and hard gates stay separate so a strong signal cannot hide missing causal data or a fatal risk flag.
+
+## Vertical responsibilities
+
+### On-chain
+Free DeFiLlama chain radar: TVL, stablecoin supply, DEX activity, fees and revenue are independent confirmation families. Wallet/social/developer signals remain separate adapters and are not inferred from TVL.
+
+### Liquid crypto
+Value-capture economics are retained. Spot-flow / OI / funding / liquidation data are required before leverage can be promoted from research-gated status.
+
+### US Stocks
+Existing fundamentals, valuation and causal-chain logic remain. Full point-in-time analyst revisions and institutional-flow history are still required for production-alpha claims.
+
+### IHSG
+v2.6 broker/transaction intelligence is preserved: Index Alpha EOD broker attribution + Invezgo intraday/order-book when keys are configured. Broker evidence contributes at most one independent evidence-family vote. IHSG remains cash-only.
+
+### Forex
+Requires relative rates, macro surprise, central banks, positioning and valuation. Price-only history never becomes directional alpha.
+
+### Commodities
+Requires physical supply/demand, inventory, futures curve and positioning. Price-only history never becomes directional alpha.
+
+## Market Memory
+
+`state/market_memory.sqlite` stores timestamped snapshots. The current observation is evaluated against prior history **before** it is appended, so it cannot leak into its own baseline. Sequence signatures preserve the order of state transitions.
+
+On a fresh deployment, `BASELINE BUILDING` is expected until enough snapshots accumulate.
+
+## DeFiLlama
+
+The default adapter uses the **free API** (`api.llama.fi`) and requires no API key. It uses official free endpoint families for chain TVL, stablecoins, DEX activity and fees/revenue. DeFiLlama Pro is not required for v3.1.
+
+## IHSG API configuration
+
+Optional server-side secrets:
+
+```toml
+INDEX_ALPHA_API_KEY = "..."
+INVEZGO_API_KEY = "..."
+```
+
+Environment variables with the same names also work.
 
 ## Run locally
 
@@ -37,54 +75,11 @@ Linux: `./run_linux.sh`
 python tests/run_all.py
 ```
 
-See `VISUAL_CHANGELOG.md`, `TEST_MATRIX.md`, `VALIDATION_RESULTS.md`, `KNOWN_LIMITATIONS.md`, and `DEPLOY_FROM_ZERO.md`.
+Current release result: **15 PASS / 0 NONPASS**.
+
+See `V3_ARCHITECTURE.md`, `FINAL_AUDIT.md`, `TEST_MATRIX.md`, `VALIDATION_RESULTS.md`, `KNOWN_LIMITATIONS.md`, and `DEPLOY_FROM_ZERO.md`.
 
 
-## IHSG Transaction Intelligence (v2.6)
+## v3.1 · Story / Expectation Optionality
 
-IHSG now has an optional, fail-closed transaction evidence layer. It never turns a missing API response into a signal and it contributes at most **one** independent evidence-family vote to the stock decision engine.
-
-### Data stack
-
-- **Index Alpha**: EOD broker attribution, buy/sell value/volume/frequency/average price, Regular (RG) vs Negotiated (NG) market, and foreign flow. The engine requests single trading days for the persistence calculation because Index Alpha multi-day ranges are aggregated.
-- **Invezgo**: live intraday summary and order-book depth. HAKA/HAKI-style aggressive-flow metrics are used only when the returned payload actually contains them; otherwise absorption remains gated.
-- **IDX / KSEI**: primary-source ownership/corporate-action confirmation remains the slow confirmation layer.
-
-### Important accounting guardrail
-
-The sum of broker net buys across all brokers is approximately zero by market accounting. v2.6 therefore **does not** create a fake total-market "broker net buy." It measures:
-
-- broker-level multi-day directional persistence;
-- concentration asymmetry between accumulating and distributing brokers;
-- execution-cost proxy for the top accumulating brokers;
-- foreign group net flow;
-- negotiated-market contamination / transfer risk;
-- visible order-book balance with deliberately low weight;
-- aggressive-flow vs price disagreement only when HAKA/HAKI-like fields exist.
-
-The displayed `transaction_score` is a **research-state score, not a calibrated probability**.
-
-### Configure API keys
-
-Local:
-
-```bash
-cp .streamlit/secrets.toml.example .streamlit/secrets.toml
-```
-
-Then edit the two values:
-
-```toml
-INDEX_ALPHA_API_KEY = "..."
-INVEZGO_API_KEY = "..."
-```
-
-For Streamlit Cloud, add the same names in the app's Secrets settings. Environment variables with the same names also work.
-
-Optional broker-history setting:
-
-```bash
-OIE_IHSG_BROKER_LOOKBACK=5
-```
-
-The broad scan intentionally does **not** poll queue-tracking for every stock. Queue data is exposed in `ihsg_transaction.py` for a future focused ticker microscope; this prevents quota waste and avoids claiming a replenishment signal before the queue schema is explicitly validated.
+US and IHSG now have a loss-making/turnaround research module. It never treats a loss as bullish by itself. IHSG uses fundamental inflection + financing survivability and keeps broker confirmation separate. US additionally uses current analyst EPS trend/revision breadth. Loss-making valuation falls back to same-sector Price/Sales only when at least four valid peers exist. See `STORY_OPTIONALITY_MODULE.md`.

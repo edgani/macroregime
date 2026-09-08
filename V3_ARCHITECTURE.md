@@ -59,3 +59,15 @@ Free API only by default. No API key is required. The adapter intentionally sepa
 - FX relative-rate/positioning/REER/BoP production adapter
 - commodity physical inventory/curve/supply-demand production adapter
 - calibrated outcome/backfill and multiple-hypothesis-controlled OOS model selection
+
+## v3.2 longitudinal layer
+
+v3.2 does not replace the shared v3.0/v3.1 kernel. It adds a second persistent database:
+
+`state/opportunity_memory.sqlite`
+
+The separation is intentional:
+- `market_memory.sqlite` = timestamped market/entity observations;
+- `opportunity_memory.sqlite` = immutable first opportunity events, lifecycle, outcomes, failures, alerts and missed-runner audits.
+
+The event snapshot never receives future fields. Outcome maturation uses later prices only after the corresponding horizon exists.

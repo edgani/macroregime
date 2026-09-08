@@ -197,6 +197,17 @@ VERTICAL_REQUIREMENTS: Dict[str, Dict[str, Tuple[str, ...]]] = {
     },
 }
 
+for _eq_market in ["HK", "Hong Kong", "China", "Europe", "Taiwan"]:
+    VERTICAL_REQUIREMENTS[_eq_market] = {
+        "core": ("fundamentals", "estimate_revisions", "capital_flow", "causal_chain", "valuation", "memory"),
+        "optional": ("options", "narrative", "macro"),
+    }
+
+VERTICAL_REQUIREMENTS["Index"] = {
+    "core": ("macro", "breadth", "earnings", "liquidity", "memory"),
+    "optional": ("options", "positioning", "cross_asset"),
+}
+
 
 def vertical_readiness(market: str, available_families: Iterable[str]) -> Dict[str, Any]:
     key = "On-chain" if str(market).lower() in {"onchain", "on-chain"} else str(market)

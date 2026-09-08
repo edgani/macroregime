@@ -53,9 +53,14 @@ from verticals import enrich_with_memory, snapshot_features, available_families_
 from opportunity_kernel import VERTICAL_REQUIREMENTS, vertical_readiness, earliness_from_components
 from defillama_adapter import chain_snapshot as defillama_chain_snapshot
 from story_optionality import apply_story_optionality
+from opportunity_longitudinal import OpportunityMemory
+from opportunity_discovery import sync_opportunities, EQUITY_MARKETS, BENCHMARKS
+from opportunity_outcomes import update_from_price_frames
+from opportunity_learning import write_periodic_learning_reports
+from opportunity_ui import render_opportunity_tracker, render_learning_lab
 
 # ============================================================
-# OPPORTUNITY INTELLIGENCE ENGINE v3.1 · MARKET OPPORTUNITY OS
+# OPPORTUNITY INTELLIGENCE ENGINE v3.2 · LONGITUDINAL MARKET OPPORTUNITY OS
 # ------------------------------------------------------------
 # Goal: high-recall discovery of exceptional opportunities, then
 # high-precision confirmation. No classic technical indicators.
@@ -76,10 +81,10 @@ STATE = Path(os.environ.get("OIE_STATE_DIR", str(ROOT / "state")))
 STATE.mkdir(parents=True, exist_ok=True)
 
 st.set_page_config(
-    page_title="Market Opportunity OS · v3.1",
+    page_title="Market Opportunity OS · v3.2",
     page_icon="◎",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # Macro module is optional-safe at import time so a stale/mismatched deploy cannot blank the whole app.
@@ -215,6 +220,7 @@ DISCOVERY_QUERIES = read_csv("scenario_discovery_queries.csv")
 SOURCE_REGISTRY = read_csv("source_registry.csv")
 ONCHAIN_WATCHLIST = read_csv("onchain_watchlist.csv")
 MEMORY = MarketMemory(STATE / "market_memory.sqlite")
+OPP_MEMORY = OpportunityMemory(STATE / "opportunity_memory.sqlite")
 
 # -----------------------------
 # Styling
@@ -472,7 +478,7 @@ def fetch_yfinance_snapshot(market: str, symbol: str, name: str) -> Dict[str, An
         snap.shares_change_yoy = _level_change_yoy(shares)
         if not np.isfinite(snap.trailing_pe) and np.isfinite(snap.price) and np.isfinite(snap.eps_ttm) and snap.eps_ttm > 0:
             snap.trailing_pe = snap.price / snap.eps_ttm
-        if market == "US":
+        if market in ["US","HK","Hong Kong","China","Europe","Taiwan"]:
             try:
                 et = t.get_eps_trend()
                 er = t.get_eps_revisions()
@@ -948,10 +954,10 @@ def _snapshot_one(r: pd.Series) -> Dict[str, Any]:
             valid=sum(np.isfinite(snap.get(k,np.nan)) for k in ["price","market_cap","fdv_premium","circulating_ratio","revenue_growth_30d","holder_capture_ratio"])
             snap["data_quality"]="HIGH" if valid>=4 else ("MEDIUM" if valid>=2 else "LOW")
         snap["source_coverage"]="CoinGecko market/supply + DeFiLlama protocol economics; holder capture/usage remains gated unless independently confirmed"
-    elif market in ["FX","Commodity"]:
+    elif market in ["FX","Commodity","Index"]:
         snap=dict(fetch_price_only_snapshot(market,symbol,name))
-        snap["market_model_status"]="GATED / NEEDS RELATIVE-MACRO" if market=="FX" else "GATED / NEEDS PHYSICAL BALANCE"
-        snap["source_coverage"]="Yahoo market price/history only; direction/leverage cannot be promoted without dedicated causal data"
+        snap["market_model_status"]=("GATED / NEEDS RELATIVE-MACRO" if market=="FX" else ("GATED / NEEDS PHYSICAL BALANCE" if market=="Commodity" else "GATED / NEEDS MACRO+BREADTH"))
+        snap["source_coverage"]="Yahoo market price/history only; direction cannot be promoted without dedicated causal data"
     else:
         snap=dict(fetch_yfinance_snapshot(market,symbol,name))
         snap["market_model_status"]="RESEARCH READY / CURRENT DATA"
@@ -998,7 +1004,7 @@ def add_cross_sectional_evidence(df: pd.DataFrame) -> pd.DataFrame:
     for m in stock_metrics:
         out[f"{m}_rank"]=np.nan
     # Stocks: causal fundamental inflection + cross-sectional confirmation.
-    for market in ["US","IHSG"]:
+    for market in ["US","IHSG","HK","Hong Kong","China","Europe","Taiwan"]:
         idxs=out.index[out["market"].eq(market)].tolist()
         for idx in idxs:
             r=out.loc[idx]
@@ -1027,7 +1033,7 @@ def add_cross_sectional_evidence(df: pd.DataFrame) -> pd.DataFrame:
 
     # Story / expectation optionality contributes AT MOST one family and never from "loss" alone.
     # US requires analyst revisions to confirm; IHSG requires improving economics with survivable financing.
-    for idx in out.index[out["market"].isin(["US","IHSG"])].tolist():
+    for idx in out.index[out["market"].isin(["US","IHSG","HK","Hong Kong","China","Europe","Taiwan"])].tolist():
         r=out.loc[idx]
         market=str(r.get("market"))
         story_state=str(r.get("story_state", ""))
@@ -1035,7 +1041,7 @@ def add_cross_sectional_evidence(df: pd.DataFrame) -> pd.DataFrame:
         story_score=safe_float(r.get("story_optionality_score"))
         cred=safe_float(r.get("story_credibility_score"))
         base=str(out.at[idx,"evidence_basis"] or "")
-        if market=="US":
+        if market in ["US","HK","Hong Kong","China","Europe","Taiwan"]:
             rev_state=str(r.get("expectation_revision_state", "DATA GATED"))
             if rev_state=="UPWARD REVISION" and np.isfinite(story_score) and story_score>=60 and np.isfinite(cred) and cred>=55 and fin!="HIGH":
                 out.at[idx,"evidence_families"]=int(out.at[idx,"evidence_families"])+1
@@ -1081,6 +1087,7 @@ def add_cross_sectional_evidence(df: pd.DataFrame) -> pd.DataFrame:
     for market,status,basis in [
         ("FX","GATED / NEEDS RELATIVE-MACRO","needs rates/REER/BoP/positioning/policy data"),
         ("Commodity","GATED / NEEDS PHYSICAL BALANCE","needs inventory/production/consumption/curve/spare-capacity data"),
+        ("Index","GATED / NEEDS MACRO+BREADTH","needs breadth/earnings/liquidity/regime context; price-only index history is not alpha"),
     ]:
         idxs=out.index[out["market"].eq(market)].tolist()
         for idx in idxs:
@@ -1092,7 +1099,7 @@ def add_cross_sectional_evidence(df: pd.DataFrame) -> pd.DataFrame:
         n=int(safe_float(r.get("evidence_families")) if np.isfinite(safe_float(r.get("evidence_families"))) else 0)
         d=int(safe_float(r.get("deterioration_families")) if np.isfinite(safe_float(r.get("deterioration_families"))) else 0)
         market=str(r.get("market"))
-        if market in ["FX","Commodity"]: return "DATA GATED / EARLY RADAR"
+        if market in ["FX","Commodity","Index"]: return "DATA GATED / EARLY RADAR"
         if market=="Crypto":
             status=str(r.get("market_model_status",""))
             if d>=3: return "DETERIORATION WATCH"
@@ -1219,14 +1226,17 @@ def action_from_relative_rank(scan: pd.DataFrame) -> pd.DataFrame:
     closed instead of becoming a BUY/SHORT.
     """
     out=scan.copy()
-    gaps=[]; vconf=[]; vbasis=[]; pcount=[]
+    gaps=[]; vconf=[]; vbasis=[]; pcount=[]; bears=[]; bases=[]; bulls=[]; vmodes=[]
+    equity_markets=["US","IHSG","HK","Hong Kong","China","Europe","Taiwan"]
     for _,r in out.iterrows():
-        if str(r.get("market")) in ["US","IHSG"]:
+        if str(r.get("market")) in equity_markets:
             val=valuation_projection(out,r)
             gaps.append(val.get("expectation_gap",np.nan)); vconf.append(val.get("valuation_confidence","GATED")); vbasis.append(val.get("valuation_basis","GATED")); pcount.append(val.get("peer_count",0))
+            bears.append(val.get("fv_bear",np.nan)); bases.append(val.get("fv_base",np.nan)); bulls.append(val.get("fv_bull",np.nan)); vmodes.append(val.get("valuation_mode","GATED"))
         else:
-            gaps.append(np.nan); vconf.append("N/A"); vbasis.append("asset-class model"); pcount.append(0)
+            gaps.append(np.nan); vconf.append("N/A"); vbasis.append("asset-class model"); pcount.append(0); bears.append(np.nan); bases.append(np.nan); bulls.append(np.nan); vmodes.append("ASSET-CLASS MODEL")
     out["expectation_gap"]=gaps; out["valuation_confidence"]=vconf; out["valuation_basis"]=vbasis; out["valuation_peer_count"]=pcount
+    out["upside_case_value"]=bulls; out["base_case_value"]=bases; out["downside_case_value"]=bears; out["valuation_mode"]=vmodes
     actions=[]
     for _,r in out.iterrows():
         n=int(safe_float(r.get("evidence_families")) if np.isfinite(safe_float(r.get("evidence_families"))) else 0)
@@ -1450,7 +1460,7 @@ def _render_verticals(ranked: pd.DataFrame) -> None:
             if sub.empty:
                 st.info(f"No {title} rows loaded."); return
             story_cols=[]
-            if market=="US": story_cols=["loss_type","expectation_optionality_state","expectation_optionality_score","expectation_revision_state","financing_risk"]
+            if market in ["US","HK","Hong Kong","China","Europe","Taiwan"]: story_cols=["loss_type","expectation_optionality_state","expectation_optionality_score","expectation_revision_state","financing_risk"]
             elif market=="IHSG": story_cols=["loss_type","story_state","story_optionality_score","story_credibility_score","financing_risk"]
             cols=[c for c in ["symbol","name","research_action","stage"]+story_cols+["change_state","sequence_signature","memory_observations","vertical_status","vertical_core_coverage","vertical_missing_core","data_quality"] if c in sub]
             st.dataframe(sub[cols],use_container_width=True,hide_index=True)
@@ -1769,6 +1779,42 @@ def _run_intelligence(scan_input: pd.DataFrame, scan_signature: Tuple[Any,...], 
     st.session_state["live_scan_signature"]=scan_signature
     st.session_state["scenario_discovery_records"]=scen.to_dict("records") if not scen.empty else []
     st.session_state["intel_refreshed_at_utc"]=datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def _fetch_outcome_history(symbol: str, start_iso: str) -> pd.Series:
+    if yf is None or not symbol:
+        return pd.Series(dtype=float)
+    try:
+        start=(pd.Timestamp(start_iso)-pd.Timedelta(days=5)).date().isoformat()
+        hist=yf.Ticker(symbol).history(start=start,auto_adjust=True,actions=False)
+        if hist is None or hist.empty or "Close" not in hist:
+            return pd.Series(dtype=float)
+        s=pd.to_numeric(hist["Close"],errors="coerce").dropna()
+        idx=pd.to_datetime(s.index,utc=True,errors="coerce"); s.index=idx
+        return s[~s.index.isna()]
+    except Exception:
+        return pd.Series(dtype=float)
+
+
+def _refresh_mature_opportunity_outcomes(limit: int = 8) -> None:
+    """Bounded, cached outcome maturation. Never backfills future data into the event snapshot."""
+    if yf is None:
+        return
+    events=OPP_MEMORY.events_frame(active_only=False,limit=200)
+    if events.empty:
+        return
+    # Oldest first so mature events get labeled before fresh ones.
+    events=events.sort_values("first_seen_time",ascending=True).head(int(limit))
+    for _,ev in events.iterrows():
+        symbol=str(ev.get("symbol") or ""); market=str(ev.get("market") or ""); anchor=str(ev.get("first_seen_time") or "")
+        if not symbol or not anchor: continue
+        asset=_fetch_outcome_history(symbol,anchor)
+        if asset.empty: continue
+        bench_symbol=str(BENCHMARKS.get(market,"") or "")
+        # Descriptive benchmark labels are not treated as tickers.
+        bench=_fetch_outcome_history(bench_symbol,anchor) if bench_symbol and all(x not in bench_symbol for x in [" / ","specific","context"]) else pd.Series(dtype=float)
+        update_from_price_frames(OPP_MEMORY,str(ev.get("event_id")),asset,benchmark_prices=(bench if not bench.empty else None),sector_prices=None)
 
 
 def _macro_allows_long_leverage(mg: Dict[str,Any]) -> bool:
@@ -2410,23 +2456,8 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
 # -----------------------------
 # UI — AUTO DECISION VIEW
 # -----------------------------
-st.markdown(
-    f"""
-<div class='hero'>
- <div class='hero-title'>Market Opportunity OS</div>
- <div class='sub'>One screen, one job: show what is worth acting on now, what should stay on watch, and what is not ready yet.</div>
- <div class='legend'>
-   {badge('GREEN = ACT NOW','green')}
-   {badge('AMBER = WATCH','amber')}
-   {badge('RED = REDUCE / SHORT-SIDE','red')}
-   {badge('GREY = NOT ENOUGH DATA','gray')}
- </div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
-
-markets_available=[m for m in ["US","IHSG","FX","Commodity","Crypto"] if m in set(UNIVERSE.get("market",pd.Series(dtype=str)).astype(str))]
+# v3.2: the old full-width hero was removed; OPPORTUNITIES renders the denser reference-style status header.
+markets_available=[m for m in ["US","IHSG","HK","Hong Kong","China","Europe","Taiwan","FX","Commodity","Index","Crypto"] if m in set(UNIVERSE.get("market",pd.Series(dtype=str)).astype(str))]
 st.sidebar.markdown("## Auto scanner")
 selected_markets=st.sidebar.multiselect("Markets",markets_available,default=markets_available)
 st.sidebar.markdown(f"{badge('AUTO · ~30 MIN CACHE','green')}",unsafe_allow_html=True)
@@ -2448,7 +2479,7 @@ if selected_markets:
 else:
     scan_input=UNIVERSE.iloc[0:0].copy()
 max_assets=len(scan_input)
-scan_signature=(tuple(selected_markets),int(max_assets),"v3.0-market-opportunity-os")
+scan_signature=(tuple(selected_markets),int(max_assets),"v3.2-longitudinal-opportunity-os")
 
 # Automatic initial/stale refresh. The user never has to press a scan button.
 existing_records=st.session_state.get("live_scan_records",[])
@@ -2476,10 +2507,22 @@ mg=st.session_state.get("macro_gate_snapshot",{}) or {}
 ranked=rank_opportunities(scan[scan.get("error",pd.Series(index=scan.index,dtype=str)).fillna("")==""] if not scan.empty and "error" in scan else scan)
 expr=_expression_tables(ranked,mg)
 
-nav=st.radio("Workspace",["CONTROL ROOM","OPPORTUNITIES","VERTICALS","MACRO & EVENTS","RESEARCH / REPLAY"],horizontal=True,label_visibility="collapsed",key="decision_nav_v30")
+# v3.2 longitudinal layer: freeze first meaningful detection BEFORE future outcomes mature.
+try:
+    _active_opportunities = sync_opportunities(ranked, OPP_MEMORY, mg)
+    _refresh_mature_opportunity_outcomes(limit=8)
+    st.session_state["learning_report_paths"] = write_periodic_learning_reports(OPP_MEMORY, STATE)
+except Exception as _opp_exc:
+    _active_opportunities = pd.DataFrame()
+    st.session_state["opportunity_memory_error"] = str(_opp_exc)
+
+nav=st.radio("Workspace",["CONTROL ROOM","OPPORTUNITIES","DECISION DESK","VERTICALS","MACRO & EVENTS","RESEARCH / REPLAY"],horizontal=True,label_visibility="collapsed",key="decision_nav_v32")
 
 if nav=="CONTROL ROOM":
     _render_control_room(ranked,mg)
+
+elif nav=="OPPORTUNITIES":
+    render_opportunity_tracker(st, ranked, OPP_MEMORY, mg)
 
 elif nav=="VERTICALS":
     _render_verticals(ranked)
@@ -2488,7 +2531,8 @@ elif nav=="MACRO & EVENTS":
     _render_macro_visual_room()
 
 elif nav=="RESEARCH / REPLAY":
-    st.markdown("<div class='section'>Research / validation · not the daily screen</div>",unsafe_allow_html=True)
+    render_learning_lab(st, OPP_MEMORY)
+    st.markdown("<div class='section'>Legacy research / validation</div>",unsafe_allow_html=True)
     st.markdown("<div class='gate'>Use this only when you want to inspect historical replay, data coverage, rejected signals or research gates. Daily decisions stay in OPPORTUNITIES.</div>",unsafe_allow_html=True)
     with st.expander("Historical acceptance tests",expanded=False):
         st.dataframe(ACCEPTANCE,use_container_width=True,hide_index=True)
@@ -2516,6 +2560,7 @@ elif nav=="RESEARCH / REPLAY":
         st.markdown("<div class='gate'><b>Fail-closed rule:</b> missing causal data never gets replaced with price momentum or a technical indicator. The asset stays in Early Radar / GATED until the correct data family is available.</div>",unsafe_allow_html=True)
 
 else:
+    # DECISION DESK · preserved v3.1 daily screen. Core decision logic is not replaced.
     # SIMPLE DAILY SCREEN. The first viewport answers: posture, act/watch/avoid, and top names.
     macro_label=str(mg.get("action_label","MACRO GATED"))
     macro_upper=macro_label.upper()

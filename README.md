@@ -1,4 +1,4 @@
-# Market Opportunity OS v3.1
+# Market Opportunity OS v3.2
 
 This release upgrades **Opportunity Intelligence Engine v2.6 — IHSG Transaction Intelligence** into one cross-market architecture with a shared intelligence kernel and market-specific verticals.
 
@@ -75,7 +75,7 @@ Linux: `./run_linux.sh`
 python tests/run_all.py
 ```
 
-Current release result: **15 PASS / 0 NONPASS**.
+Current package result: **18 PASS / 0 NONPASS** plus **20/20 v3.2 structural acceptance checks**.
 
 See `V3_ARCHITECTURE.md`, `FINAL_AUDIT.md`, `TEST_MATRIX.md`, `VALIDATION_RESULTS.md`, `KNOWN_LIMITATIONS.md`, and `DEPLOY_FROM_ZERO.md`.
 
@@ -83,3 +83,23 @@ See `V3_ARCHITECTURE.md`, `FINAL_AUDIT.md`, `TEST_MATRIX.md`, `VALIDATION_RESULT
 ## v3.1 · Story / Expectation Optionality
 
 US and IHSG now have a loss-making/turnaround research module. It never treats a loss as bullish by itself. IHSG uses fundamental inflection + financing survivability and keeps broker confirmation separate. US additionally uses current analyst EPS trend/revision breadth. Loss-making valuation falls back to same-sector Price/Sales only when at least four valid peers exist. See `STORY_OPTIONALITY_MODULE.md`.
+
+
+## v3.2 · Longitudinal Opportunity Memory + Outcome Learning
+
+v3.2 keeps the v3.1 decision core and adds a separate longitudinal research layer:
+
+- automatic opportunity discovery over the configured multi-market universe;
+- immutable first-detection `OPPORTUNITY_EVENT`;
+- causal driver / bottleneck / beneficiary / revenue-margin capture fields;
+- persistent lifecycle watching across restarts;
+- 1D → 12M forward outcomes, relative alpha, MFE/MAE and time-to-thesis;
+- false-positive + missed-runner stores;
+- regime/market/theme expectancy and chronological walk-forward;
+- daily/weekly learning reports;
+- dense dark-cyan Opportunity Tracker UI;
+- original v3.1 daily decision screen preserved under `DECISION DESK`.
+
+Longitudinal state is stored in `state/opportunity_memory.sqlite`. First-detection rows are immutable. Future observations only mature lifecycle/outcome tables. No autotrading was added.
+
+See `V3_2_IMPLEMENTATION.md` and `UPGRADE_FROM_V3_1.md`.

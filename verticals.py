@@ -12,14 +12,20 @@ from opportunity_kernel import FeatureSpec, aggregate_change, robust_change_read
 MARKET_TO_VERTICAL = {
     "US": "US",
     "IHSG": "IHSG",
+    "HK": "HK",
+    "Hong Kong": "Hong Kong",
+    "China": "China",
+    "Europe": "Europe",
+    "Taiwan": "Taiwan",
     "Crypto": "Crypto",
     "FX": "FX",
     "Commodity": "Commodity",
+    "Index": "Index",
 }
 
 
 def feature_specs_for_market(market: str) -> List[FeatureSpec]:
-    if market == "US":
+    if market in {"US","HK","Hong Kong","China","Europe","Taiwan"}:
         return [FeatureSpec("revenue_growth_yoy",1,"fundamentals"), FeatureSpec("eps_growth_yoy",1,"fundamentals"), FeatureSpec("fcf_growth_yoy",1,"fundamentals"), FeatureSpec("gross_margin_change",1,"fundamentals")]
     if market == "IHSG":
         return [FeatureSpec("revenue_growth_yoy",1,"fundamentals"), FeatureSpec("eps_growth_yoy",1,"fundamentals"), FeatureSpec("transaction_score",1,"broker_flow"), FeatureSpec("foreign_net_adv_ratio",1,"foreign_flow")]
@@ -32,10 +38,10 @@ def feature_specs_for_market(market: str) -> List[FeatureSpec]:
 def available_families_from_row(row: Mapping[str, Any]) -> List[str]:
     market = str(row.get("market", ""))
     out = {"memory"}
-    if market in {"US", "IHSG"}:
+    if market in {"US", "IHSG", "HK", "Hong Kong", "China", "Europe", "Taiwan"}:
         if any(pd.notna(row.get(k)) for k in ["revenue_growth_yoy", "eps_growth_yoy", "fcf_growth_yoy"]): out.add("fundamentals")
         if pd.notna(row.get("expectation_gap")): out.add("valuation")
-    if market == "US":
+    if market in {"US", "HK", "Hong Kong", "China", "Europe", "Taiwan"}:
         if str(row.get("expectation_revision_state", "")) != "DATA GATED": out.add("estimate_revisions")
         if pd.notna(row.get("expectation_optionality_score")): out.add("expectation_optionality")
     if market == "IHSG":
@@ -83,9 +89,15 @@ def enrich_with_memory(df: pd.DataFrame, memory: Any) -> pd.DataFrame:
 def snapshot_features(row: Mapping[str, Any]) -> Dict[str, Any]:
     keys = {
         "US": ["price","revenue_growth_yoy","eps_growth_yoy","fcf_growth_yoy","gross_margin_change","net_margin_change","story_optionality_score","expectation_optionality_score","expectation_revision_score","evidence_families","deterioration_families","expectation_gap"],
+        "HK": ["price","revenue_growth_yoy","eps_growth_yoy","fcf_growth_yoy","gross_margin_change","net_margin_change","evidence_families","deterioration_families","expectation_gap"],
+        "Hong Kong": ["price","revenue_growth_yoy","eps_growth_yoy","fcf_growth_yoy","gross_margin_change","net_margin_change","evidence_families","deterioration_families","expectation_gap"],
+        "China": ["price","revenue_growth_yoy","eps_growth_yoy","fcf_growth_yoy","gross_margin_change","net_margin_change","evidence_families","deterioration_families","expectation_gap"],
+        "Europe": ["price","revenue_growth_yoy","eps_growth_yoy","fcf_growth_yoy","gross_margin_change","net_margin_change","evidence_families","deterioration_families","expectation_gap"],
+        "Taiwan": ["price","revenue_growth_yoy","eps_growth_yoy","fcf_growth_yoy","gross_margin_change","net_margin_change","evidence_families","deterioration_families","expectation_gap"],
         "IHSG": ["price","revenue_growth_yoy","eps_growth_yoy","fcf_growth_yoy","net_margin_change","story_optionality_score","story_credibility_score","transaction_score","foreign_net_adv_ratio","evidence_families","deterioration_families","expectation_gap"],
         "Crypto": ["price","market_cap","revenue_growth_30d","holder_capture_ratio","fdv_premium","circulating_ratio","evidence_families","deterioration_families"],
         "FX": ["price"],
         "Commodity": ["price"],
+        "Index": ["price"],
     }.get(str(row.get("market","")), ["price"])
     return {k: row.get(k) for k in keys}

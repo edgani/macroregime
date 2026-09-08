@@ -1,22 +1,26 @@
-# FINAL AUDIT — Market Opportunity OS v3.1
+# Final Audit — Market Opportunity OS v3.2
 
-## Build scope
-- Base preserved from v3.0 / Opportunity Intelligence Engine v2.6 lineage.
-- Added IHSG Story Optionality and US Expectation Optionality without enabling any new leverage path.
-- Added same-sector Price/Sales fallback for loss-making stocks.
-- Added current US analyst expectation/revision adapter through yfinance.
+## Objective
+Upgrade v3.1 additively with longitudinal opportunity memory, outcome learning, true chronological walk-forward, automatic discovery and a denser reference-style UI.
 
-## Safety / research integrity
-- Loss-making status alone is never positive evidence.
-- Story/expectation module contributes at most one evidence family.
-- Structural bad loss and high financing risk are explicit negative states.
-- Same-sector P/S requires at least four valid peers; no whole-market fallback.
-- Current Yahoo analyst snapshots are not backfilled as historical PIT. Market Memory is PIT only from recorded timestamps going forward.
-- IHSG remains cash-only.
-- FX/commodities remain gated when causal datasets are absent.
+## Verified
+- Existing v3.1 core retained; original decision desk remains reachable.
+- New event memory uses a separate SQLite database.
+- First detection timestamp/price immutable under later state updates.
+- Invalidated events remain in history.
+- Forward outcomes include benchmark-relative path metrics and barrier-order success labels.
+- Learning does not modify production weights.
+- Walk-forward code is chronological expanding-window, never random shuffle.
+- New primary discovery layer has no classic technical-indicator dependency.
+- New layer contains no autotrading/order/private-key path.
+- 18/18 packaged tests pass.
+- 20/20 v3.2 structural acceptance checks pass.
 
-## Verification performed
-- Python compileall: PASS.
-- Existing test suite + new story-optionality tests: 16 PASS / 0 NONPASS.
-- ZIP integrity test: run after packaging.
-- External live API availability is environment-dependent; missing API/network data fails closed.
+## Not falsely claimed
+- No claim of already-proven long-run alpha on a fresh longitudinal database.
+- No fabricated historical probabilities/confidence.
+- No claim of full exchange enumeration or complete PIT historical data.
+- No claim that sector-relative outcomes exist when a real sector benchmark is unavailable.
+
+## Remaining risk
+The dominant risk is data coverage: broad PIT analyst/ownership/corporate-action history, dead/delisted universes, full market enumeration, physical commodity data, FX causal positioning data and timestamped catalyst histories.

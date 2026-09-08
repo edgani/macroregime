@@ -48,7 +48,7 @@ def install_memequant_style(st) -> None:
 .stApp{background:radial-gradient(circle at 35% -10%,rgba(0,216,190,.05),transparent 28%),var(--mq-bg)!important;color:var(--mq-text)}
 .block-container{max-width:1780px!important;padding:8px 12px 18px!important}
 header[data-testid="stHeader"]{height:0;background:transparent}
-[data-testid="stSidebar"]{background:#05141c;border-right:1px solid var(--mq-line2)}
+[data-testid="stSidebar"]{display:none!important} [data-testid="collapsedControl"]{display:none!important}
 .mq-top{display:grid;grid-template-columns:250px repeat(5,minmax(92px,1fr)) 2.1fr 150px;gap:8px;align-items:stretch;margin-bottom:8px}
 .mq-brand{display:flex;align-items:center;gap:10px;padding:8px 10px}.mq-logo{font-size:29px;color:var(--mq-cyan);font-weight:950;letter-spacing:-8px}.mq-name{font-size:19px;font-weight:900}.mq-name span{color:var(--mq-cyan)}.mq-tag{font-size:8px;color:#7295a0;letter-spacing:.16em}
 .mq-status,.mq-search,.mq-wallet{border:1px solid var(--mq-line);border-radius:8px;background:linear-gradient(180deg,#071a23,#05121a);padding:7px 10px}.mq-status b{display:block;color:var(--mq-cyan);font-size:10px;letter-spacing:.04em}.mq-status small{display:block;color:#8ab3bd;font-size:9px;margin-top:2px}.mq-search{display:flex;align-items:center;color:#789aa3;font-size:10px}.mq-wallet{text-align:center;color:var(--mq-cyan);font-weight:850;font-size:11px;display:flex;align-items:center;justify-content:center}
@@ -59,7 +59,41 @@ header[data-testid="stHeader"]{height:0;background:transparent}
 .mq-empty{border:1px dashed var(--mq-line2);border-radius:7px;padding:12px;color:#75949d;font-size:9px}
 .mq-bottom-grid{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:8px;margin-top:8px}
 @media(max-width:1100px){.mq-top{grid-template-columns:1fr 1fr}.mq-grid,.mq-bottom-grid{grid-template-columns:1fr}.mq-scores{grid-template-columns:1fr 1fr}}
+
+/* v3.2.2 unified shell: no legacy Streamlit visual language */
+#MainMenu,footer,[data-testid="stToolbar"],[data-testid="stDecoration"]{display:none!important}
+[data-testid="stAppViewContainer"]>.main{background:transparent}
+div.stButton>button{background:#061923!important;color:#bfeff1!important;border:1px solid #0e4d5b!important;border-radius:7px!important;min-height:34px!important;font-size:10px!important;font-weight:800!important;letter-spacing:.02em!important;box-shadow:none!important}
+div.stButton>button:hover{border-color:#10f4cd!important;color:#10f4cd!important;background:#07222b!important}
+div.stButton>button[kind="primary"]{background:#09302f!important;color:#10f4cd!important;border-color:#10f4cd!important;box-shadow:inset 0 -2px 0 #10f4cd!important}
+[data-baseweb="select"]>div,[data-baseweb="input"]>div,input,textarea{background:#05141c!important;color:#dff8fb!important;border-color:#123541!important;border-radius:7px!important}
+[data-baseweb="tag"]{background:#0a4b4d!important;color:#bffff4!important;border:1px solid #13706e!important}
+[data-testid="stDataFrame"]{border:1px solid var(--mq-line)!important;border-radius:8px!important;overflow:hidden!important;background:#04131b!important}
+[data-testid="stAlert"]{background:#061923!important;border:1px solid #123541!important;color:#bcd6db!important;border-radius:8px!important}
+[data-testid="stMetric"]{background:#061923!important;border:1px solid #123541!important;border-radius:8px!important;padding:8px!important}
+.mq-scope{display:grid;grid-template-columns:1.5fr repeat(4,minmax(90px,.6fr));gap:8px;margin:7px 0 9px}.mq-scope-card{border:1px solid var(--mq-line2);border-radius:7px;background:#05141c;padding:6px 9px}.mq-scope-card small{font-size:8px;color:#73959f}.mq-scope-card strong{display:block;font-size:10px;color:#dff8fb;margin-top:2px}.mq-scope-card strong.ok{color:var(--mq-cyan)}
+.mq-pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;border:1px solid var(--mq-line);border-radius:8px;background:linear-gradient(180deg,#061a24,#05131b);padding:10px 12px;margin:8px 0}.mq-pagehead h1{font-size:17px;margin:0;color:#ecffff}.mq-pagehead p{font-size:9px;margin:3px 0 0;color:#7fa0aa}.mq-pagebadge{border:1px solid #0e645f;border-radius:6px;padding:4px 7px;color:var(--mq-cyan);font-size:9px;font-weight:850}
+.mq-subnav-label{font-size:8px;letter-spacing:.12em;color:#648993;text-transform:uppercase;font-weight:900;margin:7px 0 4px}.mq-divider{height:1px;background:#123541;margin:8px 0}.mq-note{border:1px solid #123541;border-radius:7px;background:#05141c;padding:8px 10px;color:#87a8b0;font-size:9px;line-height:1.45}.mq-note b{color:#dff8fb}
+.mq-vgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}.mq-vcard{border:1px solid var(--mq-line);border-radius:8px;background:#05151e;padding:9px}.mq-vcard small{font-size:8px;color:#70949d}.mq-vcard strong{display:block;font-size:12px;margin-top:3px}.mq-vcard p{font-size:8px;color:#7899a2;line-height:1.4;margin:5px 0 0}
+.mq-list{border:1px solid var(--mq-line);border-radius:8px;overflow:hidden}.mq-lrow{display:grid;grid-template-columns:80px 1.2fr .8fr .8fr .9fr;gap:7px;padding:7px 9px;border-bottom:1px solid rgba(18,53,65,.7);font-size:9px;align-items:center}.mq-lrow:last-child{border-bottom:0}.mq-lhead{color:#6f929c;font-size:8px;text-transform:uppercase;letter-spacing:.06em;background:#071923}.mq-strong{font-weight:900;color:#dff8fb}
+@media(max-width:1100px){.mq-scope,.mq-vgrid{grid-template-columns:1fr 1fr}.mq-lrow{grid-template-columns:70px 1fr 1fr}.mq-lrow>*:nth-child(n+4){display:none}}
+
 </style>
+""",unsafe_allow_html=True)
+
+
+def render_global_header(st, *, scan_count: int=0, event_count: int=0, active_count: int=0, outcome_count: int=0, macro_regime: str="GATED", engine_version: str="v3.2.2") -> None:
+    st.markdown(f"""
+<div class='mq-top'>
+ <div class='mq-brand'><div class='mq-logo'>◢◣</div><div><div class='mq-name'>Opportunity<span>OS</span></div><div class='mq-tag'>SCAN EARLY · FILTER NOISE · EXPLAIN ALPHA</div></div></div>
+ <div class='mq-status'><b>◉ SCAN</b><small>{int(scan_count)} candidates</small></div>
+ <div class='mq-status'><b>◆ MEMORY</b><small>{int(event_count)} events</small></div>
+ <div class='mq-status'><b>◎ ENGINE</b><small>{html.escape(str(engine_version))}</small></div>
+ <div class='mq-status'><b>◉ TRACKED</b><small>{int(active_count)} active</small></div>
+ <div class='mq-status'><b>◇ OUTCOMES</b><small>{int(outcome_count)} matured</small></div>
+ <div class='mq-search'>⌕ Search / inspect from the active workspace below</div>
+ <div class='mq-wallet'>RISK · {html.escape(str(macro_regime)[:18])}</div>
+</div>
 """,unsafe_allow_html=True)
 
 
@@ -73,18 +107,8 @@ def render_opportunity_tracker(st, ranked: pd.DataFrame, memory: OpportunityMemo
     counts=memory.counts(); active=memory.events_frame(active_only=True,limit=200); alerts=memory.alerts_frame(limit=30); states=memory.states_frame(limit=80)
     quality=(ranked.get("data_quality",pd.Series(dtype=str)).astype(str).str.upper()=="HIGH").sum() if not ranked.empty else 0
     top_html=f"""
-<div class='mq-top'>
- <div class='mq-brand'><div class='mq-logo'>◢◣</div><div><div class='mq-name'>Opportunity<span>OS</span></div><div class='mq-tag'>SCAN EARLY · EXPLAIN CAUSALLY · LEARN OOS</div></div></div>
- <div class='mq-status'><b>◉ DATA</b><small>{len(ranked)} scanned</small></div>
- <div class='mq-status'><b>◆ MEMORY</b><small>{counts['events']} events</small></div>
- <div class='mq-status'><b>◎ ENGINE</b><small>v3.2.1 UI hotfix</small></div>
- <div class='mq-status'><b>◉ ACTIVE</b><small>{counts['active']} tracked</small></div>
- <div class='mq-status'><b>◇ OUTCOMES</b><small>{counts['outcomes']} matured</small></div>
- <div class='mq-search'>⌕ Search opportunity / ticker / theme inside the tables below…</div>
- <div class='mq-wallet'>RISK · {html.escape(str(macro.get('regime','GATED'))[:18])}</div>
-</div>
-<div class='mq-titlebar'><div><div class='mq-title'>◉ Longitudinal Opportunity Tracker</div><div class='mq-sub'>Automatic discovery → immutable first detection → persistent watch → future outcomes → regime-specific learning. No autotrading.</div></div>
-<div class='mq-kpirow'><div class='mq-kpi'><b>ACTIVE</b><strong>{counts['active']}</strong><small>persistent</small></div><div class='mq-kpi'><b>HIGH DATA</b><strong>{int(quality)}</strong><small>current scan</small></div><div class='mq-kpi'><b>FAILURES</b><strong>{counts['failures']}</strong><small>kept for learning</small></div><div class='mq-kpi'><b>MISSED</b><strong>{counts['missed']}</strong><small>no hindsight claims</small></div></div></div>
+<div class='mq-pagehead'><div><h1>Longitudinal Opportunity Tracker</h1><p>Automatic discovery → immutable first detection → persistent watch → future outcomes → regime-specific learning.</p></div><div class='mq-pagebadge'>NO AUTOTRADING</div></div>
+<div class='mq-kpirow'><div class='mq-kpi'><b>ACTIVE</b><strong>{counts['active']}</strong><small>persistent</small></div><div class='mq-kpi'><b>HIGH DATA</b><strong>{int(quality)}</strong><small>current scan</small></div><div class='mq-kpi'><b>FAILURES</b><strong>{counts['failures']}</strong><small>kept for learning</small></div><div class='mq-kpi'><b>MISSED</b><strong>{counts['missed']}</strong><small>no hindsight claims</small></div></div>
 """
     st.markdown(top_html,unsafe_allow_html=True)
 
@@ -176,18 +200,28 @@ def render_opportunity_tracker(st, ranked: pd.DataFrame, memory: OpportunityMemo
 def render_learning_lab(st, memory: OpportunityMemory) -> None:
     install_memequant_style(st)
     rep=learning_report(memory)
-    st.markdown("<div class='mq-titlebar'><div><div class='mq-title'>Research / Outcome Learning Lab</div><div class='mq-sub'>Continuous outcomes first. Production weights stay stable until a challenger wins chronological OOS validation.</div></div></div>",unsafe_allow_html=True)
-    tabs=st.tabs(["PATTERN EXPECTANCY","TRUE WALK-FORWARD","BASELINES","FAILURES","MISSED WINNERS"])
-    with tabs[0]:
-        if rep["patterns"].empty: st.info("Insufficient mature stored outcomes. No confidence number is manufactured.")
-        else: st.dataframe(rep["patterns"],use_container_width=True,hide_index=True)
-    with tabs[1]:
-        if rep["walk_forward"].empty: st.info("Not enough chronological event/outcome history for a valid expanding walk-forward yet.")
-        else: st.dataframe(rep["walk_forward"],use_container_width=True,hide_index=True)
-    with tabs[2]: st.dataframe(rep["baselines"],use_container_width=True,hide_index=True)
-    with tabs[3]:
-        if rep["failures"].empty: st.caption("No explicit false-positive reason has matured yet.")
-        else: st.dataframe(rep["failures"],use_container_width=True,hide_index=True)
-    with tabs[4]:
-        if rep["missed"].empty: st.info("Missed-runner audit has no PIT-reconstructable cases yet. Future-return winners are not backfilled into fake historical signals.")
-        else: st.dataframe(rep["missed"],use_container_width=True,hide_index=True)
+    counts=memory.counts()
+    st.markdown(f"""<div class='mq-pagehead'><div><h1>Learning / Replay Lab</h1><p>Chronological outcome learning, false-positive memory and missed-runner audits. Production weights never self-mutate.</p></div><div class='mq-pagebadge'>{counts.get('outcomes',0)} MATURE OUTCOMES</div></div>""",unsafe_allow_html=True)
+    keys=[("PATTERN EXPECTANCY","patterns"),("TRUE WALK-FORWARD","walk_forward"),("BASELINES","baselines"),("FAILURES","failures"),("MISSED WINNERS","missed")]
+    if st.session_state.get("mq_learning_view") not in [x[1] for x in keys]:
+        st.session_state["mq_learning_view"]="patterns"
+    def setv(v): st.session_state["mq_learning_view"]=v
+    cols=st.columns(len(keys),gap="small")
+    for col,(label,key) in zip(cols,keys):
+        with col:
+            st.button(label,key=f"learn_{key}",use_container_width=True,type="primary" if st.session_state["mq_learning_view"]==key else "secondary",on_click=setv,args=(key,))
+    view=st.session_state["mq_learning_view"]
+    notes={
+        "patterns":"Historical expectancy is shown only when enough matured, comparable observations exist.",
+        "walk_forward":"Training/calibration observations must precede each test window. No random shuffle.",
+        "baselines":"Complex opportunity logic must beat transparent simple baselines OOS before promotion.",
+        "failures":"Invalidated opportunities stay in memory and are classified by causal failure mode.",
+        "missed":"Runner reconstruction is allowed only from information observable at the historical timestamp."
+    }
+    st.markdown(f"<div class='mq-note'><b>{html.escape(view.replace('_',' ').upper())}</b><br>{html.escape(notes[view])}</div>",unsafe_allow_html=True)
+    df=rep.get(view,pd.DataFrame())
+    if df is None or df.empty:
+        msg={"patterns":"Insufficient mature stored outcomes. No confidence number is manufactured.","walk_forward":"Not enough chronological event/outcome history for a valid expanding walk-forward yet.","baselines":"No comparable baseline result is available yet.","failures":"No explicit false-positive reason has matured yet.","missed":"No PIT-reconstructable missed-runner case is available yet."}[view]
+        st.markdown(f"<div class='mq-empty' style='margin-top:8px'>{html.escape(msg)}</div>",unsafe_allow_html=True)
+    else:
+        st.dataframe(df,use_container_width=True,hide_index=True,height=520)

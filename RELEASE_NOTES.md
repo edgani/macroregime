@@ -1,3 +1,12 @@
+
+## v3.2.2 — Unified UI replacement
+- Removed the legacy Decision Desk from the exposed product surface.
+- Removed the old sidebar scanner UI; market scope/search/refresh now live in the unified top shell.
+- All exposed workspaces use one dark-neon visual system: Control Room, Opportunities, Verticals, Macro & Events, Learning / Replay.
+- Replaced nested/native tab mazes in exposed vertical/learning surfaces with persistent button sub-navigation.
+- Core causal, macro, valuation, expression, longitudinal-memory and walk-forward logic is preserved; this is a UI/UX replacement, not an engine rewrite.
+- No autotrading and no classic technical-indicator fallback.
+
 # v3.2.1 — Interactive UI / Navigation Hotfix
 
 This hotfix fixes the UI defect in the first v3.2 handoff: the workspace navigation looked like top tabs but was implemented as a `st.radio` after the expensive scanner path. On rerun, a stale scan could execute before the page change visibly completed, making the navigation appear dead.

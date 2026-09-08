@@ -57,7 +57,7 @@ from opportunity_longitudinal import OpportunityMemory
 from opportunity_discovery import sync_opportunities, EQUITY_MARKETS, BENCHMARKS
 from opportunity_outcomes import update_from_price_frames
 from opportunity_learning import write_periodic_learning_reports
-from opportunity_ui import render_opportunity_tracker, render_learning_lab, install_memequant_style
+from opportunity_ui import render_opportunity_tracker, render_learning_lab, install_memequant_style, render_global_header
 
 # ============================================================
 # OPPORTUNITY INTELLIGENCE ENGINE v3.2.1 · LONGITUDINAL MARKET OPPORTUNITY OS
@@ -1439,21 +1439,8 @@ def _render_control_room(ranked: pd.DataFrame, mg: Dict[str,Any]) -> None:
     high_data=int((ranked.get("data_quality",pd.Series(dtype=str)).astype(str).str.upper()=="HIGH").sum()) if not ranked.empty else 0
     regime=str(mg.get("regime") or mg.get("action_label") or "GATED")
     action_label=str(mg.get("action_label") or "MACRO GATED")
-
-    st.markdown(f"""
-<div class='mq-top'>
- <div class='mq-brand'><div class='mq-logo'>◢◣</div><div><div class='mq-name'>Opportunity<span>OS</span></div><div class='mq-tag'>CHANGE → CAPTURE → EXPECTATION GAP → OUTCOME</div></div></div>
- <div class='mq-status'><b>◉ SCAN</b><small>{len(ranked)} candidates</small></div>
- <div class='mq-status'><b>◆ MEMORY</b><small>{opp_counts.get('events',0)} frozen events</small></div>
- <div class='mq-status'><b>◎ ENGINE</b><small>v3.2.1 UI hotfix</small></div>
- <div class='mq-status'><b>◉ DATA</b><small>{high_data} high-quality</small></div>
- <div class='mq-status'><b>◇ MARKETS</b><small>{n_markets} active</small></div>
- <div class='mq-search'>⌕ Use the candidate controls below to inspect one opportunity without losing scanner state.</div>
- <div class='mq-wallet'>RISK · {html.escape(regime[:18])}</div>
-</div>
-<div class='mq-titlebar'><div><div class='mq-title'>◉ Cross-Market Opportunity Control Room</div><div class='mq-sub'>Automatic discovery, causal capture, immutable first-seen memory and fail-closed data gates. Navigation is independent from scanner refresh.</div></div>
-<div class='mq-kpirow'><div class='mq-kpi'><b>ACTIVE</b><strong>{opp_counts.get('active',0)}</strong><small>tracked theses</small></div><div class='mq-kpi'><b>SNAPSHOTS</b><strong>{market_counts.get('snapshots',0)}</strong><small>market memory</small></div><div class='mq-kpi'><b>OUTCOMES</b><strong>{opp_counts.get('outcomes',0)}</strong><small>matured labels</small></div><div class='mq-kpi'><b>MACRO</b><strong style='font-size:10px'>{html.escape(action_label[:24])}</strong><small>timing context</small></div></div></div>
-""",unsafe_allow_html=True)
+    st.markdown(f"""<div class='mq-pagehead'><div><h1>Cross-Market Opportunity Control Room</h1><p>Automatic discovery, causal capture, immutable first-seen memory and fail-closed data gates.</p></div><div class='mq-pagebadge'>{opp_counts.get('active',0)} ACTIVE</div></div>
+<div class='mq-kpirow'><div class='mq-kpi'><b>ACTIVE</b><strong>{opp_counts.get('active',0)}</strong><small>tracked theses</small></div><div class='mq-kpi'><b>SNAPSHOTS</b><strong>{market_counts.get('snapshots',0)}</strong><small>market memory</small></div><div class='mq-kpi'><b>OUTCOMES</b><strong>{opp_counts.get('outcomes',0)}</strong><small>matured labels</small></div><div class='mq-kpi'><b>MACRO</b><strong style='font-size:10px'>{html.escape(action_label[:24])}</strong><small>timing context</small></div></div>""",unsafe_allow_html=True)
 
     left,center,right=st.columns([1.0,2.05,1.0],gap="small")
     status=_market_status_frame(ranked)
@@ -1517,36 +1504,49 @@ def _render_control_room(ranked: pd.DataFrame, mg: Dict[str,Any]) -> None:
 
 
 def _render_verticals(ranked: pd.DataFrame) -> None:
-    st.markdown("<div class='section'>Vertical engines · same kernel, different evidence</div>",unsafe_allow_html=True)
-    tabs=st.tabs(["ON-CHAIN","CRYPTO","US STOCKS","IHSG","FOREX","COMMODITIES"])
-    with tabs[0]:
-        st.caption("Core: ecosystem + capital + usage + quality + memory. Wallet/social/narrative are independent adapters and must not be faked from TVL.")
+    install_memequant_style(st)
+    items=[("ON-CHAIN","On-chain"),("CRYPTO","Crypto"),("US STOCKS","US"),("IHSG","IHSG"),("FOREX","FX"),("COMMODITIES","Commodity")]
+    valid=[x[1] for x in items]
+    if st.session_state.get("mq_vertical_view") not in valid:
+        st.session_state["mq_vertical_view"]="US"
+    def setv(v): st.session_state["mq_vertical_view"]=v
+    st.markdown("<div class='mq-pagehead'><div><h1>Vertical Intelligence</h1><p>One causal kernel, market-specific evidence. Missing market-specific data stays gated instead of being replaced by generic momentum.</p></div><div class='mq-pagebadge'>MARKET-SPECIFIC</div></div>",unsafe_allow_html=True)
+    cols=st.columns(len(items),gap="small")
+    for col,(label,key) in zip(cols,items):
+        with col:
+            st.button(label,key=f"vertical_{key}",use_container_width=True,type="primary" if st.session_state["mq_vertical_view"]==key else "secondary",on_click=setv,args=(key,))
+    view=st.session_state["mq_vertical_view"]
+    notes={
+      "On-chain":"Ecosystem capital, usage, fees/revenue and breadth are separated. Wallet quality/social evidence remains independent.",
+      "Crypto":"Value capture, protocol fees/revenue, dilution and usage matter; leverage remains gated until positioning/liquidation evidence is complete.",
+      "US":"Fundamentals, revisions, capital flow, causal chain, valuation and persistent memory drive the stock engine.",
+      "IHSG":"Fundamentals, broker/foreign flow, corporate actions, valuation and memory. Broker flow is one evidence family, never the whole thesis.",
+      "FX":"Relative rates, macro surprise, central banks, positioning and valuation. Price-only rows remain gated.",
+      "Commodity":"Physical balances, inventory, curve/carry, positioning and capacity. Price-only rows remain gated."
+    }
+    st.markdown(f"<div class='mq-note' style='margin-top:8px'><b>{html.escape(view.upper())}</b><br>{html.escape(notes[view])}</div>",unsafe_allow_html=True)
+    if view=="On-chain":
         oc=_onchain_radar_frame()
         if oc.empty:
-            st.warning("On-chain watchlist unavailable.")
-        else:
-            show=oc.copy()
-            for c in ["tvl_7d","tvl_30d","stablecoins_7d","stablecoins_30d","dex_volume_7d_change","fees_7d_change","revenue_7d_change","change_breadth"]:
-                if c in show: show[c]=show[c].map(lambda x:pct(safe_float(x),1))
-            cols=[c for c in ["Entity","state","tvl","tvl_7d","stablecoins","stablecoins_7d","dex_volume_24h","dex_volume_7d_change","fees_24h","fees_7d_change","revenue_24h","revenue_7d_change","source_quality"] if c in show]
-            st.dataframe(show[cols],use_container_width=True,hide_index=True)
-            st.caption("DeFiLlama confirmation deliberately separates TVL from stablecoins, DEX activity, fees and revenue so token-price repricing cannot masquerade as broad ecosystem growth.")
-    def _market_tab(tab, market, title, core_note):
-        with tab:
-            st.caption(core_note)
-            sub=ranked[ranked.get("market",pd.Series(index=ranked.index,dtype=str)).astype(str)==market] if not ranked.empty else pd.DataFrame()
-            if sub.empty:
-                st.info(f"No {title} rows loaded."); return
-            story_cols=[]
-            if market in ["US","HK","Hong Kong","China","Europe","Taiwan"]: story_cols=["loss_type","expectation_optionality_state","expectation_optionality_score","expectation_revision_state","financing_risk"]
-            elif market=="IHSG": story_cols=["loss_type","story_state","story_optionality_score","story_credibility_score","financing_risk"]
-            cols=[c for c in ["symbol","name","research_action","stage"]+story_cols+["change_state","sequence_signature","memory_observations","vertical_status","vertical_core_coverage","vertical_missing_core","data_quality"] if c in sub]
-            st.dataframe(sub[cols],use_container_width=True,hide_index=True)
-    _market_tab(tabs[1],"Crypto","crypto","Liquid crypto requires spot/leverage/positioning evidence; current value-capture data is useful but leverage remains gated until OI/funding/liquidation adapters are complete.")
-    _market_tab(tabs[2],"US","US stocks","Core: fundamentals + estimate revisions + capital flow + causal chain + valuation + memory. Current build has fundamentals + live Yahoo analyst trend/revisions + loss-making P/S fallback; Market Memory makes revision snapshots PIT going forward. Capital-flow history remains gated.")
-    _market_tab(tabs[3],"IHSG","IHSG","Core: fundamentals + broker flow + foreign flow + corporate actions + valuation + memory. Broker summary is bounded to one evidence family and cannot overpower fundamentals. Loss-making narrative optionality is separate and only activates when economics improve and financing is survivable.")
-    _market_tab(tabs[4],"FX","FX","Core: relative rates + macro surprise + central banks + positioning + valuation + memory. Price-only rows remain DATA GATED by design.")
-    _market_tab(tabs[5],"Commodity","commodities","Core: physical supply/demand + inventory + curve + positioning + memory. Price-only rows remain DATA GATED by design.")
+            st.markdown("<div class='mq-empty' style='margin-top:8px'>On-chain watchlist unavailable / gated.</div>",unsafe_allow_html=True); return
+        cards=[]
+        for _,r in oc.head(9).iterrows():
+            state=str(r.get('state','GATED')); tvl=fmt_money(safe_float(r.get('tvl'))); fees=fmt_money(safe_float(r.get('fees_24h'))); rev=fmt_money(safe_float(r.get('revenue_24h')))
+            cards.append(f"<div class='mq-vcard'><small>{html.escape(str(r.get('Entity','—')))}</small><strong>{html.escape(state)}</strong><p>TVL {tvl}<br>Fees 24h {fees}<br>Revenue 24h {rev}</p></div>")
+        st.markdown("<div class='mq-vgrid'>"+"".join(cards)+"</div>",unsafe_allow_html=True)
+        show=oc[[c for c in ['Entity','state','tvl','stablecoins','dex_volume_24h','fees_24h','revenue_24h','change_breadth','source_quality'] if c in oc]].copy()
+        st.dataframe(show,use_container_width=True,hide_index=True,height=390)
+        return
+    sub=ranked[ranked.get("market",pd.Series(index=ranked.index,dtype=str)).astype(str)==view] if not ranked.empty else pd.DataFrame()
+    if sub.empty:
+        st.markdown(f"<div class='mq-empty' style='margin-top:8px'>No {html.escape(view)} candidates in the current market scope.</div>",unsafe_allow_html=True); return
+    ready=int((sub.get('vertical_status',pd.Series(index=sub.index,dtype=str)).astype(str)=='READY').sum())
+    partial=int((sub.get('vertical_status',pd.Series(index=sub.index,dtype=str)).astype(str)=='PARTIAL').sum())
+    gated=max(0,len(sub)-ready-partial)
+    high=int((sub.get('data_quality',pd.Series(index=sub.index,dtype=str)).astype(str).str.upper()=='HIGH').sum())
+    st.markdown(f"<div class='mq-vgrid'><div class='mq-vcard'><small>CANDIDATES</small><strong>{len(sub)}</strong><p>current scoped scan</p></div><div class='mq-vcard'><small>READINESS</small><strong>{ready} READY · {partial} PARTIAL</strong><p>{gated} gated</p></div><div class='mq-vcard'><small>HIGH DATA</small><strong>{high}</strong><p>cannot be inferred from price alone</p></div></div>",unsafe_allow_html=True)
+    cols=[c for c in ["symbol","name","research_action","stage","change_state","expectation_gap","memory_observations","vertical_status","vertical_core_coverage","vertical_missing_core","data_quality"] if c in sub]
+    st.dataframe(sub[cols].head(60),use_container_width=True,hide_index=True,height=520)
 
 # -----------------------------
 # Decision-view helpers
@@ -2350,41 +2350,42 @@ def _state_score(text: str) -> int:
 
 
 def _render_macro_visual_room() -> None:
+    install_memequant_style(st)
     fn=getattr(_macro_module,"compute_macro_gate_snapshot",None) if _macro_module is not None else None
     if not callable(fn):
-        safe_render_macro_control_room(); return
-    c1,c2=st.columns([1,5])
-    with c1: refresh=st.button("Refresh macro",use_container_width=True,key="macro_refresh_visual_v24")
+        st.markdown("<div class='mq-pagehead'><div><h1>Macro & Event Cockpit</h1><p>Shared macro state is currently unavailable.</p></div><div class='mq-pagebadge'>GATED</div></div>",unsafe_allow_html=True)
+        st.markdown("<div class='mq-empty'>Macro module unavailable. Opportunity discovery may continue, but timing/risk upgrades remain disabled.</div>",unsafe_allow_html=True)
+        return
+    st.markdown("<div class='mq-pagehead'><div><h1>Macro & Event Cockpit</h1><p>Shared macro state is a timing/risk context for opportunities, not a universal suppressor.</p></div><div class='mq-pagebadge'>SHARED MACRO MEMORY</div></div>",unsafe_allow_html=True)
+    c1,c2=st.columns([5,1],gap="small")
+    with c2: refresh=st.button("REFRESH MACRO",use_container_width=True,key="macro_refresh_visual_v322")
     try: snap=fn(refresh=refresh)
-    except Exception:
-        safe_render_macro_control_room(); return
-    st.markdown("<div class='section'>Macro cockpit · visual first</div>",unsafe_allow_html=True)
-    h="<div class='metric-strip'>"
-    for a,b,c in [("POSTURE",snap.get("action_label","—"),"portfolio"),("REGIME",snap.get("regime","—"),"economy"),("CRASH",snap.get("crash_state","—"),f"stress {safe_float(snap.get('crash_stress')):.0f} / fragility {safe_float(snap.get('crash_fragility')):.0f}"),("CREDIT",snap.get("credit_state","—"),"transmission gate"),("EVENT",snap.get("event_override") or "NONE","override")]: h+=f"<div class='metric-mini'><div class='m1'>{a}</div><div class='m2'>{b}</div><div class='m3'>{c}</div></div>"
-    h+="</div>"; st.markdown(h,unsafe_allow_html=True)
-    left,right=st.columns([1.55,1])
+    except Exception as exc:
+        st.markdown("<div class='mq-empty'>Macro refresh failed; this workspace remains fail-closed. "+html.escape(str(exc))+"</div>",unsafe_allow_html=True)
+        return
+    posture=str(snap.get('action_label','GATED')); regime=str(snap.get('regime','GATED'))
+    cards=[('POSTURE',posture,'portfolio context'),('REGIME',regime,'economic state'),('CRASH',snap.get('crash_state','GATED'),'near-term stress'),('CREDIT',snap.get('credit_state','GATED'),'transmission'),('EVENT',snap.get('event_override') or 'NONE','override')]
+    st.markdown("<div class='mq-vgrid'>"+"".join(f"<div class='mq-vcard'><small>{html.escape(str(a))}</small><strong>{html.escape(str(b))[:42]}</strong><p>{html.escape(str(c))}</p></div>" for a,b,c in cards)+"</div>",unsafe_allow_html=True)
+    proj=pd.DataFrame(snap.get('projection_rows',[]))
+    att=snap.get('attention',[]) or []
+    left,right=st.columns([1.6,1],gap="small")
     with left:
-        proj=pd.DataFrame(snap.get("projection_rows",[]))
-        if not proj.empty and go is not None:
-            xs=["NOW","+1Q","+2Q","+4Q"]; ys=proj["engine"].astype(str).tolist(); text=[]; z=[]
-            for _,r in proj.iterrows():
-                vals=[r.get("now"),r.get("q1"),r.get("q2"),r.get("q4")]; text.append([str(v) for v in vals]); z.append([_state_score(v) for v in vals])
-            fig=go.Figure(go.Heatmap(z=z,x=xs,y=ys,text=text,texttemplate="%{text}",colorscale=[[0,"#ef4444"],[.5,"#263244"],[1,"#10b981"]],zmin=-2,zmax=2,showscale=False,xgap=5,ygap=5,hovertemplate="%{y} · %{x}<br>%{text}<extra></extra>"))
-            fig.update_layout(title="Macro path matrix · NOW → +4Q"); _plotly_base(fig,360,False); st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
+        st.markdown("<div class='mq-section'>Macro path · now to +4Q</div>",unsafe_allow_html=True)
+        if proj.empty: st.markdown("<div class='mq-empty'>Projection matrix gated.</div>",unsafe_allow_html=True)
+        else: st.dataframe(proj,use_container_width=True,hide_index=True,height=360)
     with right:
-        att=snap.get("attention",[]) or []
-        if att and go is not None:
-            names=[x.get("name") for x in att]; vals=[safe_float(x.get("score")) for x in att]
-            fig=go.Figure(go.Bar(x=vals,y=names,orientation="h",marker_color="#f59e0b",text=[f"{v:.0f}" if np.isfinite(v) else "—" for v in vals],textposition="inside"))
-            fig.update_xaxes(range=[0,100],title="attention / pressure"); fig.update_layout(title="What matters most now"); _plotly_base(fig,360,False); st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
-    paths=snap.get("top_paths",[]) or []
-    if paths:
-        st.markdown("<div class='section'>Top paths · only 3</div>",unsafe_allow_html=True)
-        cards="<div class='grid3'>"
-        for sc in paths[:3]: cards+=f"<div class='card'><div class='kicker'>{sc.get('family','PATH')}</div><div class='ct'>{sc.get('name','')}</div><div class='cn'><b>{sc.get('action_state','WATCH')}</b><br>{sc.get('action','')}</div></div>"
-        cards+="</div>"; st.markdown(cards,unsafe_allow_html=True)
-    with st.expander("Full macro explanation / raw readings",expanded=False):
-        st.write(snap.get("headline","")); st.dataframe(pd.DataFrame(snap.get("projection_rows",[])),use_container_width=True,hide_index=True); st.json(snap.get("raw_readings",{}))
+        st.markdown("<div class='mq-section'>What matters most now</div>",unsafe_allow_html=True)
+        if not att: st.markdown("<div class='mq-empty'>No ranked attention items.</div>",unsafe_allow_html=True)
+        else:
+            ah=''.join(f"<div class='mq-feedrow'><div>{i+1:02d}</div><div class='mq-event'>{html.escape(str(x.get('name','')))[:22]}</div><div>{fmt_num(safe_float(x.get('score')),0)}</div></div>" for i,x in enumerate(att[:10]))
+            st.markdown("<div class='mq-panel'><div class='mq-body mq-feed'>"+ah+"</div></div>",unsafe_allow_html=True)
+    paths=snap.get('top_paths',[]) or []
+    st.markdown("<div class='mq-section'>Top macro / event paths</div>",unsafe_allow_html=True)
+    if not paths: st.markdown("<div class='mq-empty'>No supported path currently clears the evidence gate.</div>",unsafe_allow_html=True)
+    else:
+        ph=''.join(f"<div class='mq-vcard'><small>{html.escape(str(sc.get('family','PATH')))}</small><strong>{html.escape(str(sc.get('name','')))[:48]}</strong><p>{html.escape(str(sc.get('action_state','WATCH')))} · {html.escape(str(sc.get('action','')))[:140]}</p></div>" for sc in paths[:6])
+        st.markdown("<div class='mq-vgrid'>"+ph+"</div>",unsafe_allow_html=True)
+    st.markdown(f"<div class='mq-note'><b>Headline</b><br>{html.escape(str(snap.get('headline','No macro headline available.')))}</div>",unsafe_allow_html=True)
 
 def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[str,Any], view_kind: str) -> None:
     query=f"{row.get('name','')} {row.get('symbol','')} shortage capacity pricing adoption revenue contract backlog demand supply buyback burn intervention"
@@ -2534,56 +2535,52 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
 # -----------------------------
 # UI — persistent native navigation
 # -----------------------------
-NAV_ITEMS=["CONTROL ROOM","OPPORTUNITIES","DECISION DESK","VERTICALS","MACRO & EVENTS","RESEARCH / REPLAY"]
+NAV_ITEMS=["CONTROL ROOM","OPPORTUNITIES","VERTICALS","MACRO & EVENTS","LEARNING / REPLAY"]
 
 def _set_workspace(target: str) -> None:
-    st.session_state["decision_nav_v321"] = target
+    st.session_state["decision_nav_v322"] = target
     # A page change must never feel dead because a stale 30-minute scan starts first.
     # The next periodic tick can refresh after navigation has rendered.
     st.session_state["_skip_auto_scan_once"] = True
 
 def _render_workspace_nav() -> str:
-    current=st.session_state.get("decision_nav_v321","CONTROL ROOM")
+    current=st.session_state.get("decision_nav_v322","CONTROL ROOM")
     if current not in NAV_ITEMS:
-        current="CONTROL ROOM"; st.session_state["decision_nav_v321"]=current
+        current="CONTROL ROOM"; st.session_state["decision_nav_v322"]=current
     st.markdown("<div class='nav-caption'>Workspace</div>",unsafe_allow_html=True)
-    cols=st.columns([1.02,1.05,1.05,.84,1.12,1.18],gap="small")
+    cols=st.columns([1.02,1.05,.84,1.12,1.18],gap="small")
     for col,item in zip(cols,NAV_ITEMS):
         with col:
             st.button(item,key=f"navbtn_{item}",use_container_width=True,type="primary" if item==current else "secondary",on_click=_set_workspace,args=(item,))
-    return st.session_state.get("decision_nav_v321",current)
+    return st.session_state.get("decision_nav_v322",current)
 
 # -----------------------------
-# UI — AUTO DECISION VIEW
+# UI — UNIFIED OPPORTUNITY OS SHELL
 # -----------------------------
-# v3.2: the old full-width hero was removed; OPPORTUNITIES renders the denser reference-style status header.
+install_memequant_style(st)
 markets_available=[m for m in ["US","IHSG","HK","Hong Kong","China","Europe","Taiwan","FX","Commodity","Index","Crypto"] if m in set(UNIVERSE.get("market",pd.Series(dtype=str)).astype(str))]
-st.sidebar.markdown("## Auto scanner")
-selected_markets=st.sidebar.multiselect("Markets",markets_available,default=markets_available)
-st.sidebar.markdown(f"{badge('AUTO · ~30 MIN CACHE','green')}",unsafe_allow_html=True)
-force_refresh=st.sidebar.button("Refresh now (optional)",use_container_width=True)
-st.sidebar.caption("No button is required. First load and market-selection changes scan automatically. Cached public data prevents repeated endpoint hammering.")
-with st.sidebar.expander("Data / research gates",expanded=False):
-    st.write("Universe", f"SEED + adaptive discovery · {len(UNIVERSE)} mapped assets")
-    st.caption("Not yet a full US/IDX exchange enumeration. Unknown opportunities can enter through scenario/news discovery, but full-universe recall remains a research gate.")
-    st.write("Action model", "✅" if PRODUCTION_ACTION_MODEL_VALIDATED else "🔒 research state")
-    st.write("Fair value", "✅" if PRODUCTION_FAIR_VALUE_MODEL_VALIDATED else "🔒 research range")
-    st.write("Event probability", "✅" if PRODUCTION_EVENT_PROBABILITY_VALIDATED else "🔒 evidence ranking only")
-    st.caption("Current public adapters are current-at-fetch, but full PIT production coverage is still being built.")
-    st.write("IHSG EOD broker", "✅ Index Alpha" if _secret_or_env("INDEX_ALPHA_API_KEY") else "🔒 add INDEX_ALPHA_API_KEY")
-    st.write("IHSG intraday", "✅ Invezgo" if _secret_or_env("INVEZGO_API_KEY") else "🔒 add INVEZGO_API_KEY")
-    st.caption("Transaction data is optional-safe: without keys the IHSG layer stays DATA GATED and cannot silently create a buy signal.")
-
-# Render navigation BEFORE any expensive scan. Native buttons + callback state make every page switch immediate and persistent.
+prior_records=st.session_state.get("live_scan_records",[]) or []
+prior_counts=OPP_MEMORY.counts()
+prior_macro=st.session_state.get("macro_gate_snapshot",{}) or {}
+render_global_header(st,scan_count=len(prior_records),event_count=prior_counts.get("events",0),active_count=prior_counts.get("active",0),outcome_count=prior_counts.get("outcomes",0),macro_regime=str(prior_macro.get("regime") or prior_macro.get("action_label") or "GATED"),engine_version="v3.2.2 unified UI")
 nav=_render_workspace_nav()
 skip_auto_scan_once=bool(st.session_state.pop("_skip_auto_scan_once",False))
+
+f1,f2,f3=st.columns([4.0,2.0,1.0],gap="small")
+with f1:
+    selected_markets=st.multiselect("Market scope",markets_available,default=markets_available,label_visibility="collapsed",key="mq_market_scope_v322")
+with f2:
+    display_query=st.text_input("Search",placeholder="Search ticker / company / theme…",label_visibility="collapsed",key="mq_global_search_v322")
+with f3:
+    force_refresh=st.button("REFRESH",use_container_width=True,key="mq_refresh_v322")
+st.markdown("<div class='mq-note'><b>AUTO SCAN</b> · first load and market-scope changes refresh automatically · public endpoints use bounded cache · missing data remains GATED.</div>",unsafe_allow_html=True)
 
 if selected_markets:
     scan_input=UNIVERSE[UNIVERSE["market"].isin(selected_markets)].copy().reset_index(drop=True)
 else:
     scan_input=UNIVERSE.iloc[0:0].copy()
 max_assets=len(scan_input)
-scan_signature=(tuple(selected_markets),int(max_assets),"v3.2.1-longitudinal-opportunity-os")
+scan_signature=(tuple(selected_markets),int(max_assets),"v3.2.2-unified-ui-opportunity-os")
 
 # Automatic initial/stale refresh. The user never has to press a scan button.
 existing_records=st.session_state.get("live_scan_records",[])
@@ -2610,6 +2607,13 @@ discovered=pd.DataFrame(st.session_state.get("scenario_discovery_records",[]))
 mg=st.session_state.get("macro_gate_snapshot",{}) or {}
 ranked=rank_opportunities(scan[scan.get("error",pd.Series(index=scan.index,dtype=str)).fillna("")==""] if not scan.empty and "error" in scan else scan)
 expr=_expression_tables(ranked,mg)
+display_ranked=ranked
+if str(display_query).strip() and not ranked.empty:
+    q=str(display_query).strip().lower()
+    mask=pd.Series(False,index=ranked.index)
+    for c in [x for x in ["symbol","name","market","theme","research_action","change_state"] if x in ranked.columns]:
+        mask=mask | ranked[c].astype(str).str.lower().str.contains(re.escape(q),regex=True,na=False)
+    display_ranked=ranked[mask].copy()
 
 # v3.2 longitudinal layer: freeze first meaningful detection BEFORE future outcomes mature.
 try:
@@ -2621,100 +2625,30 @@ except Exception as _opp_exc:
     st.session_state["opportunity_memory_error"] = str(_opp_exc)
 
 if nav=="CONTROL ROOM":
-    _render_control_room(ranked,mg)
-
+    _render_control_room(display_ranked,mg)
 elif nav=="OPPORTUNITIES":
-    render_opportunity_tracker(st, ranked, OPP_MEMORY, mg)
-
+    render_opportunity_tracker(st, display_ranked, OPP_MEMORY, mg)
 elif nav=="VERTICALS":
-    _render_verticals(ranked)
-
+    _render_verticals(display_ranked)
 elif nav=="MACRO & EVENTS":
     _render_macro_visual_room()
-
-elif nav=="RESEARCH / REPLAY":
+elif nav=="LEARNING / REPLAY":
     render_learning_lab(st, OPP_MEMORY)
-    st.markdown("<div class='section'>Legacy research / validation</div>",unsafe_allow_html=True)
-    st.markdown("<div class='gate'>Use this only when you want to inspect historical replay, data coverage, rejected signals or research gates. Daily decisions stay in OPPORTUNITIES.</div>",unsafe_allow_html=True)
-    with st.expander("Historical acceptance tests",expanded=False):
+    st.markdown("<div class='mq-section'>System proof / data gates</div>",unsafe_allow_html=True)
+    proof=[
+        ("AUTOMATIC DISCOVERY","ACTIVE" if not ranked.empty else "GATED","current scan + change detection"),
+        ("FIRST-SEEN MEMORY","ACTIVE",f"{OPP_MEMORY.counts().get('events',0)} frozen events"),
+        ("OUTCOME LABELING","ACTIVE",f"{OPP_MEMORY.counts().get('outcomes',0)} matured horizons"),
+        ("WALK-FORWARD","CHRONOLOGICAL","no random shuffle"),
+        ("PIT DATA","PARTIAL","unavailable historical fields stay unavailable"),
+        ("AUTOTRADING","DISABLED","execution remains separate"),
+    ]
+    st.markdown("<div class='mq-vgrid'>"+"".join(f"<div class='mq-vcard'><small>{html.escape(a)}</small><strong>{html.escape(b)}</strong><p>{html.escape(c)}</p></div>" for a,b,c in proof)+"</div>",unsafe_allow_html=True)
+    with st.expander("Acceptance / source registry",expanded=False):
         st.dataframe(ACCEPTANCE,use_container_width=True,hide_index=True)
-        cases=REPLAY["case"].dropna().unique().tolist() if not REPLAY.empty else []
-        if cases:
-            case=st.selectbox("Replay case",cases,key="replay_case_compact_v20")
-            rr=REPLAY[REPLAY["case"]==case]
-            st.dataframe(rr[["date","phase","scanner_state","evidence_known_then","causal_chain","source_url"]],use_container_width=True,hide_index=True)
-    with st.expander("Data sources / readiness",expanded=True):
         st.dataframe(SOURCE_REGISTRY,use_container_width=True,hide_index=True)
-        readiness=pd.DataFrame([
-            ["Universe coverage","PARTIAL · SEED + ADAPTIVE DISCOVERY","full US + IDX + broader crypto enumeration / stage-1 screening still required for maximum recall"],
-            ["Macro / cross-asset regime","CURRENT MONITORING READY","PIT probability calibration still locked"],
-            ["US stock buy/hold/sell","RESEARCH READY","PIT SEC + estimate-revision history still needed for production validation"],
-            ["IHSG buy/hold/sell","RESEARCH READY · CASH ONLY","transaction layer uses Index Alpha + Invezgo when keys are configured; full PIT validation still required"],
-            ["US leverage","SUPPORTED WHEN EARNED","requires high data + evidence + macro/risk gate"],
-            ["FX leverage","DATA GATED","relative macro, REER, BoP, positioning, intervention history"],
-            ["Commodity leverage","DATA GATED","physical balances, inventory, curve/carry, spare capacity"],
-            ["Crypto spot","PARTIAL","holder capture, unlock schedule and real usage are not universal"],
-            ["Crypto leverage","THESIS GATED","adapter exists; leverage disabled until crypto causal data is complete"],
-            ["US stock options","SUPPORTED WHEN EARNED","live option chain; expected-distribution model remains research state"],
-            ["BTC/ETH options","DERIBIT ADAPTER READY · THESIS GATED","only liquid BTC/ETH; no fake options for illiquid tokens"],
-        ],columns=["Layer","Current status","What is still missing"])
-        st.dataframe(readiness,use_container_width=True,hide_index=True)
-        st.markdown("<div class='gate'><b>Fail-closed rule:</b> missing causal data never gets replaced with price momentum or a technical indicator. The asset stays in Early Radar / GATED until the correct data family is available.</div>",unsafe_allow_html=True)
-
-elif nav=="DECISION DESK":
-    # DECISION DESK · preserved v3.1 daily screen. Core decision logic is not replaced.
-    # SIMPLE DAILY SCREEN. The first viewport answers: posture, act/watch/avoid, and top names.
-    macro_label=str(mg.get("action_label","MACRO GATED"))
-    macro_upper=macro_label.upper()
-    if any(x in macro_upper for x in ["DEFENSIVE","CRISIS"]):
-        macro_guide="Be selective. Prefer cash/stock and only take leverage when it is explicitly marked READY."
-        macro_tone="amber"
-    elif "RISK-ON" in macro_upper:
-        macro_guide="Backdrop is supportive. Prioritize qualified longs, but still wait for the entry gate instead of chasing."
-        macro_tone="green"
-    elif "GATED" in macro_upper:
-        macro_guide="Macro data is incomplete. Discovery can continue, but leverage upgrades stay blocked."
-        macro_tone="gray"
-    else:
-        macro_guide="Mixed backdrop. Let asset-specific evidence decide; keep sizing selective."
-        macro_tone="amber"
-    mc=COLORS[macro_tone][0]
-    st.markdown(f"<div class='today-card'><div class='today-label'>TODAY'S POSTURE</div><div class='today-main' style='color:{mc}'>{html.escape(macro_label)}</div><div class='today-note'>{html.escape(macro_guide)}</div></div>",unsafe_allow_html=True)
-
-    _render_opportunity_visuals(ranked,expr)
-
-    st.markdown("<div class='section'>Expression desk</div>",unsafe_allow_html=True)
-    view=st.radio("Expression",["BUY & HOLD / SELL · STOCKS","LEVERAGED LONG / SHORT","OPTIONS · CALL / PUT","SPOT / CASH","EARLY RADAR"],horizontal=True,key="opp_subview_v24",label_visibility="collapsed")
-    mapkey={"BUY & HOLD / SELL · STOCKS":"buyhold","SPOT / CASH":"spot","LEVERAGED LONG / SHORT":"leverage","OPTIONS · CALL / PUT":"options","EARLY RADAR":"radar"}; key=mapkey[view]
-    df=expr[key]
-    a_count=int(df.get("qualified",pd.Series(dtype=bool)).fillna(False).astype(bool).sum()) if not df.empty and "qualified" in df else 0
-    c1,c2,c3=st.columns(3)
-    c1.metric("Ready now",a_count)
-    c2.metric("On watch",max(0,len(df)-a_count))
-    c3.metric("Markets covered",df["market"].nunique() if not df.empty and "market" in df else 0)
-    st.markdown("<div class='simple-help'>The list below is intentionally simple: <b>action → reason → confidence → status</b>. Open one ticker only when you want the detailed entry logic.</div>",unsafe_allow_html=True)
-    _render_expression_cards(df,key)
-    with st.expander("Advanced · all rows / model gates",expanded=False):
-        _render_expression_readiness(key)
-        _display_scoreboard(df,view)
-        _render_evidence_flow_chart(df,view.title())
-
-    if not df.empty:
-        options=[str(x) for x in df["symbol"].head(24).tolist()]
-        selected=st.selectbox("Open one",options,key=f"detail_{key}_v24",label_visibility="collapsed")
-        row=df[df["symbol"].astype(str)==selected].iloc[0]
-        _render_compact_selected(row,ranked,mg,"OPTIONS" if key=="options" else ("BUYHOLD" if key=="buyhold" else key.upper()))
-        with st.expander("Deep dive · thesis / valuation / causal chain / sources",expanded=False):
-            _render_opportunity_detail(row,ranked,mg,"OPTIONS" if key=="options" else ("BUYHOLD" if key=="buyhold" else key.upper()))
-
-    near=filtered_scenarios(discovered,max_rows=3)
-    if not near.empty:
-        with st.expander("Next 1–2Q scenarios · max 3",expanded=False):
-            showcols=[c for c in ["theme","horizon","latest_headline","source_count"] if c in near.columns]
-            st.dataframe(near[showcols],use_container_width=True,hide_index=True)
-
 else:
-    st.warning("Unknown workspace state; returning to CONTROL ROOM.")
-    _render_control_room(ranked,mg)
+    st.session_state["decision_nav_v322"]="CONTROL ROOM"
+    _render_control_room(display_ranked,mg)
 
-st.caption("v3.2.1 · Market Opportunity OS · longitudinal discovery/learning + interactive UI navigation hotfix. No classic technical indicators; no autotrading.")
+st.markdown("<div class='mq-ledger'>v3.2.2 · unified opportunity UI · core causal / macro / valuation / expression logic preserved · no classic technical indicators · no autotrading.</div>",unsafe_allow_html=True)

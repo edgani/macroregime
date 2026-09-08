@@ -13,6 +13,8 @@ assert 'WAIT · FX LEVERAGE GATED' in block
 assert 'WAIT · COMMODITY LEVERAGE GATED' in block
 assert 'WAIT · CRYPTO LEVERAGE GATED' in block
 assert 'WAIT · BTC/ETH OPTION THESIS GATED' in block
-# deep prose must be collapsed on the daily opportunity screen
-assert 'Deep dive · thesis / valuation / causal chain / sources' in app
+# Visible product surface must use the unified shell only. Old Decision Desk is not routed.
+assert 'mq-pagehead' in app
+assert 'DECISION DESK' not in app
+assert 'st.sidebar' not in app
 print('TEST_VISUAL_CONTRACT_PASS')

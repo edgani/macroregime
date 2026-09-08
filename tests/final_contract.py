@@ -36,7 +36,8 @@ assert 'Expression coverage · nothing disappears when gated' in app
 assert 'At a glance' in app
 assert 'Top opportunities now' in app
 assert 'How it can be traded' in app
-assert 'Advanced · all rows / model gates' in app
+assert 'NAV_ITEMS=["CONTROL ROOM","OPPORTUNITIES","VERTICALS","MACRO & EVENTS","LEARNING / REPLAY"]' in app
+assert 'st.sidebar' not in app
 
 
 # Valuation must fail closed when same-sector peer evidence is weak; no whole-market fallback or seed percentile action.

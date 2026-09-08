@@ -1,3 +1,12 @@
+
+## v3.2.2 — Unified UI replacement
+- Removed the legacy Decision Desk from the exposed product surface.
+- Removed the old sidebar scanner UI; market scope/search/refresh now live in the unified top shell.
+- All exposed workspaces use one dark-neon visual system: Control Room, Opportunities, Verticals, Macro & Events, Learning / Replay.
+- Replaced nested/native tab mazes in exposed vertical/learning surfaces with persistent button sub-navigation.
+- Core causal, macro, valuation, expression, longitudinal-memory and walk-forward logic is preserved; this is a UI/UX replacement, not an engine rewrite.
+- No autotrading and no classic technical-indicator fallback.
+
 # Market Opportunity OS v3.2.1
 
 This release upgrades **Opportunity Intelligence Engine v2.6 — IHSG Transaction Intelligence** into one cross-market architecture with a shared intelligence kernel and market-specific verticals.

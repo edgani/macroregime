@@ -1,4 +1,4 @@
-# Final Audit — Market Opportunity OS v3.2
+# Final Audit — Market Opportunity OS v3.2.1
 
 ## Objective
 Upgrade v3.1 additively with longitudinal opportunity memory, outcome learning, true chronological walk-forward, automatic discovery and a denser reference-style UI.
@@ -24,3 +24,9 @@ Upgrade v3.1 additively with longitudinal opportunity memory, outcome learning, 
 
 ## Remaining risk
 The dominant risk is data coverage: broad PIT analyst/ownership/corporate-action history, dead/delisted universes, full market enumeration, physical commodity data, FX causal positioning data and timestamped catalyst histories.
+
+
+## v3.2.1 UI audit
+- Workspace navigation hotfix: PASS structurally; native buttons route all six workspaces and render before scanner refresh.
+- CONTROL ROOM dense dashboard contract: PASS structurally.
+- Real browser smoke: NOT VERIFIED in build container because Streamlit package is not installed; no false claim.

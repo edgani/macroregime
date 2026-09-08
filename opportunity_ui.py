@@ -77,13 +77,12 @@ def render_opportunity_tracker(st, ranked: pd.DataFrame, memory: OpportunityMemo
  <div class='mq-brand'><div class='mq-logo'>◢◣</div><div><div class='mq-name'>Opportunity<span>OS</span></div><div class='mq-tag'>SCAN EARLY · EXPLAIN CAUSALLY · LEARN OOS</div></div></div>
  <div class='mq-status'><b>◉ DATA</b><small>{len(ranked)} scanned</small></div>
  <div class='mq-status'><b>◆ MEMORY</b><small>{counts['events']} events</small></div>
- <div class='mq-status'><b>◎ ENGINE</b><small>v3.2 longitudinal</small></div>
+ <div class='mq-status'><b>◎ ENGINE</b><small>v3.2.1 UI hotfix</small></div>
  <div class='mq-status'><b>◉ ACTIVE</b><small>{counts['active']} tracked</small></div>
  <div class='mq-status'><b>◇ OUTCOMES</b><small>{counts['outcomes']} matured</small></div>
  <div class='mq-search'>⌕ Search opportunity / ticker / theme inside the tables below…</div>
  <div class='mq-wallet'>RISK · {html.escape(str(macro.get('regime','GATED'))[:18])}</div>
 </div>
-<div class='mq-tabs'><span class='mq-tab active'>Opportunity Radar</span><span class='mq-tab'>Lifecycle</span><span class='mq-tab'>Outcome Memory</span><span class='mq-tab'>Missed Winners</span><span class='mq-tab'>Walk-Forward</span></div>
 <div class='mq-titlebar'><div><div class='mq-title'>◉ Longitudinal Opportunity Tracker</div><div class='mq-sub'>Automatic discovery → immutable first detection → persistent watch → future outcomes → regime-specific learning. No autotrading.</div></div>
 <div class='mq-kpirow'><div class='mq-kpi'><b>ACTIVE</b><strong>{counts['active']}</strong><small>persistent</small></div><div class='mq-kpi'><b>HIGH DATA</b><strong>{int(quality)}</strong><small>current scan</small></div><div class='mq-kpi'><b>FAILURES</b><strong>{counts['failures']}</strong><small>kept for learning</small></div><div class='mq-kpi'><b>MISSED</b><strong>{counts['missed']}</strong><small>no hindsight claims</small></div></div></div>
 """

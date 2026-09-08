@@ -1,4 +1,4 @@
-# Market Opportunity OS v3.2
+# Market Opportunity OS v3.2.1
 
 This release upgrades **Opportunity Intelligence Engine v2.6 — IHSG Transaction Intelligence** into one cross-market architecture with a shared intelligence kernel and market-specific verticals.
 
@@ -75,7 +75,9 @@ Linux: `./run_linux.sh`
 python tests/run_all.py
 ```
 
-Current package result: **18 PASS / 0 NONPASS** plus **20/20 v3.2 structural acceptance checks**.
+Current package result: **19 PASS / 0 NONPASS** plus **20/20 v3.2 structural acceptance checks**.
+
+UI hotfix: top workspace navigation is now native button routing rendered before the expensive scan path, and CONTROL ROOM uses the dense operator-dashboard shell. Browser-smoke is not claimed in the build environment because Streamlit itself is unavailable there.
 
 See `V3_ARCHITECTURE.md`, `FINAL_AUDIT.md`, `TEST_MATRIX.md`, `VALIDATION_RESULTS.md`, `KNOWN_LIMITATIONS.md`, and `DEPLOY_FROM_ZERO.md`.
 

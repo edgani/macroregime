@@ -1,3 +1,23 @@
+# v3.2.1 — Interactive UI / Navigation Hotfix
+
+This hotfix fixes the UI defect in the first v3.2 handoff: the workspace navigation looked like top tabs but was implemented as a `st.radio` after the expensive scanner path. On rerun, a stale scan could execute before the page change visibly completed, making the navigation appear dead.
+
+## Fixed
+- Replaced the top workspace `st.radio` pseudo-navigation with six native Streamlit buttons and persistent `session_state` routing.
+- Renders navigation before expensive scanning.
+- Page-switch callback skips one stale auto-refresh so navigation remains responsive; the scheduled refresh resumes afterward.
+- Active workspace is visually distinct and state persists across reruns.
+- Rebuilt CONTROL ROOM into a dense dark-cyan three-column operator dashboard: vertical readiness, selected opportunity + causal transmission, macro/risk + recent alerts, and a full-width cross-market radar.
+- Removed decorative non-interactive Opportunity Tracker pseudo-tabs so nothing that looks like a tab is intentionally fake.
+- Added `test_v321_ui_navigation.py` covering native routing, ordering before scan, scan-skip-on-navigation, all six routes and the dense control-room contract.
+
+## Validation
+- **19 PASS / 0 NONPASS / 19 TOTAL** automated package tests.
+- Existing **20/20 v3.2 structural acceptance checks** remain green.
+- A real Streamlit browser-smoke test is still environment-dependent and is not falsely claimed in the build environment where Streamlit is unavailable.
+
+---
+
 # Market Opportunity OS v3.2 — Longitudinal Discovery + Outcome Learning
 
 Base: **v3.1 Story / Expectation Optionality**. This is an additive upgrade; the existing Macro Decision Engine, IHSG transaction intelligence, story/expectation optionality, causal graph, valuation logic and fail-closed decision gates remain intact.

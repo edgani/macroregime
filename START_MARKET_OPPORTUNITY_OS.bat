@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions
 cd /d "%~dp0"
-title Market Opportunity OS v3.2
+title Market Opportunity OS v3.2.1
 
 where py >nul 2>nul
 if %errorlevel%==0 (
@@ -31,7 +31,7 @@ echo [3/4] Installing/updating required packages...
 "%VPY%" -m pip install -r requirements.txt
 if errorlevel 1 goto :fail
 
-echo [4/4] Starting Market Opportunity OS v3.2...
+echo [4/4] Starting Market Opportunity OS v3.2.1...
 echo Close this window or press Ctrl+C to stop the local server.
 "%VPY%" -m streamlit run app.py
 if errorlevel 1 goto :fail

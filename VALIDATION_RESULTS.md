@@ -1,9 +1,9 @@
-# Validation Results — v3.2
+# Validation Results — v3.2.1
 
 Validated locally on the packaged source tree.
 
 ```text
-18 PASS / 0 NONPASS / 18 TOTAL
+19 PASS / 0 NONPASS / 19 TOTAL
 ```
 
 The suite includes the original v3.1 regression tests plus:

@@ -57,10 +57,10 @@ from opportunity_longitudinal import OpportunityMemory
 from opportunity_discovery import sync_opportunities, EQUITY_MARKETS, BENCHMARKS
 from opportunity_outcomes import update_from_price_frames
 from opportunity_learning import write_periodic_learning_reports
-from opportunity_ui import render_opportunity_tracker, render_learning_lab
+from opportunity_ui import render_opportunity_tracker, render_learning_lab, install_memequant_style
 
 # ============================================================
-# OPPORTUNITY INTELLIGENCE ENGINE v3.2 · LONGITUDINAL MARKET OPPORTUNITY OS
+# OPPORTUNITY INTELLIGENCE ENGINE v3.2.1 · LONGITUDINAL MARKET OPPORTUNITY OS
 # ------------------------------------------------------------
 # Goal: high-recall discovery of exceptional opportunities, then
 # high-precision confirmation. No classic technical indicators.
@@ -81,7 +81,7 @@ STATE = Path(os.environ.get("OIE_STATE_DIR", str(ROOT / "state")))
 STATE.mkdir(parents=True, exist_ok=True)
 
 st.set_page_config(
-    page_title="Market Opportunity OS · v3.2",
+    page_title="Market Opportunity OS · v3.2.1",
     page_icon="◎",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -270,6 +270,11 @@ div[data-testid="stPlotlyChart"]{border:1px solid var(--border);border-radius:14
 .mode-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:8px 0 10px}.mode-card{border:1px solid var(--border);border-radius:11px;background:#0b1119;padding:9px 10px}.mode-name{font-size:.58rem;color:#8c9bae;font-weight:800}.mode-ready{font-size:.82rem;font-weight:900;margin-top:3px}.mode-note{font-size:.54rem;color:#7e8b9d;margin-top:2px}
 .list-card{display:grid;grid-template-columns:90px 1.1fr 1fr .9fr .8fr;gap:8px;align-items:center;border:1px solid var(--border);border-radius:11px;background:#0b1119;padding:8px 10px;margin-bottom:6px}.list-sym{font-size:.82rem;font-weight:900}.list-sub{font-size:.54rem;color:#7f8da1}.list-action{font-size:.64rem;font-weight:850}.list-why,.list-meta{font-size:.57rem;color:#98a6b7;line-height:1.3}
 .simple-help{font-size:.61rem;color:#8d9aac;line-height:1.4;margin:3px 0 8px}
+/* v3.2.1: real native-button navigation, styled as product tabs. */
+div[data-testid="stButton"]>button,button[data-testid="stBaseButton-secondary"]{border:1px solid #173947!important;background:#06131b!important;color:#b8d1d5!important;border-radius:8px!important;min-height:34px!important;font-size:.67rem!important;font-weight:820!important;box-shadow:none!important}
+button[data-testid="stBaseButton-primary"]{border:1px solid #10d9bd!important;background:rgba(16,217,189,.12)!important;color:#14f1d0!important;border-radius:8px!important;min-height:34px!important;font-size:.67rem!important;font-weight:900!important;box-shadow:0 0 0 1px rgba(16,241,208,.08) inset!important}
+div[data-testid="stButton"]>button:hover{border-color:#10cdb6!important;color:#13efd0!important}
+.nav-caption{font-size:.52rem;color:#607b86;letter-spacing:.12em;text-transform:uppercase;margin:2px 0 4px}
 @media(max-width:1000px){.kpis,.grid3,.decision-grid,.info4,.top3,.metric-strip,.simple-board,.pick-grid,.mode-strip{grid-template-columns:1fr 1fr}.list-card{grid-template-columns:80px 1fr 1fr}.list-meta,.list-why{grid-column:span 1}}
 </style>
 """,
@@ -1424,18 +1429,91 @@ def _market_status_frame(scan: pd.DataFrame) -> pd.DataFrame:
 
 
 def _render_control_room(ranked: pd.DataFrame, mg: Dict[str,Any]) -> None:
-    st.markdown("<div class='section'>Market Opportunity OS · control room</div>",unsafe_allow_html=True)
-    counts=MEMORY.counts()
-    c1,c2,c3,c4=st.columns(4)
-    c1.metric("Memory snapshots",counts.get("snapshots",0)); c2.metric("Tracked entities",counts.get("entities",0))
-    c3.metric("Markets",ranked["market"].nunique() if not ranked.empty and "market" in ranked else 0)
-    c4.metric("Macro",str(mg.get("regime","GATED"))[:24])
-    st.dataframe(_market_status_frame(ranked),use_container_width=True,hide_index=True)
-    st.caption("Kernel is shared; data and causal logic are market-specific. Missing data stays gated instead of being replaced by price momentum.")
-    if not ranked.empty:
-        cols=[c for c in ["market","symbol","research_action","change_state","sequence_signature","memory_observations","vertical_status","vertical_missing_core"] if c in ranked.columns]
-        st.markdown("<div class='section'>Cross-market change board</div>",unsafe_allow_html=True)
-        st.dataframe(ranked[cols].head(30),use_container_width=True,hide_index=True)
+    """Dense operator-style control room. Native controls remain real Streamlit widgets; visual cards are presentation only."""
+    install_memequant_style(st)
+    market_counts=MEMORY.counts()
+    opp_counts=OPP_MEMORY.counts()
+    active=OPP_MEMORY.events_frame(active_only=True,limit=200)
+    alerts=OPP_MEMORY.alerts_frame(limit=12)
+    n_markets=ranked["market"].nunique() if not ranked.empty and "market" in ranked else 0
+    high_data=int((ranked.get("data_quality",pd.Series(dtype=str)).astype(str).str.upper()=="HIGH").sum()) if not ranked.empty else 0
+    regime=str(mg.get("regime") or mg.get("action_label") or "GATED")
+    action_label=str(mg.get("action_label") or "MACRO GATED")
+
+    st.markdown(f"""
+<div class='mq-top'>
+ <div class='mq-brand'><div class='mq-logo'>◢◣</div><div><div class='mq-name'>Opportunity<span>OS</span></div><div class='mq-tag'>CHANGE → CAPTURE → EXPECTATION GAP → OUTCOME</div></div></div>
+ <div class='mq-status'><b>◉ SCAN</b><small>{len(ranked)} candidates</small></div>
+ <div class='mq-status'><b>◆ MEMORY</b><small>{opp_counts.get('events',0)} frozen events</small></div>
+ <div class='mq-status'><b>◎ ENGINE</b><small>v3.2.1 UI hotfix</small></div>
+ <div class='mq-status'><b>◉ DATA</b><small>{high_data} high-quality</small></div>
+ <div class='mq-status'><b>◇ MARKETS</b><small>{n_markets} active</small></div>
+ <div class='mq-search'>⌕ Use the candidate controls below to inspect one opportunity without losing scanner state.</div>
+ <div class='mq-wallet'>RISK · {html.escape(regime[:18])}</div>
+</div>
+<div class='mq-titlebar'><div><div class='mq-title'>◉ Cross-Market Opportunity Control Room</div><div class='mq-sub'>Automatic discovery, causal capture, immutable first-seen memory and fail-closed data gates. Navigation is independent from scanner refresh.</div></div>
+<div class='mq-kpirow'><div class='mq-kpi'><b>ACTIVE</b><strong>{opp_counts.get('active',0)}</strong><small>tracked theses</small></div><div class='mq-kpi'><b>SNAPSHOTS</b><strong>{market_counts.get('snapshots',0)}</strong><small>market memory</small></div><div class='mq-kpi'><b>OUTCOMES</b><strong>{opp_counts.get('outcomes',0)}</strong><small>matured labels</small></div><div class='mq-kpi'><b>MACRO</b><strong style='font-size:10px'>{html.escape(action_label[:24])}</strong><small>timing context</small></div></div></div>
+""",unsafe_allow_html=True)
+
+    left,center,right=st.columns([1.0,2.05,1.0],gap="small")
+    status=_market_status_frame(ranked)
+    with left:
+        st.markdown("<div class='mq-section'>Vertical readiness</div>",unsafe_allow_html=True)
+        cards=[]
+        for _,r in status.iterrows():
+            state=str(r.get('Status','GATED')); cls='mq-up' if state=='READY' else ('mq-down' if state in {'GATED','NO DATA'} else '')
+            cards.append(f"<div class='mq-mini'><small>{html.escape(str(r.get('Vertical','')))}</small><strong class='{cls}'>{html.escape(state)}</strong><div class='mq-sub'>{html.escape(str(r.get('Coverage','')))} · {html.escape(str(r.get('Candidates','—')))} candidates</div></div>")
+        st.markdown("<div class='mq-mini-grid'>"+"".join(cards)+"</div>",unsafe_allow_html=True)
+        st.markdown("<div class='mq-section'>Inspect candidate</div>",unsafe_allow_html=True)
+        symbols=ranked.get('symbol',pd.Series(dtype=str)).astype(str).head(20).tolist() if not ranked.empty else []
+        if symbols:
+            if st.session_state.get("control_selected_symbol") not in symbols:
+                st.session_state["control_selected_symbol"]=symbols[0]
+            selected=st.selectbox("Control room candidate",symbols,key="control_selected_symbol",label_visibility="collapsed")
+        else:
+            selected=None
+            st.caption("No valid candidates in the selected market set.")
+
+    row=None
+    if selected and not ranked.empty:
+        hit=ranked[ranked.get('symbol',pd.Series(index=ranked.index,dtype=str)).astype(str)==str(selected)]
+        if not hit.empty: row=hit.iloc[0]
+    with center:
+        st.markdown("<div class='mq-section'>Selected opportunity</div>",unsafe_allow_html=True)
+        if row is None:
+            st.markdown("<div class='mq-empty'>Scanner has not produced an inspectable candidate yet.</div>",unsafe_allow_html=True)
+        else:
+            sym=html.escape(str(row.get('symbol','—'))); name=html.escape(str(row.get('name',''))); market=html.escape(str(row.get('market',''))); action=html.escape(str(row.get('research_action','WATCH'))); change=html.escape(str(row.get('change_state','BASELINE BUILDING'))); quality=html.escape(str(row.get('data_quality','GATED')))
+            why=html.escape(str(row.get('why') or row.get('notes') or row.get('thesis') or 'Evidence is still accumulating.'))
+            score=safe_float(row.get('opportunity_score')); score_txt=fmt_num(score,0) if np.isfinite(score) else '—'
+            st.markdown(f"<div class='mq-hero'><div class='mq-hero-top'><div><h2>{sym} · {name}</h2><div class='mq-meta'>{market} · data {quality} · {change}</div></div><span class='mq-pill'>{action}</span></div><div class='mq-thesis'>{why[:520]}</div><div class='mq-scores'><div class='mq-score'><small>OPPORTUNITY</small><strong>{score_txt}</strong></div><div class='mq-score'><small>EVIDENCE</small><strong>{fmt_num(safe_float(row.get('evidence_families')),0)}</strong></div><div class='mq-score'><small>MEMORY OBS</small><strong>{fmt_num(safe_float(row.get('memory_observations')),0)}</strong></div><div class='mq-score'><small>VERTICAL</small><strong style='font-size:10px'>{html.escape(str(row.get('vertical_status','GATED')))}</strong></div></div></div>",unsafe_allow_html=True)
+            causal=[str(row.get(k,'')) for k in ['driver','first_order_effect','second_order_effect','bottleneck','beneficiary'] if str(row.get(k,'')).strip() and str(row.get(k,'')).lower()!='nan']
+            if causal:
+                st.markdown("<div class='mq-section'>Causal transmission</div><div class='mq-chain'>"+" <span class='mq-arrow'>→</span> ".join(html.escape(x) for x in causal)+"</div>",unsafe_allow_html=True)
+            else:
+                st.markdown("<div class='mq-section'>Causal transmission</div><div class='mq-empty'>Causal chain incomplete → candidate cannot be upgraded by narrative alone.</div>",unsafe_allow_html=True)
+            compact=[c for c in ['research_action','stage','change_state','sequence_signature','expectation_gap','vertical_missing_core'] if c in ranked.columns]
+            if compact:
+                st.dataframe(pd.DataFrame([{c:row.get(c) for c in compact}]),use_container_width=True,hide_index=True)
+
+    with right:
+        st.markdown("<div class='mq-section'>Macro & risk</div>",unsafe_allow_html=True)
+        risk_items=[('REGIME',regime),('CRASH',mg.get('crash_state','GATED')),('CREDIT',mg.get('credit_state','GATED')),('STRUCTURE',mg.get('market_structure','GATED'))]
+        st.markdown("<div class='mq-mini-grid'>"+"".join(f"<div class='mq-mini'><small>{k}</small><strong>{html.escape(str(v))[:38]}</strong></div>" for k,v in risk_items)+"</div>",unsafe_allow_html=True)
+        st.markdown("<div class='mq-section'>Recent opportunity alerts</div>",unsafe_allow_html=True)
+        if alerts.empty:
+            st.markdown("<div class='mq-empty'>No deduplicated state alerts yet.</div>",unsafe_allow_html=True)
+        else:
+            feed=''.join(f"<div class='mq-feedrow'><div>{html.escape(str(r.get('observed_at_utc',''))[11:19])}</div><div class='mq-event'>{html.escape(str(r.get('alert_type','')))[:18]}</div><div>{html.escape(str(r.get('message','')))[:60]}</div></div>" for _,r in alerts.head(8).iterrows())
+            st.markdown("<div class='mq-feed'>"+feed+"</div>",unsafe_allow_html=True)
+
+    st.markdown("<div class='mq-section'>Cross-market opportunity radar</div>",unsafe_allow_html=True)
+    if ranked.empty:
+        st.info("Current scan is empty / gated.")
+    else:
+        cols=[c for c in ["market","symbol","research_action","stage","change_state","sequence_signature","memory_observations","vertical_status","vertical_missing_core"] if c in ranked.columns]
+        st.dataframe(ranked[cols].head(36),use_container_width=True,hide_index=True,height=430)
+    st.caption("Fail-closed: missing causal, fundamental or market-specific evidence remains GATED; price momentum never substitutes for missing economics.")
 
 
 def _render_verticals(ranked: pd.DataFrame) -> None:
@@ -2454,6 +2532,28 @@ def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[st
 
 
 # -----------------------------
+# UI — persistent native navigation
+# -----------------------------
+NAV_ITEMS=["CONTROL ROOM","OPPORTUNITIES","DECISION DESK","VERTICALS","MACRO & EVENTS","RESEARCH / REPLAY"]
+
+def _set_workspace(target: str) -> None:
+    st.session_state["decision_nav_v321"] = target
+    # A page change must never feel dead because a stale 30-minute scan starts first.
+    # The next periodic tick can refresh after navigation has rendered.
+    st.session_state["_skip_auto_scan_once"] = True
+
+def _render_workspace_nav() -> str:
+    current=st.session_state.get("decision_nav_v321","CONTROL ROOM")
+    if current not in NAV_ITEMS:
+        current="CONTROL ROOM"; st.session_state["decision_nav_v321"]=current
+    st.markdown("<div class='nav-caption'>Workspace</div>",unsafe_allow_html=True)
+    cols=st.columns([1.02,1.05,1.05,.84,1.12,1.18],gap="small")
+    for col,item in zip(cols,NAV_ITEMS):
+        with col:
+            st.button(item,key=f"navbtn_{item}",use_container_width=True,type="primary" if item==current else "secondary",on_click=_set_workspace,args=(item,))
+    return st.session_state.get("decision_nav_v321",current)
+
+# -----------------------------
 # UI — AUTO DECISION VIEW
 # -----------------------------
 # v3.2: the old full-width hero was removed; OPPORTUNITIES renders the denser reference-style status header.
@@ -2474,17 +2574,21 @@ with st.sidebar.expander("Data / research gates",expanded=False):
     st.write("IHSG intraday", "✅ Invezgo" if _secret_or_env("INVEZGO_API_KEY") else "🔒 add INVEZGO_API_KEY")
     st.caption("Transaction data is optional-safe: without keys the IHSG layer stays DATA GATED and cannot silently create a buy signal.")
 
+# Render navigation BEFORE any expensive scan. Native buttons + callback state make every page switch immediate and persistent.
+nav=_render_workspace_nav()
+skip_auto_scan_once=bool(st.session_state.pop("_skip_auto_scan_once",False))
+
 if selected_markets:
     scan_input=UNIVERSE[UNIVERSE["market"].isin(selected_markets)].copy().reset_index(drop=True)
 else:
     scan_input=UNIVERSE.iloc[0:0].copy()
 max_assets=len(scan_input)
-scan_signature=(tuple(selected_markets),int(max_assets),"v3.2-longitudinal-opportunity-os")
+scan_signature=(tuple(selected_markets),int(max_assets),"v3.2.1-longitudinal-opportunity-os")
 
 # Automatic initial/stale refresh. The user never has to press a scan button.
 existing_records=st.session_state.get("live_scan_records",[])
 need_auto=(not existing_records) or (st.session_state.get("live_scan_signature")!=scan_signature) or (_scan_age_seconds()>AUTO_REFRESH_SECONDS)
-if force_refresh or need_auto:
+if force_refresh or (need_auto and not skip_auto_scan_once):
     reason="manual refresh" if force_refresh else ("first automatic scan" if not existing_records else "automatic refresh")
     with st.spinner(f"{reason}: scanning {max_assets} assets + macro + near-term scenario evidence…"):
         _run_intelligence(scan_input,scan_signature,max_assets=max_assets,force=force_refresh)
@@ -2515,8 +2619,6 @@ try:
 except Exception as _opp_exc:
     _active_opportunities = pd.DataFrame()
     st.session_state["opportunity_memory_error"] = str(_opp_exc)
-
-nav=st.radio("Workspace",["CONTROL ROOM","OPPORTUNITIES","DECISION DESK","VERTICALS","MACRO & EVENTS","RESEARCH / REPLAY"],horizontal=True,label_visibility="collapsed",key="decision_nav_v32")
 
 if nav=="CONTROL ROOM":
     _render_control_room(ranked,mg)
@@ -2559,7 +2661,7 @@ elif nav=="RESEARCH / REPLAY":
         st.dataframe(readiness,use_container_width=True,hide_index=True)
         st.markdown("<div class='gate'><b>Fail-closed rule:</b> missing causal data never gets replaced with price momentum or a technical indicator. The asset stays in Early Radar / GATED until the correct data family is available.</div>",unsafe_allow_html=True)
 
-else:
+elif nav=="DECISION DESK":
     # DECISION DESK · preserved v3.1 daily screen. Core decision logic is not replaced.
     # SIMPLE DAILY SCREEN. The first viewport answers: posture, act/watch/avoid, and top names.
     macro_label=str(mg.get("action_label","MACRO GATED"))
@@ -2611,4 +2713,8 @@ else:
             showcols=[c for c in ["theme","horizon","latest_headline","source_count"] if c in near.columns]
             st.dataframe(near[showcols],use_container_width=True,hide_index=True)
 
-st.caption("v3.0 · Market Opportunity OS. Shared change/sequence/memory kernel; market-specific causal gates; DeFiLlama on-chain radar; no classic technical indicators.")
+else:
+    st.warning("Unknown workspace state; returning to CONTROL ROOM.")
+    _render_control_room(ranked,mg)
+
+st.caption("v3.2.1 · Market Opportunity OS · longitudinal discovery/learning + interactive UI navigation hotfix. No classic technical indicators; no autotrading.")

@@ -55,12 +55,14 @@ from defillama_adapter import chain_snapshot as defillama_chain_snapshot
 from story_optionality import apply_story_optionality
 from opportunity_longitudinal import OpportunityMemory
 from opportunity_discovery import sync_opportunities, EQUITY_MARKETS, BENCHMARKS
-from opportunity_outcomes import update_from_price_frames
+from opportunity_outcomes import update_from_price_frames, normalize_price_observations, path_outcome
 from opportunity_learning import write_periodic_learning_reports
-from opportunity_ui import render_opportunity_tracker, render_learning_lab, install_memequant_style, render_global_header
+from universe_catalog import current_catalog, merge_seed_with_rotation
+from prospective_validation import ProspectiveValidationStore
+from opportunity_ui import render_opportunity_tracker, render_learning_lab, install_memequant_style, render_global_header, render_dense_table, dense_table_html
 
 # ============================================================
-# OPPORTUNITY INTELLIGENCE ENGINE v3.2.1 · LONGITUDINAL MARKET OPPORTUNITY OS
+# OPPORTUNITY INTELLIGENCE ENGINE v3.2.6 · LONGITUDINAL MARKET OPPORTUNITY OS
 # ------------------------------------------------------------
 # Goal: high-recall discovery of exceptional opportunities, then
 # high-precision confirmation. No classic technical indicators.
@@ -81,7 +83,7 @@ STATE = Path(os.environ.get("OIE_STATE_DIR", str(ROOT / "state")))
 STATE.mkdir(parents=True, exist_ok=True)
 
 st.set_page_config(
-    page_title="Market Opportunity OS · v3.2.1",
+    page_title="Market Opportunity OS · v3.2.6",
     page_icon="◎",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -130,21 +132,6 @@ def safe_compute_macro_gate_snapshot(refresh: bool = False) -> Dict[str, Any]:
         return fn(refresh=refresh)
     except Exception as exc:
         return _macro_gate_fallback(f"{type(exc).__name__}: {exc}")
-
-def safe_render_macro_control_room() -> None:
-    fn = getattr(_macro_module, "render_macro_control_room", None) if _macro_module is not None else None
-    if not callable(fn):
-        snap = _macro_gate_fallback(_macro_import_error or "macro_embedded.py is stale/missing render_macro_control_room()")
-        st.error("Macro module mismatch detected. The app stays online in MACRO GATED mode; deploy app.py and macro_embedded.py from the same bundle.")
-        st.json({k: snap.get(k) for k in ["action_label","regime","crash_state","credit_state"]})
-        return
-    try:
-        fn()
-    except Exception as exc:
-        snap = _macro_gate_fallback(f"{type(exc).__name__}: {exc}")
-        st.error("Live macro rendering failed, so the app switched to MACRO GATED mode instead of crashing.")
-        st.caption(str(exc))
-        st.json({k: snap.get(k) for k in ["action_label","regime","crash_state","credit_state"]})
 
 HEADERS = {
     "User-Agent": "OpportunityIntelligence/1.0 research-dashboard contact=local-user",
@@ -221,6 +208,16 @@ SOURCE_REGISTRY = read_csv("source_registry.csv")
 ONCHAIN_WATCHLIST = read_csv("onchain_watchlist.csv")
 MEMORY = MarketMemory(STATE / "market_memory.sqlite")
 OPP_MEMORY = OpportunityMemory(STATE / "opportunity_memory.sqlite")
+PROSPECTIVE = ProspectiveValidationStore(STATE / "prospective_validation.sqlite")
+US_SECTOR_BENCHMARKS = {
+    "TECHNOLOGY":"XLK","FINANCIAL SERVICES":"XLF","FINANCIAL":"XLF","HEALTHCARE":"XLV",
+    "CONSUMER CYCLICAL":"XLY","CONSUMER DEFENSIVE":"XLP","COMMUNICATION SERVICES":"XLC",
+    "INDUSTRIALS":"XLI","BASIC MATERIALS":"XLB","ENERGY":"XLE","UTILITIES":"XLU","REAL ESTATE":"XLRE",
+}
+
+def _sector_benchmark_symbol(market: str, sector: Any) -> str:
+    if str(market)!="US": return ""
+    return US_SECTOR_BENCHMARKS.get(str(sector or "").strip().upper(),"")
 
 # -----------------------------
 # Styling
@@ -234,53 +231,7 @@ COLORS = {
     "purple": ("#b99cff", "rgba(185,156,255,.12)"),
 }
 
-st.markdown(
-    """
-<style>
-:root{--bg:#070b11;--panel:#0f1621;--panel2:#0b121b;--border:#202d3e;--text:#eef4fb;--muted:#8d9aac}
-.stApp{background:var(--bg);color:var(--text)}
-.block-container{max-width:1580px;padding-top:.65rem;padding-bottom:1.3rem}
-header[data-testid="stHeader"]{background:transparent}
-.hero{border:1px solid var(--border);border-radius:16px;padding:14px 16px;background:linear-gradient(180deg,#111b29,#0c121b)}
-.hero-title{font-size:1.75rem;font-weight:850;letter-spacing:-.035em}.sub{font-size:.76rem;color:var(--muted);margin-top:3px;line-height:1.35}
-.legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:.59rem;font-weight:830;letter-spacing:.035em}
-.section{font-size:.66rem;font-weight:830;letter-spacing:.11em;text-transform:uppercase;color:#91a4bc;margin:.65rem 0 .33rem}
-.panel{border:1px solid var(--border);border-radius:13px;background:linear-gradient(180deg,#111925,#0c121b);padding:11px 12px}.ptitle{font-size:.74rem;font-weight:840;margin-bottom:7px}
-.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.kpi{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:8px 9px;min-height:82px}.kicker{font-size:.53rem;color:#8392a5;font-weight:820;letter-spacing:.08em;text-transform:uppercase}.kval{font-size:.82rem;font-weight:840;margin-top:4px}.knum{font-size:1.12rem;font-weight:860;margin-top:2px}.knote{font-size:.59rem;color:#8e9bad;line-height:1.23;margin-top:3px}
-.action{border:1px solid var(--border);border-radius:13px;padding:11px;background:#0c131d}.action h3{margin:0;font-size:1.05rem}.action p{font-size:.67rem;color:#9aa8b8;line-height:1.35;margin:.35rem 0 0}
-.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.card{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:9px;min-height:104px}.ct{font-size:.69rem;font-weight:840}.cn{font-size:.60rem;color:#8f9cad;line-height:1.28;margin-top:4px}
-.small{font-size:.60rem;color:#8f9cad;line-height:1.32}.big{font-size:1.28rem;font-weight:860}.muted{color:#8f9cad}.row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.055);font-size:.65rem}.row:last-child{border-bottom:none}.right{text-align:right}
-.chainbox{padding:8px 9px;border:1px solid var(--border);border-radius:10px;background:#0c131d;font-size:.64rem;line-height:1.45;color:#d3dde8}.gate{border:1px solid #39485c;border-radius:9px;background:rgba(80,97,126,.10);padding:7px 8px;color:#aeb9c8;font-size:.60rem;line-height:1.3}
-.plainbox{border:1px solid var(--border);border-radius:12px;background:#0c131d;padding:10px 12px;font-size:.73rem;line-height:1.45;color:#dbe6f2}.plainbox b{color:#fff}.decision-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.decision-card{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:9px;min-height:80px}.dv{font-size:.82rem;font-weight:850;margin-top:4px}.dn{font-size:.58rem;color:#8f9cad;line-height:1.28;margin-top:3px}.info4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.info-card{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:9px;min-height:105px}.info-title{font-size:.64rem;font-weight:850}.info-text{font-size:.60rem;color:#9aa7b7;line-height:1.38;margin-top:5px}.top3{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.topopp{border:1px solid var(--border);border-radius:12px;background:linear-gradient(180deg,#111925,#0c131d);padding:10px;min-height:94px}.topopp .sym{font-size:1.0rem;font-weight:880}.topopp .why{font-size:.60rem;color:#91a0b1;line-height:1.32;margin-top:4px}
-.stagebar{display:flex;gap:4px;align-items:center;flex-wrap:wrap}.stage{padding:4px 7px;border-radius:8px;font-size:.58rem;font-weight:820;border:1px solid var(--border);background:#0c131d}.stage.on{box-shadow:0 0 0 1px rgba(255,255,255,.06) inset}
-.matrix{width:100%;border-collapse:separate;border-spacing:4px}.matrix th{font-size:.55rem;color:#8291a4;text-transform:uppercase;letter-spacing:.05em;text-align:left}.matrix td{border:1px solid var(--border);border-radius:8px;padding:7px;background:#0c131d;vertical-align:top}.mv{font-size:.67rem;font-weight:830}.mn{font-size:.55rem;color:#8d9aac;margin-top:2px}
-div[data-baseweb="tab-list"]{gap:6px}button[data-baseweb="tab"]{height:34px;font-size:.71rem}
-
-.visual-shell{border:1px solid var(--border);border-radius:14px;background:#090e15;padding:8px 10px}
-.metric-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin:7px 0}
-.metric-mini{border:1px solid var(--border);border-radius:10px;background:#0b1119;padding:8px 10px;min-height:68px}
-.metric-mini .m1{font-size:.51rem;color:#7f8da1;text-transform:uppercase;letter-spacing:.08em;font-weight:800}
-.metric-mini .m2{font-size:1.02rem;font-weight:900;margin-top:3px}.metric-mini .m3{font-size:.56rem;color:#8996a8;margin-top:2px;line-height:1.25}
-.compact-table div[data-testid="stDataFrame"]{border:1px solid var(--border);border-radius:12px;overflow:hidden}
-div[data-testid="stPlotlyChart"]{border:1px solid var(--border);border-radius:14px;background:#090e15;padding:2px}
-[data-testid="stMetric"]{border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#0b1119}
-.today-card{border:1px solid var(--border);border-radius:15px;background:linear-gradient(180deg,#101a27,#0b1119);padding:14px 16px;margin:7px 0 10px}.today-label{font-size:.56rem;color:#8da0b7;letter-spacing:.10em;font-weight:850;text-transform:uppercase}.today-main{font-size:1.25rem;font-weight:900;letter-spacing:-.02em;margin-top:3px}.today-note{font-size:.69rem;color:#a9b5c4;line-height:1.38;margin-top:4px}
-.simple-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:7px 0 12px}.simple-col{border:1px solid var(--border);border-radius:12px;background:#0b1119;padding:10px;min-height:92px}.simple-col .sc-label{font-size:.54rem;letter-spacing:.08em;text-transform:uppercase;font-weight:850}.simple-col .sc-count{font-size:1.25rem;font-weight:900;margin-top:2px}.ticker-chip{display:inline-block;border:1px solid #2a394c;border-radius:999px;padding:3px 7px;margin:4px 3px 0 0;font-size:.58rem;font-weight:800;background:#101824;color:#dfe8f3}
-.pick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0 12px}.pick-card{border:1px solid var(--border);border-radius:13px;background:linear-gradient(180deg,#111925,#0b1119);padding:11px;min-height:132px}.pick-top{display:flex;justify-content:space-between;gap:7px;align-items:flex-start}.pick-symbol{font-size:1.05rem;font-weight:920}.pick-market{font-size:.54rem;color:#8595aa;margin-top:1px}.pick-action{font-size:.70rem;font-weight:900;margin-top:8px}.pick-why{font-size:.61rem;color:#a2afbf;line-height:1.35;margin-top:5px}.pick-meta{font-size:.56rem;color:#7f8da1;line-height:1.35;margin-top:7px}.rank-badge{min-width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#162132;border:1px solid #26364a;font-size:.60rem;font-weight:900}
-.mode-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:8px 0 10px}.mode-card{border:1px solid var(--border);border-radius:11px;background:#0b1119;padding:9px 10px}.mode-name{font-size:.58rem;color:#8c9bae;font-weight:800}.mode-ready{font-size:.82rem;font-weight:900;margin-top:3px}.mode-note{font-size:.54rem;color:#7e8b9d;margin-top:2px}
-.list-card{display:grid;grid-template-columns:90px 1.1fr 1fr .9fr .8fr;gap:8px;align-items:center;border:1px solid var(--border);border-radius:11px;background:#0b1119;padding:8px 10px;margin-bottom:6px}.list-sym{font-size:.82rem;font-weight:900}.list-sub{font-size:.54rem;color:#7f8da1}.list-action{font-size:.64rem;font-weight:850}.list-why,.list-meta{font-size:.57rem;color:#98a6b7;line-height:1.3}
-.simple-help{font-size:.61rem;color:#8d9aac;line-height:1.4;margin:3px 0 8px}
-/* v3.2.1: real native-button navigation, styled as product tabs. */
-div[data-testid="stButton"]>button,button[data-testid="stBaseButton-secondary"]{border:1px solid #173947!important;background:#06131b!important;color:#b8d1d5!important;border-radius:8px!important;min-height:34px!important;font-size:.67rem!important;font-weight:820!important;box-shadow:none!important}
-button[data-testid="stBaseButton-primary"]{border:1px solid #10d9bd!important;background:rgba(16,217,189,.12)!important;color:#14f1d0!important;border-radius:8px!important;min-height:34px!important;font-size:.67rem!important;font-weight:900!important;box-shadow:0 0 0 1px rgba(16,241,208,.08) inset!important}
-div[data-testid="stButton"]>button:hover{border-color:#10cdb6!important;color:#13efd0!important}
-.nav-caption{font-size:.52rem;color:#607b86;letter-spacing:.12em;text-transform:uppercase;margin:2px 0 4px}
-@media(max-width:1000px){.kpis,.grid3,.decision-grid,.info4,.top3,.metric-strip,.simple-board,.pick-grid,.mode-strip{grid-template-columns:1fr 1fr}.list-card{grid-template-columns:80px 1fr 1fr}.list-meta,.list-why{grid-column:span 1}}
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
+# Legacy visual stacks are retired. All visible surfaces use opportunity_ui.install_memequant_style().
 
 def badge(text: str, tone: str = "blue") -> str:
     c, bg = COLORS.get(tone, COLORS["gray"])
@@ -332,6 +283,7 @@ class AssetSnapshot:
     gross_margin_change: float = np.nan
     fcf_growth_yoy: float = np.nan
     price_change_20d: float = np.nan
+    price_change_6m: float = np.nan
     realized_vol_20d: float = np.nan
     avg_value_20d: float = np.nan
     avg_volume_20d: float = np.nan
@@ -434,6 +386,8 @@ def fetch_yfinance_snapshot(market: str, symbol: str, name: str) -> Dict[str, An
                     snap.price_change_20d = float(close.iloc[-1] / close.iloc[-21] - 1)
                     ret = np.log(close / close.shift(1)).dropna().iloc[-20:]
                     snap.realized_vol_20d = float(ret.std(ddof=1) * np.sqrt(252)) if len(ret) >= 10 else np.nan
+                if len(close) >= 127 and close.iloc[-127] != 0:
+                    snap.price_change_6m = float(close.iloc[-1] / close.iloc[-127] - 1)
                 if "Volume" in hist.columns:
                     vol = pd.to_numeric(hist["Volume"], errors="coerce").reindex(close.index)
                     tail = pd.DataFrame({"close": close, "volume": vol}).dropna().tail(20)
@@ -524,11 +478,20 @@ def fetch_price_only_snapshot(market: str, symbol: str, name: str) -> Dict[str, 
                     snap.price_change_20d=float(close.iloc[-1]/close.iloc[-21]-1)
                     ret=np.log(close/close.shift(1)).dropna().iloc[-20:]
                     snap.realized_vol_20d=float(ret.std(ddof=1)*np.sqrt(252)) if len(ret)>=10 else np.nan
+                if len(close)>=127 and close.iloc[-127]!=0:
+                    snap.price_change_6m=float(close.iloc[-1]/close.iloc[-127]-1)
         snap.data_quality="MEDIUM" if np.isfinite(snap.price) else "LOW"
         return dict(snap.__dict__)
     except Exception as exc:
         snap.error=str(exc)
         return dict(snap.__dict__)
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def fetch_current_market_catalog(market: str) -> pd.DataFrame:
+    # Current listing breadth only. Historical membership is accumulated prospectively;
+    # a provider failure returns empty and never implies delisting.
+    return current_catalog(str(market), timeout=20)
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
@@ -684,6 +647,21 @@ def discover_live_scenarios(max_queries: int = 10) -> pd.DataFrame:
                     all_items.extend(fut.result())
                 except Exception:
                     pass
+    if not all_items:
+        return pd.DataFrame(columns=["theme","root","evidence_count","source_count","latest_headline","sources","novelty"])
+    # Global dedupe across discovery queries. The same syndicated headline must not
+    # become multiple independent evidence votes merely because several queries found it.
+    cutoff=pd.Timestamp.now(tz="UTC")-pd.Timedelta(days=30)
+    dedup={}
+    for item in all_items:
+        pub=pd.to_datetime(item.get("pubDate"),utc=True,errors="coerce")
+        if pd.isna(pub) or pub < cutoff:
+            continue
+        key=re.sub(r"\s+"," ",str(item.get("title","")).strip().lower())
+        if not key: continue
+        prior=dedup.get(key)
+        if prior is None or pub > prior[0]: dedup[key]=(pub,item)
+    all_items=[v[1] for v in sorted(dedup.values(),key=lambda z:z[0],reverse=True)]
     if not all_items:
         return pd.DataFrame(columns=["theme","root","evidence_count","source_count","latest_headline","sources","novelty"])
 
@@ -1020,10 +998,17 @@ def add_cross_sectional_evidence(df: pd.DataFrame) -> pd.DataFrame:
                 if m in out.columns:
                     out.at[idx,f"{m}_rank"]=percentile_rank(peers[m],safe_float(r.get(m)))
             er=[safe_float(out.at[idx,f"{m}_rank"]) for m in stock_metrics[:4]]
-            ev=int(sum(np.isfinite(v) and v>=.75 for v in er))
-            det=int(sum(np.isfinite(v) and v<=.25 for v in er))
+            strong=int(sum(np.isfinite(v) and v>=.75 for v in er))
+            weak=int(sum(np.isfinite(v) and v<=.25 for v in er))
+            # Revenue/EPS/margin/FCF are correlated views of the same fundamental
+            # economics, not four independent evidence families.  They can confirm
+            # one FUNDAMENTAL_INFLECTION family only.
+            ev=1 if strong>=2 else 0
+            det=1 if weak>=2 else 0
+            out.at[idx,"fundamental_confirmation_count"]=strong
+            out.at[idx,"fundamental_deterioration_count"]=weak
             out.at[idx,"evidence_families"]=ev; out.at[idx,"deterioration_families"]=det
-            out.at[idx,"evidence_basis"]="revenue + EPS + margin + FCF inflection"
+            out.at[idx,"evidence_basis"]="fundamental inflection family (revenue/EPS/margin/FCF composite)"
             out.at[idx,"market_model_status"]="RESEARCH READY / CURRENT DATA"
 
     # IHSG transaction intelligence contributes AT MOST one evidence family. This prevents
@@ -1075,14 +1060,16 @@ def add_cross_sectional_evidence(df: pd.DataFrame) -> pd.DataFrame:
             circ_rank=percentile_rank(cp["circulating_ratio"],safe_float(r.get("circulating_ratio")))
             val_rank=percentile_rank(cp["mcap_to_revenue"],safe_float(r.get("mcap_to_revenue")))
             ev=0; det=0; basis=[]
-            if np.isfinite(rg_rank) and rg_rank>=.70: ev+=1; basis.append("revenue acceleration")
-            if np.isfinite(fdv_rank) and fdv_rank<=.35: ev+=1; basis.append("lower dilution/FDV premium")
-            if np.isfinite(circ_rank) and circ_rank>=.65: ev+=1; basis.append("higher circulating ratio")
-            if safe_float(r.get("holders_revenue_30d"))>0: ev+=1; basis.append("tracked tokenholder income")
+            # Four independent-ish crypto families: usage/revenue, supply/dilution,
+            # holder capture, and valuation.  Related supply metrics do not double vote.
+            if np.isfinite(rg_rank) and rg_rank>=.70: ev+=1; basis.append("usage/revenue acceleration")
+            supply_good=(np.isfinite(fdv_rank) and fdv_rank<=.35) or (np.isfinite(circ_rank) and circ_rank>=.65)
+            supply_bad=(np.isfinite(fdv_rank) and fdv_rank>=.70) or (np.isfinite(circ_rank) and circ_rank<=.30)
+            if supply_good: ev+=1; basis.append("supply/dilution")
+            if safe_float(r.get("holders_revenue_30d"))>0 and np.isfinite(safe_float(r.get("holder_capture_ratio"))): ev+=1; basis.append("tokenholder capture")
             if np.isfinite(val_rank) and val_rank<=.35 and safe_float(r.get("annualized_revenue"))>0: ev+=1; basis.append("economic value vs peers")
             if np.isfinite(rg_rank) and rg_rank<=.30: det+=1
-            if np.isfinite(fdv_rank) and fdv_rank>=.70: det+=1
-            if np.isfinite(circ_rank) and circ_rank<=.30: det+=1
+            if supply_bad: det+=1
             out.at[idx,"evidence_families"]=ev; out.at[idx,"deterioration_families"]=det
             out.at[idx,"evidence_basis"]=" + ".join(basis) if basis else "economics incomplete; usage/holder-capture confirmation required"
             ready = np.isfinite(safe_float(r.get("holder_capture_ratio"))) and np.isfinite(safe_float(r.get("revenue_growth_30d"))) and np.isfinite(safe_float(r.get("fdv_premium")))
@@ -1151,15 +1138,20 @@ def sector_multiple_bands(scan: pd.DataFrame, row: pd.Series) -> Tuple[float,flo
 
 
 def scenario_growth_bands(row: pd.Series) -> Tuple[float,float,float]:
-    # transparent, non-fitted projection anchor: combine revenue & EPS current YoY,
-    # then use wide scenario dispersion. This is a research projection, not production.
+    """Evidence-only scenario band; missing dispersion stays gated.
+
+    The old fallback invented ±15–25pp dispersion even when only one growth input
+    existed.  That manufactured asymmetry.  We now require at least two independent
+    growth observations; dispersion comes only from the observed cross-metric spread.
+    """
     vals = [safe_float(row.get("revenue_growth_yoy")), safe_float(row.get("eps_growth_yoy")), safe_float(row.get("fcf_growth_yoy"))]
     vals = [v for v in vals if np.isfinite(v) and -0.95 < v < 5.0]
-    if not vals:
-        return (-0.15, 0.05, 0.25)
+    if len(vals) < 2:
+        return (np.nan, np.nan, np.nan)
     med = float(np.median(vals))
-    spread = max(0.15, float(np.std(vals)) if len(vals)>1 else 0.25)
-    # cap only to prevent nonsensical arithmetic, not to optimize backtest
+    spread = float(np.std(vals,ddof=1)) if len(vals)>1 else np.nan
+    if not np.isfinite(spread):
+        return (np.nan,np.nan,np.nan)
     bear = clamp(med-spread, -0.75, 2.0)
     base = clamp(med, -0.50, 2.5)
     bull = clamp(med+spread, -0.25, 4.0)
@@ -1190,7 +1182,7 @@ def valuation_projection(scan: pd.DataFrame, row: pd.Series) -> Dict[str, Any]:
     eps = safe_float(row.get("eps_ttm")); price=safe_float(row.get("price"))
     g_bear,g_base,g_bull = scenario_growth_bands(row)
     out = {**ctx,"g_bear":g_bear,"g_base":g_base,"g_bull":g_bull}
-    if np.isfinite(eps) and eps > 0 and np.isfinite(price) and np.isfinite(pemed):
+    if np.isfinite(eps) and eps > 0 and np.isfinite(price) and np.isfinite(pemed) and all(np.isfinite(x) for x in [g_bear,g_base,g_bull]):
         bear_eps = eps*(1+g_bear); base_eps=eps*(1+g_base); bull_eps=eps*(1+g_bull)
         fv_bear = max(0,bear_eps)*pe25 if np.isfinite(pe25) else np.nan
         fv_base = max(0,base_eps)*pemed if np.isfinite(pemed) else np.nan
@@ -1206,7 +1198,7 @@ def valuation_projection(scan: pd.DataFrame, row: pd.Series) -> Dict[str, Any]:
     psctx=sector_sales_context(scan,row)
     ps25,psmed,ps75=psctx["ps25"],psctx["psmed"],psctx["ps75"]
     out.update(psctx)
-    if np.isfinite(revenue) and revenue>0 and np.isfinite(mcap) and mcap>0 and np.isfinite(price) and np.isfinite(psmed):
+    if np.isfinite(revenue) and revenue>0 and np.isfinite(mcap) and mcap>0 and np.isfinite(price) and np.isfinite(psmed) and all(np.isfinite(x) for x in [g_bear,g_base,g_bull]):
         rev_bear=max(0,revenue*(1+g_bear)); rev_base=max(0,revenue*(1+g_base)); rev_bull=max(0,revenue*(1+g_bull))
         mc_bear=rev_bear*ps25 if np.isfinite(ps25) else np.nan
         mc_base=rev_base*psmed
@@ -1369,6 +1361,19 @@ def _memory_enrich_and_record(fresh: pd.DataFrame) -> pd.DataFrame:
     if fresh.empty:
         return fresh
     out = enrich_with_memory(fresh, MEMORY)
+    # Hard readiness ceiling. Cross-sectional evidence can discover a candidate, but
+    # missing market-specific core families cannot be hidden by a bullish action label.
+    if "vertical_status" in out.columns:
+        for idx,r in out.iterrows():
+            status=str(r.get("vertical_status","GATED")).upper(); action=str(r.get("research_action","WATCH")).upper(); stage=str(r.get("stage",""))
+            if status=="GATED":
+                out.at[idx,"research_action"]="WATCH / DATA GATED"
+                out.at[idx,"stage"]="DATA GATED / EARLY RADAR"
+            elif status=="PARTIAL":
+                if any(k in action for k in ["BUILD","SELECTIVE ADD","HOLD","SHORT","PUT","BEARISH","SELL","AVOID"]):
+                    out.at[idx,"research_action"]="WATCH / CORE DATA INCOMPLETE"
+                if any(k in stage.upper() for k in ["HIGH-CONVICTION","CONFIRMED","EXPECTATION INFLECTION"]):
+                    out.at[idx,"stage"]="PROVING / CORE DATA INCOMPLETE"
     observed = datetime.now(timezone.utc).isoformat(timespec="seconds")
     for _, r in out.iterrows():
         try:
@@ -1459,7 +1464,7 @@ def _render_control_room(ranked: pd.DataFrame, mg: Dict[str,Any]) -> None:
             selected=st.selectbox("Control room candidate",symbols,key="control_selected_symbol",label_visibility="collapsed")
         else:
             selected=None
-            st.caption("No valid candidates in the selected market set.")
+            st.markdown("<div class='mq-empty'>No valid candidates in the selected market set.</div>",unsafe_allow_html=True)
 
     row=None
     if selected and not ranked.empty:
@@ -1481,7 +1486,7 @@ def _render_control_room(ranked: pd.DataFrame, mg: Dict[str,Any]) -> None:
                 st.markdown("<div class='mq-section'>Causal transmission</div><div class='mq-empty'>Causal chain incomplete → candidate cannot be upgraded by narrative alone.</div>",unsafe_allow_html=True)
             compact=[c for c in ['research_action','stage','change_state','sequence_signature','expectation_gap','vertical_missing_core'] if c in ranked.columns]
             if compact:
-                st.dataframe(pd.DataFrame([{c:row.get(c) for c in compact}]),use_container_width=True,hide_index=True)
+                render_dense_table(st,pd.DataFrame([{c:row.get(c) for c in compact}]),compact,max_rows=1,height=120)
 
     with right:
         st.markdown("<div class='mq-section'>Macro & risk</div>",unsafe_allow_html=True)
@@ -1494,13 +1499,10 @@ def _render_control_room(ranked: pd.DataFrame, mg: Dict[str,Any]) -> None:
             feed=''.join(f"<div class='mq-feedrow'><div>{html.escape(str(r.get('observed_at_utc',''))[11:19])}</div><div class='mq-event'>{html.escape(str(r.get('alert_type','')))[:18]}</div><div>{html.escape(str(r.get('message','')))[:60]}</div></div>" for _,r in alerts.head(8).iterrows())
             st.markdown("<div class='mq-feed'>"+feed+"</div>",unsafe_allow_html=True)
 
-    st.markdown("<div class='mq-section'>Cross-market opportunity radar</div>",unsafe_allow_html=True)
-    if ranked.empty:
-        st.info("Current scan is empty / gated.")
-    else:
-        cols=[c for c in ["market","symbol","research_action","stage","change_state","sequence_signature","memory_observations","vertical_status","vertical_missing_core"] if c in ranked.columns]
-        st.dataframe(ranked[cols].head(36),use_container_width=True,hide_index=True,height=430)
-    st.caption("Fail-closed: missing causal, fundamental or market-specific evidence remains GATED; price momentum never substitutes for missing economics.")
+    st.markdown("<div class='mq-section'>Cross-Market Opportunity Radar</div>",unsafe_allow_html=True)
+    cols=[c for c in ["market","symbol","research_action","stage","change_state","sequence_signature","memory_observations","vertical_status","vertical_missing_core"] if c in ranked.columns]
+    render_dense_table(st,ranked,cols,max_rows=36,height=430)
+    st.markdown("<div class='mq-note' style='margin-top:8px'><b>FAIL-CLOSED</b> · missing causal, fundamental or market-specific evidence remains GATED; price momentum never substitutes for missing economics.</div>",unsafe_allow_html=True)
 
 
 def _render_verticals(ranked: pd.DataFrame) -> None:
@@ -1535,7 +1537,7 @@ def _render_verticals(ranked: pd.DataFrame) -> None:
             cards.append(f"<div class='mq-vcard'><small>{html.escape(str(r.get('Entity','—')))}</small><strong>{html.escape(state)}</strong><p>TVL {tvl}<br>Fees 24h {fees}<br>Revenue 24h {rev}</p></div>")
         st.markdown("<div class='mq-vgrid'>"+"".join(cards)+"</div>",unsafe_allow_html=True)
         show=oc[[c for c in ['Entity','state','tvl','stablecoins','dex_volume_24h','fees_24h','revenue_24h','change_breadth','source_quality'] if c in oc]].copy()
-        st.dataframe(show,use_container_width=True,hide_index=True,height=390)
+        render_dense_table(st,show,list(show.columns),max_rows=40,height=390)
         return
     sub=ranked[ranked.get("market",pd.Series(index=ranked.index,dtype=str)).astype(str)==view] if not ranked.empty else pd.DataFrame()
     if sub.empty:
@@ -1546,7 +1548,7 @@ def _render_verticals(ranked: pd.DataFrame) -> None:
     high=int((sub.get('data_quality',pd.Series(index=sub.index,dtype=str)).astype(str).str.upper()=='HIGH').sum())
     st.markdown(f"<div class='mq-vgrid'><div class='mq-vcard'><small>CANDIDATES</small><strong>{len(sub)}</strong><p>current scoped scan</p></div><div class='mq-vcard'><small>READINESS</small><strong>{ready} READY · {partial} PARTIAL</strong><p>{gated} gated</p></div><div class='mq-vcard'><small>HIGH DATA</small><strong>{high}</strong><p>cannot be inferred from price alone</p></div></div>",unsafe_allow_html=True)
     cols=[c for c in ["symbol","name","research_action","stage","change_state","expectation_gap","memory_observations","vertical_status","vertical_core_coverage","vertical_missing_core","data_quality"] if c in sub]
-    st.dataframe(sub[cols].head(60),use_container_width=True,hide_index=True,height=520)
+    render_dense_table(st,sub,cols,max_rows=60,height=520)
 
 # -----------------------------
 # Decision-view helpers
@@ -1848,6 +1850,14 @@ def _run_intelligence(scan_input: pd.DataFrame, scan_signature: Tuple[Any,...], 
                 fresh=_memory_enrich_and_record(fresh)
         except Exception as exc:
             st.session_state["memory_refresh_error"]=str(exc)
+        # Freeze prospectively observable comparator and runner cohorts BEFORE any
+        # future return exists.  Refreshes within the same local-market day are idempotent.
+        try:
+            observed=datetime.now(timezone.utc)
+            PROSPECTIVE.freeze_baselines(fresh,BENCHMARKS,observed_at=observed)
+            PROSPECTIVE.freeze_runner_cohort(fresh,BENCHMARKS,observed_at=observed)
+        except Exception as exc:
+            st.session_state["prospective_freeze_error"]=str(exc)
     try:
         scen=discover_live_scenarios(max_queries=8)
     except Exception as exc:
@@ -1860,7 +1870,7 @@ def _run_intelligence(scan_input: pd.DataFrame, scan_signature: Tuple[Any,...], 
 
 
 @st.cache_data(ttl=21600, show_spinner=False)
-def _fetch_outcome_history(symbol: str, start_iso: str) -> pd.Series:
+def _fetch_outcome_history(symbol: str, start_iso: str, market: str = "") -> pd.Series:
     if yf is None or not symbol:
         return pd.Series(dtype=float)
     try:
@@ -1869,8 +1879,9 @@ def _fetch_outcome_history(symbol: str, start_iso: str) -> pd.Series:
         if hist is None or hist.empty or "Close" not in hist:
             return pd.Series(dtype=float)
         s=pd.to_numeric(hist["Close"],errors="coerce").dropna()
-        idx=pd.to_datetime(s.index,utc=True,errors="coerce"); s.index=idx
-        return s[~s.index.isna()]
+        idx=pd.to_datetime(s.index,errors="coerce"); s.index=idx
+        s=s[~s.index.isna()]
+        return normalize_price_observations(s,market,daily_labels=True)
     except Exception:
         return pd.Series(dtype=float)
 
@@ -1879,26 +1890,86 @@ def _refresh_mature_opportunity_outcomes(limit: int = 8) -> None:
     """Bounded, cached outcome maturation. Never backfills future data into the event snapshot."""
     if yf is None:
         return
-    events=OPP_MEMORY.events_frame(active_only=False,limit=200)
+    events=OPP_MEMORY.events_due_for_outcome_update(limit=int(limit))
     if events.empty:
         return
-    # Oldest first so mature events get labeled before fresh ones.
-    events=events.sort_values("first_seen_time",ascending=True).head(int(limit))
     for _,ev in events.iterrows():
         symbol=str(ev.get("symbol") or ""); market=str(ev.get("market") or ""); anchor=str(ev.get("first_seen_time") or "")
         if not symbol or not anchor: continue
-        asset=_fetch_outcome_history(symbol,anchor)
+        asset=_fetch_outcome_history(symbol,anchor,market)
         if asset.empty: continue
         bench_symbol=str(BENCHMARKS.get(market,"") or "")
         # Descriptive benchmark labels are not treated as tickers.
-        bench=_fetch_outcome_history(bench_symbol,anchor) if bench_symbol and all(x not in bench_symbol for x in [" / ","specific","context"]) else pd.Series(dtype=float)
-        update_from_price_frames(OPP_MEMORY,str(ev.get("event_id")),asset,benchmark_prices=(bench if not bench.empty else None),sector_prices=None)
+        bench=_fetch_outcome_history(bench_symbol,anchor,market) if bench_symbol and all(x not in bench_symbol for x in [" / ","specific","context"]) else pd.Series(dtype=float)
+        sector_symbol=_sector_benchmark_symbol(market,ev.get("sector"))
+        sector=_fetch_outcome_history(sector_symbol,anchor,"US") if sector_symbol else pd.Series(dtype=float)
+        update_from_price_frames(OPP_MEMORY,str(ev.get("event_id")),asset,benchmark_prices=(bench if not bench.empty else None),sector_prices=(sector if not sector.empty else None))
+
+
+def _refresh_mature_baseline_outcomes(limit: int = 6) -> None:
+    if yf is None:
+        return
+    due=PROSPECTIVE.selections_due(limit=int(limit))
+    if due.empty:
+        return
+    for _,sel in due.iterrows():
+        market=str(sel.get("market") or ""); anchor=str(sel.get("observed_at_utc") or ""); symbol=str(sel.get("symbol") or "")
+        if not symbol or not anchor: continue
+        asset=_fetch_outcome_history(symbol,anchor,market)
+        if asset.empty: continue
+        bs=str(sel.get("benchmark") or "")
+        bench=_fetch_outcome_history(bs,anchor,market) if bs and all(x not in bs for x in [" / ","specific","context"]) else pd.Series(dtype=float)
+        PROSPECTIVE.upsert_outcomes(sel.to_dict(),asset,benchmark=(bench if not bench.empty else None))
+
+
+def _miss_reason_from_snapshot(snapshot: Dict[str,Any]) -> str:
+    missing=str(snapshot.get("vertical_missing_core") or "").lower()
+    status=str(snapshot.get("vertical_status") or "GATED").upper()
+    ev=safe_float(snapshot.get("evidence_families")); ch=safe_float(snapshot.get("change_score"))
+    if status=="GATED":
+        return "DATA_MISS"
+    if "causal_chain" in missing:
+        return "CAUSAL_MODEL_MISS"
+    if (np.isfinite(ev) and ev>=2) or (np.isfinite(ch) and ch>=62):
+        return "RANKING_MISS"
+    return "DISCOVERY_MISS"
+
+
+def _audit_mature_runner_cohorts(limit: int = 6) -> None:
+    # Prospective 3M runner recall.  Fresh installs correctly have no mature cohorts yet.
+    if yf is None:
+        return
+    due=PROSPECTIVE.runner_anchors_due(min_age_days=91,limit=int(limit))
+    if due.empty:
+        return
+    for _,anchor in due.iterrows():
+        market=str(anchor.get("market") or ""); symbol=str(anchor.get("symbol") or ""); ts=str(anchor.get("observed_at_utc") or "")
+        if not symbol or not ts: continue
+        asset=_fetch_outcome_history(symbol,ts,market)
+        if asset.empty: continue
+        bs=str(anchor.get("benchmark") or "")
+        bench=_fetch_outcome_history(bs,ts,market) if bs and all(x not in bs for x in [" / ","specific","context"]) else pd.Series(dtype=float)
+        out=path_outcome(asset,ts,anchor_price=anchor.get("anchor_price"),benchmark=(bench if not bench.empty else None),horizon_days=91)
+        if not out or not out.get("completed"):
+            continue
+        ret=safe_float(out.get("absolute_return"))
+        # Only audited future runners enter recall denominator. Non-runners are marked audited
+        # without becoming missed-winner records.
+        if np.isfinite(ret) and ret>=0.25:
+            pit=OPP_MEMORY.opportunity_status_at(symbol,market,ts)
+            try: snapshot=json.loads(str(anchor.get("snapshot_json") or "{}"))
+            except Exception: snapshot={}
+            classification="FOUND" if pit.get("active") else _miss_reason_from_snapshot(snapshot)
+            _ev=safe_float(snapshot.get("evidence_families")); _ch=safe_float(snapshot.get("change_score"))
+            observable_then=True if ((np.isfinite(_ev) and _ev>0) or (np.isfinite(_ch) and _ch>=62)) else None
+            OPP_MEMORY.record_missed_runner(symbol=symbol,market=market,anchor_at_utc=ts,runner_definition="+25% within 3M | SCANNED UNIVERSE",future_return=ret,classification=classification,observable_then=observable_then,evidence={"pit_status":pit,"snapshot":snapshot,"outcome":out,"scope":"prospectively frozen scanned universe"})
+        PROSPECTIVE.mark_runner_audited(int(anchor.get("id")))
 
 
 def _macro_allows_long_leverage(mg: Dict[str,Any]) -> bool:
     label=str(mg.get("action_label","")).upper()
     crash=str(mg.get("crash_state","")).upper()
-    return not any(k in label for k in ["DEFENSIVE","CRISIS"]) and "CRASH DANGER" not in crash
+    return not any(k in label for k in ["DEFENSIVE","CRISIS","GATED"]) and not any(k in crash for k in ["CRASH DANGER","GATED"])
 
 
 def _plain_horizon(row: pd.Series, kind: str = "") -> str:
@@ -2093,262 +2164,6 @@ def _expression_readiness(kind: str) -> List[Tuple[str,str,str]]:
         return [("US","ACTIVE WHEN EARNED","listed calls/puts"),("BTC / ETH","VISIBLE · DERIBIT","CALL/PUT only after crypto thesis + IV/liquidity clear"),("Other crypto","NO LIQUID OPTION SURFACE","never fabricate an option"),("FX / Commodity","NOT YET IN PRODUCT","future listed-option/futures-option module")]
     return [("All markets","EARLY RADAR","discovery is broad; capital waits for asset-class confirmation")]
 
-def _render_expression_readiness(kind: str) -> None:
-    rows=_expression_readiness(kind)
-    if not rows: return
-    html="<div class='grid3' style='grid-template-columns:repeat(%d,minmax(0,1fr))'>" % min(5,len(rows))
-    for market,status,note in rows:
-        stxt=status.upper()
-        tone="green" if "ACTIVE" in stxt else ("amber" if any(x in stxt for x in ["PARTIAL","ADAPTER READY"]) else "gray")
-        c=COLORS[tone][0]
-        html+=f"<div class='card' style='min-height:78px'><div class='kicker'>{market}</div><div class='ct' style='color:{c};margin-top:4px'>{status}</div><div class='cn'>{note}</div></div>"
-    html+="</div>"
-    st.markdown(html,unsafe_allow_html=True)
-
-
-def _display_scoreboard(df: pd.DataFrame, kind: str) -> None:
-    if df.empty:
-        st.markdown(f"<div class='gate'><b>NO {kind.upper()} ROWS.</b> This surface is empty because the selected universe does not contain a supported instrument.</div>",unsafe_allow_html=True)
-        return
-    rows=[]; k=kind.upper()
-    for _,r in df.head(18).iterrows():
-        val=valuation_projection(df,r) if str(r.get("market")) in ["US","IHSG"] else {}
-        pin,_=price_in_label(val); px=safe_float(r.get("price")); base=safe_float(val.get("fv_base")) if val else np.nan
-        upside=base/px-1 if np.isfinite(base) and np.isfinite(px) and px>0 else np.nan
-        q=bool(r.get("qualified",False))
-        common={"State":"● ACTION" if q else "○ WAIT","Market":r.get("market"),"Ticker":r.get("symbol"),"Action":_plain_action_from_row(r,"buyhold") if "BUY & HOLD" in k else r.get("expression",r.get("research_action")),"Conviction":_conviction_label(r),"Price":r.get("price")}
-        if "BUY & HOLD" in k: common.update({"Base FV":base,"Upside":upside,"Price-in":pin})
-        elif "LEVERAGED" in k: common.update({"Gate":r.get("risk_gate","—")})
-        elif "OPTIONS" in k: common.update({"Option check":r.get("option_edge","—")})
-        elif "EARLY" in k: common.update({"Stage":r.get("stage")})
-        else: common.update({"Stage":r.get("stage")})
-        rows.append(common)
-    show=pd.DataFrame(rows)
-    st.dataframe(show,use_container_width=True,hide_index=True,height=min(480,38+35*len(show)),column_config={"Price":st.column_config.NumberColumn(format="%.2f"),"Base FV":st.column_config.NumberColumn(format="%.2f"),"Upside":st.column_config.NumberColumn(format="%.1f%%")})
-
-
-def _plotly_base(fig, height: int=340, legend: bool=True):
-    if go is None: return None
-    fig.update_layout(height=height,margin=dict(l=20,r=20,t=42,b=22),paper_bgcolor="#090e15",plot_bgcolor="#090e15",font=dict(color="#dce6f2",size=11),showlegend=legend,legend=dict(orientation="h",yanchor="bottom",y=1.02,x=0),hoverlabel=dict(bgcolor="#111925"))
-    fig.update_xaxes(gridcolor="rgba(255,255,255,.055)",zerolinecolor="rgba(255,255,255,.12)")
-    fig.update_yaxes(gridcolor="rgba(255,255,255,.055)",zerolinecolor="rgba(255,255,255,.12)")
-    return fig
-
-
-def _render_expression_matrix(expr: Dict[str,pd.DataFrame]) -> None:
-    if go is None: return
-    markets=["US","IHSG","Crypto","FX","Commodity"]
-    cols=[("buyhold","Cash / stock"),("spot","Spot / cash"),("leverage","Leverage"),("options","Options")]
-    z=[]; text=[]
-    for m in markets:
-        zr=[]; tr=[]
-        for key,label in cols:
-            d=expr.get(key,pd.DataFrame())
-            if d.empty or "market" not in d: sub=pd.DataFrame()
-            else: sub=d[d["market"].astype(str)==m]
-            if m=="IHSG" and key in ["leverage","options"]: val=0; txt="NOT ALLOWED"
-            elif m in ["FX","Commodity"] and key=="options": val=0; txt="NOT YET"
-            elif sub.empty: val=0; txt="—"
-            elif "qualified" in sub.columns and sub["qualified"].fillna(False).astype(bool).any(): val=3; txt="ACTION"
-            else: val=1; txt="VISIBLE / WAIT"
-            zr.append(val); tr.append(txt)
-        z.append(zr); text.append(tr)
-    fig=go.Figure(go.Heatmap(z=z,x=[c[1] for c in cols],y=markets,text=text,texttemplate="%{text}",hovertemplate="%{y} · %{x}<br>%{text}<extra></extra>",zmin=0,zmax=3,colorscale=[[0,"#101722"],[.33,"#39485c"],[.66,"#f59e0b"],[1,"#16c784"]],showscale=False,xgap=5,ygap=5))
-    fig.update_layout(title="Expression coverage · nothing disappears when gated")
-    _plotly_base(fig,310,False)
-    st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
-
-
-def _opportunity_map_frame(ranked: pd.DataFrame) -> pd.DataFrame:
-    if ranked.empty: return pd.DataFrame()
-    rows=[]
-    for _,r in ranked.iterrows():
-        market=str(r.get("market")); ev=safe_float(r.get("evidence_families")); det=safe_float(r.get("deterioration_families")); quality=str(r.get("data_quality","LOW")).upper()
-        evidence=(0 if not np.isfinite(ev) else ev)-(0 if not np.isfinite(det) else det)
-        x=np.nan; source=""
-        if market in ["US","IHSG"]:
-            v=valuation_projection(ranked,r); gap=safe_float(v.get("expectation_gap")); x=100*clamp(gap,-1,1) if np.isfinite(gap) else np.nan; source="expectation gap"
-        elif market=="Crypto":
-            x=clamp(evidence*18,-90,90); source="crypto economics evidence"
-        else:
-            x=0.0; source="causal model gated"
-        rows.append({"Market":market,"Ticker":r.get("symbol"),"Evidence":evidence,"Asymmetry":x,"Quality":quality,"Action":r.get("research_action"),"Source":source})
-    return pd.DataFrame(rows)
-
-
-def _qualified_modes_for_symbol(expr: Dict[str,pd.DataFrame], symbol: str) -> List[Tuple[str,str]]:
-    """Return only genuinely qualified expressions for one underlying."""
-    out=[]
-    labels={"buyhold":"STOCK","spot":"SPOT","leverage":"LEVERAGE","options":"OPTION"}
-    for key in ["buyhold","spot","leverage","options"]:
-        d=expr.get(key,pd.DataFrame())
-        if d.empty or "symbol" not in d.columns:
-            continue
-        sub=d[d["symbol"].astype(str)==str(symbol)]
-        if sub.empty:
-            continue
-        if "qualified" in sub.columns:
-            sub=sub[sub["qualified"].fillna(False).astype(bool)]
-        if sub.empty:
-            continue
-        action=str(sub.iloc[0].get("expression",sub.iloc[0].get("research_action","ACTION")))
-        out.append((labels[key],action))
-    return out
-
-
-def _plain_board_state(row: pd.Series, expr: Dict[str,pd.DataFrame]) -> Dict[str,Any]:
-    symbol=str(row.get("symbol","—"))
-    modes=_qualified_modes_for_symbol(expr,symbol)
-    research=str(row.get("research_action","WATCH") or "WATCH").upper()
-    quality=str(row.get("data_quality","LOW") or "LOW").upper()
-    model=str(row.get("market_model_status","GATED") or "GATED").upper()
-    market=str(row.get("market",""))
-    downside_words=["SHORT","SELL","PUT","BEARISH","EXIT","TRIM","AVOID"]
-    if modes:
-        actions=" · ".join(x[1] for x in modes)
-        downside=any(w in actions.upper() for w in downside_words)
-        return {"bucket":"AVOID / DOWNSIDE" if downside else "ACT NOW","tone":"red" if downside else "green","action":modes[0][1],"modes":modes,"ready":True}
-    if any(w in research for w in downside_words):
-        return {"bucket":"AVOID / DOWNSIDE","tone":"red","action":research,"modes":[],"ready":False}
-    if quality=="LOW" or (market in ["FX","Commodity","Crypto"] and "READY" not in model):
-        return {"bucket":"NOT READY","tone":"gray","action":"WAIT FOR DATA","modes":[],"ready":False}
-    return {"bucket":"WATCH","tone":"amber","action":"WAIT / WATCH","modes":[],"ready":False}
-
-
-def _render_plain_mode_strip(expr: Dict[str,pd.DataFrame]) -> None:
-    specs=[("buyhold","Cash / stock","normal ownership"),("leverage","Leverage","only when risk gate clears"),("options","Options","call / put when edge clears"),("spot","Spot / cash","crypto / FX / commodity")]
-    h="<div class='mode-strip'>"
-    for key,name,note in specs:
-        d=expr.get(key,pd.DataFrame())
-        ready=int(d.get("qualified",pd.Series(dtype=bool)).fillna(False).astype(bool).sum()) if not d.empty and "qualified" in d else 0
-        tone="green" if ready>0 else "gray"; c=COLORS[tone][0]
-        h+=f"<div class='mode-card'><div class='mode-name'>{html.escape(name)}</div><div class='mode-ready' style='color:{c}'>{ready} ready</div><div class='mode-note'>{html.escape(note)}</div></div>"
-    h+="</div>"
-    st.markdown(h,unsafe_allow_html=True)
-
-
-def _render_opportunity_visuals(ranked: pd.DataFrame, expr: Dict[str,pd.DataFrame]) -> None:
-    """Plain-language daily board. No scatter plot or model matrix on the default screen."""
-    if ranked.empty:
-        st.markdown("<div class='gate'><b>No opportunities loaded.</b> The scanner has no valid rows for the selected markets.</div>",unsafe_allow_html=True)
-        return
-
-    states=[]
-    for idx,r in ranked.iterrows():
-        stt=_plain_board_state(r,expr)
-        states.append((idx,stt))
-
-    # 1) Fast traffic-light summary: user should understand the whole universe in seconds.
-    buckets=[("ACT NOW","green"),("WATCH","amber"),("AVOID / DOWNSIDE","red"),("NOT READY","gray")]
-    board="<div class='simple-board'>"
-    for label,tone in buckets:
-        ids=[idx for idx,stt in states if stt["bucket"]==label]
-        syms=[str(ranked.loc[idx].get("symbol","")) for idx in ids[:6]]
-        c=COLORS[tone][0]
-        chips="".join(f"<span class='ticker-chip'>{html.escape(x)}</span>" for x in syms) or "<span class='list-sub'>none</span>"
-        board+=f"<div class='simple-col'><div class='sc-label' style='color:{c}'>{label}</div><div class='sc-count'>{len(ids)}</div><div>{chips}</div></div>"
-    board+="</div>"
-    st.markdown("<div class='section'>At a glance</div>",unsafe_allow_html=True)
-    st.markdown(board,unsafe_allow_html=True)
-
-    # 2) Top picks. Qualified actions first, then strongest watch candidates.
-    order_pos={idx:pos for pos,idx in enumerate(ranked.index.tolist())}
-    def sort_key(item):
-        idx,stt=item
-        # Keep the engine's existing ranking intact. Only move genuinely ready expressions ahead of watch-only rows.
-        ready_priority=0 if bool(stt.get("ready",False)) else 1
-        bucket_priority={"ACT NOW":0,"AVOID / DOWNSIDE":1,"WATCH":2,"NOT READY":3}.get(stt["bucket"],4)
-        return (ready_priority,bucket_priority,order_pos.get(idx,10**9))
-    ordered=sorted(states,key=sort_key)[:4]
-    picks="<div class='pick-grid'>"
-    for rank,(idx,stt) in enumerate(ordered,1):
-        r=ranked.loc[idx]; sym=str(r.get("symbol","—")); market=str(r.get("market","—")); name=str(r.get("name","") or "")
-        c=COLORS[stt["tone"]][0]
-        ev=int(safe_float(r.get("evidence_families")) if np.isfinite(safe_float(r.get("evidence_families"))) else 0)
-        det=int(safe_float(r.get("deterioration_families")) if np.isfinite(safe_float(r.get("deterioration_families"))) else 0)
-        why=_why_now_compact(r)
-        mode_txt=", ".join(x[0] for x in stt["modes"]) if stt["modes"] else "no capital expression yet"
-        extra=""
-        if market in ["US","IHSG"]:
-            try:
-                v=valuation_projection(ranked,r); px=safe_float(r.get("price")); base=safe_float(v.get("fv_base"))
-                if np.isfinite(px) and px>0 and np.isfinite(base):
-                    up=base/px-1
-                    extra=f" · research upside {pct(up)}" if up>=0 else f" · research downside {pct(up)}"
-            except Exception:
-                pass
-        picks+=f"<div class='pick-card'><div class='pick-top'><div><div class='pick-symbol'>{html.escape(sym)}</div><div class='pick-market'>{html.escape(market)} · {html.escape(name[:28])}</div></div><div class='rank-badge'>#{rank}</div></div><div class='pick-action' style='color:{c}'>{html.escape(stt['action'])}</div><div class='pick-why'>{html.escape(why)}</div><div class='pick-meta'>Confidence {_conviction_label(r)} · {ev} supporting / {det} negative · {html.escape(mode_txt)}{html.escape(extra)}</div></div>"
-    picks+="</div>"
-    st.markdown("<div class='section'>Top opportunities now</div>",unsafe_allow_html=True)
-    st.markdown(picks,unsafe_allow_html=True)
-
-    st.markdown("<div class='section'>How it can be traded</div>",unsafe_allow_html=True)
-    _render_plain_mode_strip(expr)
-    st.markdown("<div class='simple-help'>Read it left to right: <b>ACT NOW</b> means the model has earned an expression; <b>WATCH</b> means the thesis is interesting but entry is not earned; <b>NOT READY</b> means missing data/model coverage, not a hidden buy signal.</div>",unsafe_allow_html=True)
-
-
-def _render_expression_cards(df: pd.DataFrame, kind: str) -> None:
-    """Simple ranked list for the chosen expression. Advanced evidence is hidden below."""
-    if df.empty:
-        st.markdown("<div class='gate'><b>Nothing supported in this mode.</b> Change expression or selected markets.</div>",unsafe_allow_html=True)
-        return
-    h=""
-    for _,r in df.head(8).iterrows():
-        q=bool(r.get("qualified",False)); action=str(r.get("expression",r.get("research_action","WATCH")))
-        downside=any(x in action.upper() for x in ["SHORT","PUT","SELL","BEARISH","EXIT","TRIM","AVOID"])
-        tone=("red" if downside else "green") if q else "amber"
-        if (not q) and ("GATED" in action.upper() or str(r.get("data_quality","LOW")).upper()=="LOW"): tone="gray"
-        c=COLORS[tone][0]
-        state="READY" if q else ("DATA GATED" if tone=="gray" else "WATCH")
-        sym=html.escape(str(r.get("symbol","—"))); market=html.escape(str(r.get("market","—")))
-        why=html.escape(_why_now_compact(r)); conf=html.escape(_conviction_label(r)); horizon=html.escape(_plain_horizon(r,kind))
-        h+=f"<div class='list-card'><div><div class='list-sym'>{sym}</div><div class='list-sub'>{market}</div></div><div class='list-action' style='color:{c}'>{html.escape(action)}</div><div class='list-why'>{why}</div><div class='list-meta'>{conf} confidence · {horizon}</div><div class='list-meta' style='color:{c};font-weight:850'>{state}</div></div>"
-    st.markdown(h,unsafe_allow_html=True)
-
-def _render_evidence_flow_chart(df: pd.DataFrame, title: str="Evidence flow vs price-in") -> None:
-    if df.empty or go is None: return
-    d=df.head(14).copy(); labels=d["symbol"].astype(str).tolist()
-    net=[]; gap=[]
-    for _,r in d.iterrows():
-        ev=safe_float(r.get("evidence_families")); det=safe_float(r.get("deterioration_families")); net.append((ev if np.isfinite(ev) else 0)-(det if np.isfinite(det) else 0))
-        if str(r.get("market")) in ["US","IHSG"]:
-            v=valuation_projection(df,r); g=safe_float(v.get("expectation_gap")); gap.append(g*100 if np.isfinite(g) else None)
-        elif str(r.get("market"))=="Crypto": gap.append(net[-1]*18)
-        else: gap.append(None)
-    bar_colors=["#10b981" if x>=0 else "#f43f5e" for x in net]
-    fig=go.Figure([go.Bar(x=labels,y=net,name="Net evidence",marker_color=bar_colors,yaxis="y"),go.Scatter(x=labels,y=gap,name="Asymmetry / price-in",mode="lines+markers",line=dict(color="#f59e0b",width=2.5),marker=dict(size=7),yaxis="y2")])
-    fig.update_layout(title=title,yaxis=dict(title="Net evidence",side="left"),yaxis2=dict(title="Asymmetry",overlaying="y",side="right",showgrid=False),barmode="relative")
-    _plotly_base(fig,330,True); st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
-
-
-def _render_compact_selected(row: pd.Series, ranked: pd.DataFrame, mg: Dict[str,Any], view_kind: str) -> None:
-    val=valuation_projection(ranked,row) if str(row.get("market")) in ["US","IHSG"] else {}
-    prior=get_prior_checkpoint(str(row.get("symbol","")),STATE)
-    entry=entry_decision(row.to_dict(),val,mg,prior)
-    ev=safe_float(row.get("evidence_families")); det=safe_float(row.get("deterioration_families")); px=safe_float(row.get("price")); base=safe_float(val.get("fv_base")) if val else np.nan
-    q=bool(row.get("qualified",False)); action=str(row.get("expression",row.get("research_action","WATCH")))
-    cells=[("ACTION",action,"ACTION" if q else "WAIT"),("ENTRY",str(entry.get("entry_stage","DISCOVER")),str(entry.get("allocation_guide","0%"))),("EVIDENCE",f"{int(ev) if np.isfinite(ev) else 0} ↑ / {int(det) if np.isfinite(det) else 0} ↓",str(row.get("data_quality","LOW"))),("PRICE",_fmt_asset_price(row,px),"current"),("BASE FV",_fmt_asset_price(row,base) if np.isfinite(base) else "GATED","same-sector only")]
-    if str(row.get("market"))=="IHSG":
-        txs=safe_float(row.get("transaction_score")); tx_state=str(row.get("transaction_state","DATA GATED"))
-        cells.append(("TRANSACTION",f"{txs:.0f}/100" if np.isfinite(txs) else "GATED",tx_state))
-    h="<div class='metric-strip'>"
-    for a,b,c in cells: h+=f"<div class='metric-mini'><div class='m1'>{a}</div><div class='m2'>{b}</div><div class='m3'>{c}</div></div>"
-    h+="</div>"; st.markdown(h,unsafe_allow_html=True)
-    if go is not None:
-        values=[max(0,min(100,(ev if np.isfinite(ev) else 0)/5*100)),100 if str(row.get("data_quality","LOW")).upper()=="HIGH" else (60 if str(row.get("data_quality","LOW")).upper()=="MEDIUM" else 25),max(0,min(100,50+(safe_float(val.get("expectation_gap"))*100 if val and np.isfinite(safe_float(val.get("expectation_gap"))) else 0))),100 if "TAILWIND" in _macro_fit(mg,"SHORT" if "SHORT" in action or "PUT" in action else "LONG") else (55 if "NEUTRAL" in _macro_fit(mg) else 25)]
-        fig=go.Figure(go.Bar(x=values,y=["Causal evidence","Data quality","Asymmetry","Macro fit"],orientation="h",marker_color=["#10b981","#6ea8fe","#f59e0b","#b794f4"],text=[f"{v:.0f}" for v in values],textposition="inside"))
-        fig.update_xaxes(range=[0,100],visible=False); fig.update_layout(title="Decision stack · why this is / is not actionable")
-        _plotly_base(fig,260,False); st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
-
-
-def _state_score(text: str) -> int:
-    t=str(text).upper()
-    if any(k in t for k in ["SUPPORT","POSITIVE","CALM","IMPROV","TAILWIND","COOLING","RESILIENT"]): return 2
-    if any(k in t for k in ["STRESS","CONTRACT","DANGER","DETERIOR","HEATING","RECESSION"]): return -2
-    if any(k in t for k in ["GATED","NOT RELEASED"]): return 0
-    return 1 if any(k in t for k in ["WATCH","MIXED","BELOW-TREND"]) else 0
-
-
 def _render_macro_visual_room() -> None:
     install_memequant_style(st)
     fn=getattr(_macro_module,"compute_macro_gate_snapshot",None) if _macro_module is not None else None
@@ -2372,7 +2187,7 @@ def _render_macro_visual_room() -> None:
     with left:
         st.markdown("<div class='mq-section'>Macro path · now to +4Q</div>",unsafe_allow_html=True)
         if proj.empty: st.markdown("<div class='mq-empty'>Projection matrix gated.</div>",unsafe_allow_html=True)
-        else: st.dataframe(proj,use_container_width=True,hide_index=True,height=360)
+        else: render_dense_table(st,proj,list(proj.columns),max_rows=30,height=360)
     with right:
         st.markdown("<div class='mq-section'>What matters most now</div>",unsafe_allow_html=True)
         if not att: st.markdown("<div class='mq-empty'>No ranked attention items.</div>",unsafe_allow_html=True)
@@ -2386,151 +2201,6 @@ def _render_macro_visual_room() -> None:
         ph=''.join(f"<div class='mq-vcard'><small>{html.escape(str(sc.get('family','PATH')))}</small><strong>{html.escape(str(sc.get('name','')))[:48]}</strong><p>{html.escape(str(sc.get('action_state','WATCH')))} · {html.escape(str(sc.get('action','')))[:140]}</p></div>" for sc in paths[:6])
         st.markdown("<div class='mq-vgrid'>"+ph+"</div>",unsafe_allow_html=True)
     st.markdown(f"<div class='mq-note'><b>Headline</b><br>{html.escape(str(snap.get('headline','No macro headline available.')))}</div>",unsafe_allow_html=True)
-
-def _render_opportunity_detail(row: pd.Series, ranked: pd.DataFrame, mg: Dict[str,Any], view_kind: str) -> None:
-    query=f"{row.get('name','')} {row.get('symbol','')} shortage capacity pricing adoption revenue contract backlog demand supply buyback burn intervention"
-    ev=news_evidence(query,limit=8)
-    root=infer_specific_root(str(row.get("name","")),str(row.get("symbol","")),ev)
-    val=valuation_projection(ranked,row) if str(row.get("market")) in ["US","IHSG"] else {}
-    pin,pintone=price_in_label(val)
-    raw_action=_plain_action_from_row(row,"buyhold") if view_kind=="BUYHOLD" else str(row.get("expression",row.get("research_action","WATCH")))
-    prior_cp=get_prior_checkpoint(str(row.get("symbol","")), STATE)
-    entry=entry_decision(row.to_dict(), val, mg, prior_cp)
-    expr=expression_decision(row.to_dict(), entry, mg)
-    action=entry.get("entry_action",raw_action) if view_kind in ["BUYHOLD","SPOT","RADAR"] else raw_action
-    atone="green" if any(x in action for x in ["BUILD","ADD","CORE","LONG","CALL","STARTER"]) else ("red" if any(x in action for x in ["SELL","SHORT","PUT","BEARISH","EXIT"]) else "amber")
-    thesis=opportunity_thesis_summary(row,ev,root)
-    conf=_conviction_label(row); horizon=_plain_horizon(row,view_kind); asym=_asymmetry_label(row,val)
-    px=safe_float(row.get("price")); base=safe_float(val.get("fv_base")) if val else np.nan; bull=safe_float(val.get("fv_bull")) if val else np.nan; bear=safe_float(val.get("fv_bear")) if val else np.nan
-    upside=base/px-1 if np.isfinite(base) and np.isfinite(px) and px>0 else np.nan
-    branches=adaptive_scenario_branches(root)
-    falsifier=str(branches.iloc[0].get("falsifier","Needs causal invalidation rule")) if not branches.empty else "Critical thesis input reverses or data stops confirming."
-    huge=str(branches.iloc[0].get("economic_projection","Economics accelerate faster/longer than market expects")) if not branches.empty else "Fundamentals accelerate faster and stay durable longer than priced."
-
-    st.markdown(f"<div class='plainbox'><b>{row.get('symbol')} · {row.get('name')}</b><br>{thesis}</div>",unsafe_allow_html=True)
-    cards="<div class='decision-grid'>"
-    cards+=f"<div class='decision-card'><div class='kicker'>ENTRY / ACTION NOW</div><div class='dv' style='color:{COLORS[atone][0]}'>{action}</div><div class='dn'>Detection is not entry. Current stage: {entry.get('entry_stage','DISCOVER')}.</div></div>"
-    cards+=f"<div class='decision-card'><div class='kicker'>CURRENT PRICE</div><div class='dv'>{_fmt_asset_price(row,px)}</div><div class='dn'>Latest scanned price.</div></div>"
-    cards+=f"<div class='decision-card'><div class='kicker'>BASE FAIR VALUE</div><div class='dv'>{_fmt_asset_price(row,base) if np.isfinite(base) else 'GATED'}</div><div class='dn'>Research range, not a precise target.</div></div>"
-    cards+=f"<div class='decision-card'><div class='kicker'>BASE UPSIDE</div><div class='dv'>{pct(upside) if np.isfinite(upside) else 'GATED'}</div><div class='dn'>Versus current price.</div></div>"
-    cards+=f"<div class='decision-card'><div class='kicker'>HORIZON</div><div class='dv'>{horizon}</div><div class='dn'>When thesis should resolve.</div></div>"
-    cards+=f"<div class='decision-card'><div class='kicker'>ENTRY SIZE</div><div class='dv'>{entry.get('allocation_guide','0%')}</div><div class='dn'>Conviction {conf}. Sizing guide, not calibrated probability.</div></div>"
-    cards+="</div>"
-    st.markdown(cards,unsafe_allow_html=True)
-
-    st.markdown("<div class='section'>Read this before the numbers</div>",unsafe_allow_html=True)
-    info="<div class='info4'>"
-    info+=f"<div class='info-card'><div class='info-title'>WHY NOW?</div><div class='info-text'>{_why_now_compact(row)}</div></div>"
-    info+=f"<div class='info-card'><div class='info-title'>WHAT MAY BE MISPRICED?</div><div class='info-text'>{pin}. Base expectation gap: {pct(val.get('expectation_gap',np.nan)) if val else 'asset-class model gated'}.</div></div>"
-    info+=f"<div class='info-card'><div class='info-title'>WHAT CAN MAKE IT MUCH BIGGER?</div><div class='info-text'>{huge}</div></div>"
-    info+=f"<div class='info-card'><div class='info-title'>WHAT KILLS THE THESIS?</div><div class='info-text'>{falsifier}</div></div>"
-    info+="</div>"
-    st.markdown(info,unsafe_allow_html=True)
-
-    if str(row.get("market"))=="IHSG":
-        st.markdown("**IHSG Transaction Intelligence · broker inventory + live microstructure**")
-        tx_score=safe_float(row.get("transaction_score"))
-        tx_rows=[
-            {"Layer":"State","Reading":str(row.get("transaction_state","DATA GATED")),"Why it matters":"Research state only; not a calibrated probability or standalone entry."},
-            {"Layer":"Coverage","Reading":str(row.get("transaction_coverage","LOW")),"Why it matters":"Missing provider/API data lowers coverage instead of being imputed."},
-            {"Layer":"Research score","Reading":f"{tx_score:.0f}/100" if np.isfinite(tx_score) else "GATED","Why it matters":"Bounded evidence score, not win probability."},
-            {"Layer":"Broker persistence edge","Reading":pct(safe_float(row.get("persistence_edge"))),"Why it matters":"Top accumulating brokers persistent vs top distributing brokers."},
-            {"Layer":"Buyer concentration","Reading":pct(safe_float(row.get("buyer_top3_share"))),"Why it matters":"Top-3 share of positive broker inventory transfer."},
-            {"Layer":"NG / crossing contamination","Reading":pct(safe_float(row.get("crossing_transfer_risk"))),"Why it matters":"High negotiated-market share is discounted as non-directional transfer risk."},
-            {"Layer":"Foreign flow intensity","Reading":pct(safe_float(row.get("foreign_flow_intensity"))),"Why it matters":"Foreign buy-sell imbalance relative to foreign gross flow."},
-            {"Layer":"Accumulator execution cost","Reading":_fmt_asset_price(row,safe_float(row.get("accumulator_cost"))),"Why it matters":"Execution-cost proxy of top accumulating brokers; not beneficial-owner cost."},
-            {"Layer":"Order-book imbalance","Reading":pct(safe_float(row.get("order_book_imbalance"))),"Why it matters":"Visible depth only; low weight because orders can cancel."},
-            {"Layer":"Aggressive flow","Reading":pct(safe_float(row.get("aggressive_flow_imbalance"))),"Why it matters":"Only shown when provider returns HAKA/HAKI-type fields; otherwise gated."},
-            {"Layer":"Absorption","Reading":str(row.get("absorption_side","GATED")),"Why it matters":"Requires aggressive-flow vs price disagreement; never inferred from a static wall alone."},
-        ]
-        st.dataframe(pd.DataFrame(tx_rows),use_container_width=True,hide_index=True)
-        eod_err=row.get("eod_errors",[]); in_err=row.get("intraday_errors",[])
-        if eod_err or in_err:
-            st.caption("Transaction data notes: " + " | ".join([str(x) for x in (list(eod_err) if isinstance(eod_err,list) else [eod_err]) + (list(in_err) if isinstance(in_err,list) else [in_err]) if x][:4]))
-        st.caption("Accounting guardrail: broker net across the whole market sums to ~0. The engine therefore measures broker-level persistence/concentration and group flow, not a fictitious total-market broker net buy.")
-
-    st.markdown("**Entry logic · why detection is not automatically a trade**")
-    entry_rows=[]
-    for reason in entry.get("reasons",[]) or []:
-        entry_rows.append({"Type":"Supports entry","Evidence":reason})
-    for gate in entry.get("gates",[]) or []:
-        entry_rows.append({"Type":"Gate / wait","Evidence":gate})
-    rev_edge=safe_float(entry.get("revision_edge"))
-    if np.isfinite(rev_edge):
-        entry_rows.append({"Type":"Fair value vs price revision","Evidence":f"FV revision minus price revision = {rev_edge*100:.1f}pp"})
-    entry_rows.append({"Type":"Best expression after entry","Evidence":f"{expr.get('best_expression','WATCH')} · {expr.get('why','')}"})
-    st.dataframe(pd.DataFrame(entry_rows),use_container_width=True,hide_index=True)
-    st.caption("Lifecycle: DISCOVER → STARTER → CORE → ADD/HOLD → NO CHASE → TRIM/EXIT. Option/leverage are expressions after entry is earned, never discovery signals.")
-
-    if str(row.get("market")) in ["US","IHSG"]:
-        proj=pd.DataFrame([
-            ["Bear",pct(val.get("g_bear",np.nan)),fmt_num(val.get("bear_eps",np.nan),2),_fmt_asset_price(row,bear), pct(bear/px-1) if np.isfinite(bear) and np.isfinite(px) and px>0 else "—"],
-            ["Base",pct(val.get("g_base",np.nan)),fmt_num(val.get("base_eps",np.nan),2),_fmt_asset_price(row,base), pct(upside) if np.isfinite(upside) else "—"],
-            ["Bull",pct(val.get("g_bull",np.nan)),fmt_num(val.get("bull_eps",np.nan),2),_fmt_asset_price(row,bull), pct(bull/px-1) if np.isfinite(bull) and np.isfinite(px) and px>0 else "—"],
-        ],columns=["Scenario","Earnings change","Projected NTM EPS","Research fair value","vs current"])
-        st.markdown("**Projection / fair value / what today's price assumes**")
-        st.dataframe(proj,use_container_width=True,hide_index=True)
-        st.caption(f"Valuation basis: {val.get('valuation_basis','GATED')} · peers {int(safe_float(val.get('peer_count',0)) if np.isfinite(safe_float(val.get('peer_count',0))) else 0)} · confidence {val.get('valuation_confidence','GATED')}. Current price implies ~{fmt_num(val.get('implied_eps',np.nan),2)} EPS at that multiple vs base projection ~{fmt_num(val.get('base_eps',np.nan),2)}. If same-sector valuation evidence is insufficient, fair value stays GATED rather than using the whole market as a fake peer set.")
-    elif str(row.get("market"))=="Crypto":
-        urow=UNIVERSE[UNIVERSE["symbol"]==row.get("symbol")]
-        cm=deep_crypto_metrics(urow.iloc[0]) if not urow.empty else {}
-        if cm:
-            st.markdown("**Crypto economics · not just price**")
-            st.dataframe(pd.DataFrame([{
-                "Market cap":fmt_money(cm.get("market_cap",np.nan)),"FDV premium":pct(cm.get("fdv_premium",np.nan)),
-                "30D revenue":fmt_money(cm.get("revenue_30d",np.nan)),"Revenue acceleration":pct(cm.get("revenue_growth_30d",np.nan)),
-                "30D holder income":fmt_money(cm.get("holders_revenue_30d",np.nan)),"Holder capture":pct(cm.get("holder_capture_ratio",np.nan)),
-                "Mcap / annualized revenue":fmt_num(cm.get("mcap_to_revenue",np.nan),1)+"x"
-            }]),use_container_width=True,hide_index=True)
-            st.caption("Revenue alone is never a buy rule. Holder capture, dilution/unlocks and real usage must agree.")
-        else:
-            st.caption("Critical crypto economics are incomplete → action cannot be promoted to high conviction.")
-    else:
-        st.caption("Dedicated physical / relative-macro fair-value projection for this asset class is still gated; direction is not upgraded without it.")
-
-    if not branches.empty:
-        st.markdown("**If this happens, do this · max 3 relevant scenarios**")
-        st.dataframe(branches[["scenario","trigger","economic_projection","action_logic","falsifier"]].head(3),use_container_width=True,hide_index=True)
-
-    cb=chain_brief(root)
-    is_bottleneck=bool(cb.get("bottlenecks")) or any(k in (root or "").lower() for k in ["nand","supply","electrical load","networking bandwidth","cpo price","war escalation","transformer","photon"])
-    if is_bottleneck and not cb.get("chain",pd.DataFrame()).empty:
-        st.markdown("**Bottleneck chain · only shown because it can change the opportunity**")
-        bc1,bc2,bc3=st.columns(3)
-        with bc1: st.markdown(f"<div class='chainbox'><b>Where the bottleneck is</b><br>{root}<br><br><b>Who gets paid first</b><br>{'<br>'.join(cb['direct'][:5]) or '—'}</div>",unsafe_allow_html=True)
-        with bc2: st.markdown(f"<div class='chainbox'><b>Where it can spread next</b><br>{'<br>'.join(cb['bottlenecks'][:5]) or 'Not separately mapped yet'}<br><br><b>How it heals</b><br>{'<br>'.join(cb['normalization'][:4]) or 'Capacity/substitution must be monitored'}</div>",unsafe_allow_html=True)
-        with bc3: st.markdown(f"<div class='chainbox'><b>Who can lose</b><br>{'<br>'.join(cb['losers'][:6]) or '—'}</div>",unsafe_allow_html=True)
-        driver=parallel_driver_root(root) or root
-        exposed=merge_scanned_actions(exposed_assets_from_chain(driver,str(row.get("symbol")),limit=10),ranked)
-        if not exposed.empty:
-            st.caption("Companies exposed to the same root driver. Exposure is not a buy signal; each name still passes its own valuation/action gate.")
-            showcols=[c for c in ["market","symbol","name","research_action","price","data_quality","notes"] if c in exposed.columns]
-            st.dataframe(exposed[showcols],use_container_width=True,hide_index=True)
-
-    if view_kind=="OPTIONS" and str(row.get("market")) in ["US","Crypto"]:
-        direction="CALL" if "CALL" in action or any(k in str(row.get("research_action")) for k in ["BUILD","SELECTIVE ADD"]) else "PUT"
-        od=fetch_option_snapshot(str(row.get("symbol")),direction) if str(row.get("market"))=="US" else fetch_deribit_option_snapshot(str(row.get("symbol")),direction)
-        st.markdown("**Live option expression check**")
-        if od.get("error"):
-            st.warning("Option market unavailable/gated: "+str(od.get("error")))
-        else:
-            st.dataframe(pd.DataFrame([{
-                "Venue":od.get("venue","US listed"),"Direction":od.get("direction"),"Instrument":od.get("instrument","—"),"Expiry":od.get("expiry","—"),"Days":od.get("days"),"Spot":od.get("spot"),
-                "Strike":od.get("strike"),"Mid":od.get("mid"),"Premium USD":od.get("premium_usd",np.nan),"Bid/ask spread":pct(od.get("spread",np.nan)),
-                "IV":pct(od.get("iv",np.nan)),"Implied move":pct(od.get("implied_move",np.nan)),"OI":od.get("open_interest"),"Liquidity":od.get("liquidity")
-            }]),use_container_width=True,hide_index=True)
-            st.caption("Directional thesis ≠ automatically buy the option. IV, liquidity, expiry and catalyst timing must justify the expression. Crypto adapter is intentionally limited to liquid BTC/ETH Deribit options.")
-
-    try:
-        save_checkpoint(str(row.get("symbol","")), price=px, fv_base=base, entry_stage=str(entry.get("entry_stage","DISCOVER")), default_root=STATE)
-    except Exception:
-        pass
-
-    if ev.get("items"):
-        with st.expander("Latest evidence / sources",expanded=False):
-            e=pd.DataFrame(ev["items"])
-            st.dataframe(e[[c for c in ["source","title","pubDate"] if c in e.columns]].head(6),use_container_width=True,hide_index=True)
-
 
 # -----------------------------
 # UI — persistent native navigation
@@ -2562,7 +2232,7 @@ markets_available=[m for m in ["US","IHSG","HK","Hong Kong","China","Europe","Ta
 prior_records=st.session_state.get("live_scan_records",[]) or []
 prior_counts=OPP_MEMORY.counts()
 prior_macro=st.session_state.get("macro_gate_snapshot",{}) or {}
-render_global_header(st,scan_count=len(prior_records),event_count=prior_counts.get("events",0),active_count=prior_counts.get("active",0),outcome_count=prior_counts.get("outcomes",0),macro_regime=str(prior_macro.get("regime") or prior_macro.get("action_label") or "GATED"),engine_version="v3.2.2 unified UI")
+render_global_header(st,scan_count=len(prior_records),event_count=prior_counts.get("events",0),active_count=prior_counts.get("active",0),outcome_count=prior_counts.get("outcomes",0),macro_regime=str(prior_macro.get("regime") or prior_macro.get("action_label") or "GATED"),engine_version="v3.2.6 logic hardened")
 nav=_render_workspace_nav()
 skip_auto_scan_once=bool(st.session_state.pop("_skip_auto_scan_once",False))
 
@@ -2575,12 +2245,26 @@ with f3:
     force_refresh=st.button("REFRESH",use_container_width=True,key="mq_refresh_v322")
 st.markdown("<div class='mq-note'><b>AUTO SCAN</b> · first load and market-scope changes refresh automatically · public endpoints use bounded cache · missing data remains GATED.</div>",unsafe_allow_html=True)
 
+catalogs={}
+_catalog_now=pd.Timestamp.now(tz="UTC")
+for _m in [m for m in selected_markets if m in {"US","IHSG"}]:
+    try:
+        _cat=fetch_current_market_catalog(_m)
+        if _cat is not None and not _cat.empty:
+            catalogs[_m]=_cat
+            _day_key=f"catalog_snapshot::{_m}::{_catalog_now.date().isoformat()}"
+            if not st.session_state.get(_day_key):
+                src=str(_cat.get("catalog_source",pd.Series(["current issuer catalog"])).iloc[0]) if len(_cat) else "current issuer catalog"
+                PROSPECTIVE.snapshot_universe(_cat,_m,src,observed_at=_catalog_now)
+                st.session_state[_day_key]=True
+    except Exception as _exc:
+        st.session_state[f"catalog_error_{_m}"]=str(_exc)
 if selected_markets:
-    scan_input=UNIVERSE[UNIVERSE["market"].isin(selected_markets)].copy().reset_index(drop=True)
+    scan_input=merge_seed_with_rotation(UNIVERSE,catalogs,selected_markets,as_of=_catalog_now,extras_per_market=int(os.environ.get("OIE_CATALOG_ROTATION_PER_MARKET","6")))
 else:
     scan_input=UNIVERSE.iloc[0:0].copy()
 max_assets=len(scan_input)
-scan_signature=(tuple(selected_markets),int(max_assets),"v3.2.2-unified-ui-opportunity-os")
+scan_signature=(tuple(selected_markets),int(max_assets),_catalog_now.floor("30min").isoformat(),"v3.2.6-logic-hardened-opportunity-os")
 
 # Automatic initial/stale refresh. The user never has to press a scan button.
 existing_records=st.session_state.get("live_scan_records",[])
@@ -2619,7 +2303,9 @@ if str(display_query).strip() and not ranked.empty:
 try:
     _active_opportunities = sync_opportunities(ranked, OPP_MEMORY, mg)
     _refresh_mature_opportunity_outcomes(limit=8)
-    st.session_state["learning_report_paths"] = write_periodic_learning_reports(OPP_MEMORY, STATE)
+    _refresh_mature_baseline_outcomes(limit=6)
+    _audit_mature_runner_cohorts(limit=6)
+    st.session_state["learning_report_paths"] = write_periodic_learning_reports(OPP_MEMORY, STATE, baseline_outcomes=PROSPECTIVE.baseline_outcomes_frame())
 except Exception as _opp_exc:
     _active_opportunities = pd.DataFrame()
     st.session_state["opportunity_memory_error"] = str(_opp_exc)
@@ -2633,7 +2319,7 @@ elif nav=="VERTICALS":
 elif nav=="MACRO & EVENTS":
     _render_macro_visual_room()
 elif nav=="LEARNING / REPLAY":
-    render_learning_lab(st, OPP_MEMORY)
+    render_learning_lab(st, OPP_MEMORY, PROSPECTIVE.baseline_outcomes_frame())
     st.markdown("<div class='mq-section'>System proof / data gates</div>",unsafe_allow_html=True)
     proof=[
         ("AUTOMATIC DISCOVERY","ACTIVE" if not ranked.empty else "GATED","current scan + change detection"),
@@ -2644,11 +2330,12 @@ elif nav=="LEARNING / REPLAY":
         ("AUTOTRADING","DISABLED","execution remains separate"),
     ]
     st.markdown("<div class='mq-vgrid'>"+"".join(f"<div class='mq-vcard'><small>{html.escape(a)}</small><strong>{html.escape(b)}</strong><p>{html.escape(c)}</p></div>" for a,b,c in proof)+"</div>",unsafe_allow_html=True)
-    with st.expander("Acceptance / source registry",expanded=False):
-        st.dataframe(ACCEPTANCE,use_container_width=True,hide_index=True)
-        st.dataframe(SOURCE_REGISTRY,use_container_width=True,hide_index=True)
+    st.markdown("<div class='mq-section'>Acceptance Contract</div>",unsafe_allow_html=True)
+    render_dense_table(st,ACCEPTANCE,list(ACCEPTANCE.columns),max_rows=60,height=300)
+    st.markdown("<div class='mq-section'>Source Registry</div>",unsafe_allow_html=True)
+    render_dense_table(st,SOURCE_REGISTRY,list(SOURCE_REGISTRY.columns),max_rows=80,height=320)
 else:
     st.session_state["decision_nav_v322"]="CONTROL ROOM"
     _render_control_room(display_ranked,mg)
 
-st.markdown("<div class='mq-ledger'>v3.2.2 · unified opportunity UI · core causal / macro / valuation / expression logic preserved · no classic technical indicators · no autotrading.</div>",unsafe_allow_html=True)
+st.markdown("<div class='mq-ledger'>v3.2.6 · unified opportunity UI · leakage-hardened longitudinal learning · core causal / macro / valuation / expression logic preserved · no classic technical indicators · no autotrading.</div>",unsafe_allow_html=True)

@@ -219,14 +219,35 @@ class OpportunityMemory:
             r = cx.execute("SELECT * FROM opportunity_events WHERE event_id=?", (str(event_id),)).fetchone()
         return dict(r) if r else None
 
+    def get_latest_episode(self, symbol: str, market: str, theme: str) -> Optional[Dict[str, Any]]:
+        """Return the newest episode for a symbol/theme, including watch-state metadata.
+
+        A resolved/invalidated episode must never be silently resurrected.  A new
+        detection after terminal state is a new episode with a new immutable first-seen.
+        """
+        with self._connect() as cx:
+            r = cx.execute(
+                """SELECT e.*,w.active,w.last_state,w.last_seen_utc
+                   FROM opportunity_events e
+                   LEFT JOIN opportunity_watch_registry w ON e.event_id=w.event_id
+                   WHERE UPPER(e.symbol)=UPPER(?) AND UPPER(e.market)=UPPER(?) AND UPPER(e.theme)=UPPER(?)
+                   ORDER BY e.first_seen_time DESC LIMIT 1""",
+                (str(symbol),str(market),str(theme)),
+            ).fetchone()
+        return dict(r) if r else None
+
     def create_event(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         now = _utc(payload.get("first_seen_time") or payload.get("timestamp"))
         arch = list(payload.get("archetypes") or [])
-        key = make_event_key(payload.get("symbol", ""), payload.get("market", ""), payload.get("theme", ""), arch)
-        existing = self.get_event_by_key(key)
-        if existing:
-            return existing
-        event_id = make_event_id(key, now)
+        base_key = make_event_key(payload.get("symbol", ""), payload.get("market", ""), payload.get("theme", ""), arch)
+        latest = self.get_latest_episode(payload.get("symbol", ""), payload.get("market", ""), payload.get("theme", ""))
+        if latest and int(latest.get("active") or 0) == 1:
+            return latest
+        # Preserve the historical base key for the first episode.  Later episodes get
+        # a deterministic timestamp suffix so the UNIQUE(event_key) constraint does
+        # not revive a terminal episode.
+        key = base_key if latest is None else f"{base_key}|EP|{now}"
+        event_id = make_event_id(base_key, now)
         snap = dict(payload.get("snapshot") or {})
         with self._connect() as cx:
             cx.execute(
@@ -336,11 +357,49 @@ class OpportunityMemory:
                              future_return: Any, classification: str, observable_then: Optional[bool], evidence: Mapping[str, Any]) -> bool:
         with self._connect() as cx:
             cur = cx.execute(
-                "INSERT OR REPLACE INTO missed_runner_analysis(symbol,market,anchor_at_utc,runner_definition,future_return,classification,observable_then,evidence_json) VALUES(?,?,?,?,?,?,?,?)",
+                "INSERT OR IGNORE INTO missed_runner_analysis(symbol,market,anchor_at_utc,runner_definition,future_return,classification,observable_then,evidence_json) VALUES(?,?,?,?,?,?,?,?)",
                 (str(symbol),str(market),_utc(anchor_at_utc),str(runner_definition),_finite(future_return),str(classification).upper(),
                  None if observable_then is None else int(bool(observable_then)),_json(dict(evidence))),
             )
             return cur.rowcount > 0
+
+    def opportunity_status_at(self, symbol: str, market: str, observed_at_utc: Any) -> Dict[str, Any]:
+        """Point-in-time status of the newest episode known by `observed_at_utc`."""
+        ts=_utc(observed_at_utc)
+        with self._connect() as cx:
+            ev=cx.execute(
+                "SELECT * FROM opportunity_events WHERE UPPER(symbol)=UPPER(?) AND UPPER(market)=UPPER(?) AND first_seen_time<=? ORDER BY first_seen_time DESC LIMIT 1",
+                (str(symbol),str(market),ts),
+            ).fetchone()
+            if not ev:
+                return {"found":False,"active":False,"event_id":None,"state":None}
+            eid=str(ev["event_id"])
+            st=cx.execute(
+                "SELECT lifecycle_state,observed_at_utc FROM opportunity_state_history WHERE event_id=? AND observed_at_utc<=? ORDER BY observed_at_utc DESC,id DESC LIMIT 1",
+                (eid,ts),
+            ).fetchone()
+        state=str(st["lifecycle_state"]).upper() if st else "DISCOVERED"
+        return {"found":True,"active":state not in {"INVALIDATED","RESOLVED"},"event_id":eid,"state":state,"first_seen_time":ev["first_seen_time"]}
+
+    def events_due_for_outcome_update(self, limit: int = 8) -> pd.DataFrame:
+        """Fair bounded scheduler: never-updated / least-recently-updated events first.
+
+        This prevents old 12M episodes from monopolising every bounded refresh and
+        starving newer events from receiving 1D/3D labels.
+        """
+        q = """
+        SELECT e.*, w.active, w.last_state,
+               MAX(o.updated_at_utc) AS last_outcome_update_utc
+        FROM opportunity_events e
+        LEFT JOIN opportunity_watch_registry w ON e.event_id=w.event_id
+        LEFT JOIN opportunity_outcomes o ON e.event_id=o.event_id
+        GROUP BY e.event_id
+        ORDER BY (MAX(o.updated_at_utc) IS NOT NULL) ASC, MAX(o.updated_at_utc) ASC, e.first_seen_time ASC
+        LIMIT ?
+        """
+        with self._connect() as cx:
+            rows=cx.execute(q,(int(limit),)).fetchall()
+        return pd.DataFrame([dict(x) for x in rows]) if rows else pd.DataFrame()
 
     def events_frame(self, *, active_only: bool = False, limit: int = 500) -> pd.DataFrame:
         q = """SELECT e.*,w.active,w.last_seen_utc,w.last_state,w.alert_level

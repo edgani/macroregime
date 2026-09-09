@@ -1,26 +1,42 @@
+# Test Matrix — v3.2.6
 
-## v3.2.2 — Unified UI replacement
-- Removed the legacy Decision Desk from the exposed product surface.
-- Removed the old sidebar scanner UI; market scope/search/refresh now live in the unified top shell.
-- All exposed workspaces use one dark-neon visual system: Control Room, Opportunities, Verticals, Macro & Events, Learning / Replay.
-- Replaced nested/native tab mazes in exposed vertical/learning surfaces with persistent button sub-navigation.
-- Core causal, macro, valuation, expression, longitudinal-memory and walk-forward logic is preserved; this is a UI/UX replacement, not an engine rewrite.
-- No autotrading and no classic technical-indicator fallback.
+The release runner executes 23 isolated suites:
 
-# Test Matrix — v3.2.1
+1. self-test / package basics
+2. final contract
+3. static contract
+4. decision core
+5. data adapters
+6. IHSG transaction intelligence
+7. story optionality
+8. opportunity kernel
+9. DeFiLlama adapter
+10. macro logic
+11. macro snapshot fail-closed behavior
+12. replay timestamps
+13. negative controls
+14. 5,000-case fuzz test
+15. walk-forward contract
+16. visual contract
+17. all-route unified UI contract
+18. navigation interaction contract
+19. longitudinal opportunity memory/outcomes
+20. adversarial v3.2.6 logic hardening
+21. prospective universe/baseline/runner store
+22. extracted app-logic contract (valuation dispersion + independent evidence families)
+23. v3.2 acceptance contract
 
-| Area | Status | Evidence |
-|---|---|---|
-| Existing v3.1 core regressions | PASS | original 16 tests preserved |
-| Longitudinal event memory | PASS | immutable first detection + restart persistence |
-| Lifecycle memory | PASS | state changes append; invalidated events retained |
-| Outcome math | PASS | absolute, benchmark-relative, MFE/MAE path test |
-| Walk-forward chronology | PASS | training years strictly precede test year |
-| No random split | PASS | structural acceptance |
-| No autotrading | PASS | structural acceptance |
-| No primary classic-indicator dependency in new discovery layer | PASS | structural acceptance |
-| Multi-market architecture | PASS | US/IHSG/HK/China/Europe/Taiwan/Crypto/FX/Commodity contracts |
-| Insufficient-sample fail-closed behavior | PASS | empty/no-mature-outcome output remains gated |
-| UI contract | PASS | dense tracker + dense three-column control room compile |
-| Workspace navigation | PASS | native button router; persistent state; rendered before scan; nav rerun skips one stale refresh |
-| Full historical alpha proof | NOT CLAIMED | requires matured prospective/PIT outcomes |
+Critical adversarial cases include:
+- event/label availability look-ahead
+- missing alpha contamination
+- weekend horizon
+- future benchmark anchor
+- daily bar availability clock
+- recurrence after invalidation
+- immutable missed-runner records
+- economic-capture requirement
+- unsupported archetype inference
+- evidence placeholder contamination
+- prospective catalog/baseline idempotency
+- runner cohort maturity scheduler
+- readiness/leverage fail-closed invariants

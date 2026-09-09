@@ -1,116 +1,82 @@
+# Market Opportunity OS v3.2.6 — Logic-Hardened Final
 
-## v3.2.2 — Unified UI replacement
-- Removed the legacy Decision Desk from the exposed product surface.
-- Removed the old sidebar scanner UI; market scope/search/refresh now live in the unified top shell.
-- All exposed workspaces use one dark-neon visual system: Control Room, Opportunities, Verticals, Macro & Events, Learning / Replay.
-- Replaced nested/native tab mazes in exposed vertical/learning surfaces with persistent button sub-navigation.
-- Core causal, macro, valuation, expression, longitudinal-memory and walk-forward logic is preserved; this is a UI/UX replacement, not an engine rewrite.
-- No autotrading and no classic technical-indicator fallback.
+Cross-market **macro + opportunity intelligence** research system. It discovers and tracks opportunities, freezes what was knowable at first detection, matures forward outcomes, and learns prospectively without self-modifying production logic.
 
-# Market Opportunity OS v3.2.1
+## Product surface
 
-This release upgrades **Opportunity Intelligence Engine v2.6 — IHSG Transaction Intelligence** into one cross-market architecture with a shared intelligence kernel and market-specific verticals.
+One unified UI only:
+- **CONTROL ROOM** — cross-market readiness, macro/risk context, candidate inspection and radar.
+- **OPPORTUNITIES** — immutable first-detection memory, lifecycle, causal chain, outcomes, alerts and theme clusters.
+- **VERTICALS** — On-chain, Crypto, US Stocks, IHSG, Forex and Commodities with market-specific gates.
+- **MACRO & EVENTS** — shared timing/risk context; it does not overwrite thesis quality.
+- **LEARNING / REPLAY** — expectancy, leakage-embargoed walk-forward, prospective baselines, runner recall, failures and missed winners.
 
-## Product structure
+## Core research contract
 
-- **CONTROL ROOM** — cross-market posture, data readiness, Market Memory and change board.
-- **OPPORTUNITIES** — the existing decision-first opportunity desk.
-- **VERTICALS** — separate engines for On-chain, Crypto, US Stocks, IHSG, Forex and Commodities.
-- **MACRO & EVENTS** — macro/risk context; it is a governor, not a universal alpha score.
-- **RESEARCH / REPLAY** — validation, rejected signals, readiness and historical replay.
+`OBSERVABLE CHANGE → ECONOMIC TRANSMISSION → BOTTLENECK → BENEFICIARY → REVENUE/MARGIN OR VALUE CAPTURE → EXPECTATION GAP → CATALYST → OPPORTUNITY EVENT → FUTURE OUTCOME → LEARNING`
 
-## Shared kernel
+Classic RSI/MACD/stochastic/MA-cross stacks are not primary opportunity logic. Execution remains separate; there are no private keys, broker credentials or automatic orders.
 
-Every vertical uses the same research contract:
+## v3.2.6 hardening
 
-`VALIDATE → BASELINE → CHANGE → SEQUENCE → QUALITY → STATE → EARLINESS/CROWDING → PAYOFF/RISK → DECISION → OUTCOME → MARKET MEMORY`
+This release rejects the previous v3.2.3 logic as a final baseline and closes the highest-risk correctness defects found in adversarial review:
+- outcome endpoints use the first observable bar on/after the requested horizon, including weekends/holidays;
+- daily bar labels are mapped to conservative market-close availability clocks;
+- benchmark/sector anchors must be knowable at detection time;
+- walk-forward training uses `label_available_at_utc`, not merely event year;
+- missing relative alpha stays UNKNOWN instead of becoming a loss;
+- first-seen episodes cannot be resurrected after INVALIDATED/RESOLVED;
+- bounded outcome scheduling is fair to new events;
+- opportunity score requires observable economic capture;
+- generic narrative, market membership or company capex cannot manufacture an archetype;
+- readiness gates cap actions/lifecycle and leverage/options fail closed;
+- macro missing credit/stress data fails closed instead of becoming calm/neutral;
+- IHSG negotiated-market contamination uses comparable gross-trade denominators;
+- syndicated/stale news is deduplicated and freshness-gated;
+- correlated fundamentals count as one evidence family, not four votes;
+- crypto supply/dilution metrics do not double vote;
+- valuation scenario dispersion is never invented from one input;
+- prospective current-universe observations, simple baselines and scanned-universe runner cohorts are frozen before future outcomes exist;
+- US sector-relative outcome uses sector ETF context where the sector mapping is defensible.
 
-The engine deliberately avoids a single giant Alpha Score. Independent evidence families and hard gates stay separate so a strong signal cannot hide missing causal data or a fatal risk flag.
+## Automatic breadth
 
-## Vertical responsibilities
+The seed universe remains the stable core. For US and IHSG the app can fetch current issuer catalogs and rotate a bounded number of additional names into each half-hour scan. Catalog membership is accumulated **prospectively**; a provider outage never means a ticker was delisted.
 
-### On-chain
-Free DeFiLlama chain radar: TVL, stablecoin supply, DEX activity, fees and revenue are independent confirmation families. Wallet/social/developer signals remain separate adapters and are not inferred from TVL.
+This is not a claim of complete historical survivorship-safe exchange membership. See `KNOWN_LIMITATIONS.md`.
 
-### Liquid crypto
-Value-capture economics are retained. Spot-flow / OI / funding / liquidation data are required before leverage can be promoted from research-gated status.
+## Learning rules
 
-### US Stocks
-Existing fundamentals, valuation and causal-chain logic remain. Full point-in-time analyst revisions and institutional-flow history are still required for production-alpha claims.
+- Event snapshot / first seen price / first seen time are immutable.
+- Failed and invalidated opportunities remain in history.
+- Forward outcomes: 1D, 3D, 1W, 2W, 1M, 3M, 6M, 12M.
+- Relative labels stay missing when the comparator is unavailable.
+- Walk-forward uses chronological expanding windows with a label-availability embargo.
+- Small samples shrink toward broader parents; no LLM changes production weights.
+- Baseline A–E selections are frozen prospectively from the scanned cross-section.
+- Runner recall is reported only after prospectively frozen 3M cohorts mature.
 
-### IHSG
-v2.6 broker/transaction intelligence is preserved: Index Alpha EOD broker attribution + Invezgo intraday/order-book when keys are configured. Broker evidence contributes at most one independent evidence-family vote. IHSG remains cash-only.
+## Start on Windows
 
-### Forex
-Requires relative rates, macro surprise, central banks, positioning and valuation. Price-only history never becomes directional alpha.
+Recommended: double-click `START_MARKET_OPPORTUNITY_OS.bat`.
 
-### Commodities
-Requires physical supply/demand, inventory, futures curve and positioning. Price-only history never becomes directional alpha.
-
-## Market Memory
-
-`state/market_memory.sqlite` stores timestamped snapshots. The current observation is evaluated against prior history **before** it is appended, so it cannot leak into its own baseline. Sequence signatures preserve the order of state transitions.
-
-On a fresh deployment, `BASELINE BUILDING` is expected until enough snapshots accumulate.
-
-## DeFiLlama
-
-The default adapter uses the **free API** (`api.llama.fi`) and requires no API key. It uses official free endpoint families for chain TVL, stablecoins, DEX activity and fees/revenue. DeFiLlama Pro is not required for v3.1.
-
-## IHSG API configuration
-
-Optional server-side secrets:
+It creates `.venv`, installs `requirements.txt`, then runs Streamlit. Optional IHSG transaction APIs can be configured in `.streamlit/secrets.toml` or environment variables:
 
 ```toml
 INDEX_ALPHA_API_KEY = "..."
 INVEZGO_API_KEY = "..."
 ```
 
-Environment variables with the same names also work.
+Without those keys the relevant IHSG evidence stays GATED; it is not fabricated.
 
-## Run locally
+## Verification
 
-```bash
-python -m pip install -r requirements.txt
-streamlit run app.py
-```
-
-Windows: `run_windows.bat`  
-Linux: `./run_linux.sh`
-
-## Validation
+Run:
 
 ```bash
 python tests/run_all.py
 ```
 
-Current package result: **19 PASS / 0 NONPASS** plus **20/20 v3.2 structural acceptance checks**.
+Release-package gate for this build: **23 PASS / 0 NONPASS** before packaging, then the same suite is run again from a fresh extraction of the final ZIP.
 
-UI hotfix: top workspace navigation is now native button routing rendered before the expensive scan path, and CONTROL ROOM uses the dense operator-dashboard shell. Browser-smoke is not claimed in the build environment because Streamlit itself is unavailable there.
-
-See `V3_ARCHITECTURE.md`, `FINAL_AUDIT.md`, `TEST_MATRIX.md`, `VALIDATION_RESULTS.md`, `KNOWN_LIMITATIONS.md`, and `DEPLOY_FROM_ZERO.md`.
-
-
-## v3.1 · Story / Expectation Optionality
-
-US and IHSG now have a loss-making/turnaround research module. It never treats a loss as bullish by itself. IHSG uses fundamental inflection + financing survivability and keeps broker confirmation separate. US additionally uses current analyst EPS trend/revision breadth. Loss-making valuation falls back to same-sector Price/Sales only when at least four valid peers exist. See `STORY_OPTIONALITY_MODULE.md`.
-
-
-## v3.2 · Longitudinal Opportunity Memory + Outcome Learning
-
-v3.2 keeps the v3.1 decision core and adds a separate longitudinal research layer:
-
-- automatic opportunity discovery over the configured multi-market universe;
-- immutable first-detection `OPPORTUNITY_EVENT`;
-- causal driver / bottleneck / beneficiary / revenue-margin capture fields;
-- persistent lifecycle watching across restarts;
-- 1D → 12M forward outcomes, relative alpha, MFE/MAE and time-to-thesis;
-- false-positive + missed-runner stores;
-- regime/market/theme expectancy and chronological walk-forward;
-- daily/weekly learning reports;
-- dense dark-cyan Opportunity Tracker UI;
-- original v3.1 daily decision screen preserved under `DECISION DESK`.
-
-Longitudinal state is stored in `state/opportunity_memory.sqlite`. First-detection rows are immutable. Future observations only mature lifecycle/outcome tables. No autotrading was added.
-
-See `V3_2_IMPLEMENTATION.md` and `UPGRADE_FROM_V3_1.md`.
+Passing code tests means the tested invariants hold. It does **not** prove live alpha or statistically significant market outperformance. Those claims require matured PIT/OOS evidence.

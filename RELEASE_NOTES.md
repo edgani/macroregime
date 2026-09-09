@@ -1,68 +1,22 @@
+# Release Notes — v3.2.6 Logic-Hardened Final
 
-## v3.2.2 — Unified UI replacement
-- Removed the legacy Decision Desk from the exposed product surface.
-- Removed the old sidebar scanner UI; market scope/search/refresh now live in the unified top shell.
-- All exposed workspaces use one dark-neon visual system: Control Room, Opportunities, Verticals, Macro & Events, Learning / Replay.
-- Replaced nested/native tab mazes in exposed vertical/learning surfaces with persistent button sub-navigation.
-- Core causal, macro, valuation, expression, longitudinal-memory and walk-forward logic is preserved; this is a UI/UX replacement, not an engine rewrite.
-- No autotrading and no classic technical-indicator fallback.
-
-# v3.2.1 — Interactive UI / Navigation Hotfix
-
-This hotfix fixes the UI defect in the first v3.2 handoff: the workspace navigation looked like top tabs but was implemented as a `st.radio` after the expensive scanner path. On rerun, a stale scan could execute before the page change visibly completed, making the navigation appear dead.
-
-## Fixed
-- Replaced the top workspace `st.radio` pseudo-navigation with six native Streamlit buttons and persistent `session_state` routing.
-- Renders navigation before expensive scanning.
-- Page-switch callback skips one stale auto-refresh so navigation remains responsive; the scheduled refresh resumes afterward.
-- Active workspace is visually distinct and state persists across reruns.
-- Rebuilt CONTROL ROOM into a dense dark-cyan three-column operator dashboard: vertical readiness, selected opportunity + causal transmission, macro/risk + recent alerts, and a full-width cross-market radar.
-- Removed decorative non-interactive Opportunity Tracker pseudo-tabs so nothing that looks like a tab is intentionally fake.
-- Added `test_v321_ui_navigation.py` covering native routing, ordering before scan, scan-skip-on-navigation, all six routes and the dense control-room contract.
-
-## Validation
-- **19 PASS / 0 NONPASS / 19 TOTAL** automated package tests.
-- Existing **20/20 v3.2 structural acceptance checks** remain green.
-- A real Streamlit browser-smoke test is still environment-dependent and is not falsely claimed in the build environment where Streamlit is unavailable.
-
----
-
-# Market Opportunity OS v3.2 — Longitudinal Discovery + Outcome Learning
-
-Base: **v3.1 Story / Expectation Optionality**. This is an additive upgrade; the existing Macro Decision Engine, IHSG transaction intelligence, story/expectation optionality, causal graph, valuation logic and fail-closed decision gates remain intact.
-
-## Added
-- Immutable `OPPORTUNITY_EVENT` memory in `state/opportunity_memory.sqlite`.
-- Automatic discovery from the existing cross-market scan; no ticker-by-ticker input required for the loaded universe.
-- Explicit causal event fields: driver → first order → second order → bottleneck → beneficiary → revenue/margin capture → catalyst → invalidation.
-- Multi-archetype classification and component scores instead of one opaque score.
-- First-seen / first-unusual / first-high-conviction timestamps and prices.
-- Persistent lifecycle states: DISCOVERED → EMERGING → PROVING → HIGH_CONVICTION → PRICING_IN → MATURE → CROWDED / INVALIDATED / RESOLVED.
-- Forward outcome schema for 1D, 3D, 1W, 2W, 1M, 3M, 6M and 12M.
-- Absolute return, benchmark alpha, sector alpha, MFE, MAE, time-to-MFE, time-to-MAE, peak return and max drawdown.
-- Bounded cached outcome maturation using yfinance where a real symbol + benchmark are available.
-- Explicit false-positive taxonomy and missed-runner audit store.
-- Regime/market/sector/theme historical expectancy with sample-size confidence.
-- Expanding chronological walk-forward calibration; no random shuffle.
-- Baseline comparison surface that stays DATA GATED when PIT baseline features do not exist.
-- Automatic daily / weekly learning reports under `state/learning_reports/`.
-- HK / China / Europe / Taiwan equity architecture support when symbols/data are supplied.
-- New dense dark-cyan Opportunity Tracker UI inspired by the supplied dashboard reference.
-- Original v3.1 decision desk preserved as `DECISION DESK`.
-
-## Guardrails
-- No autotrading, broker credentials, private keys, leverage execution or automatic orders.
-- No RSI / MACD / stochastic / generic MA-cross primary opportunity logic.
-- Production weights do not self-modify from recent outcomes.
-- First-detection snapshots are immutable; future data only enters outcome/lifecycle tables.
-- No fake historical performance. Fresh installs correctly show insufficient-sample / no-mature-outcome states.
-- Narrative exposure alone cannot create a longitudinal opportunity event.
-
-## Validation
-Run:
-
-```bash
-python tests/run_all.py
-```
-
-Current package result: **18 PASS / 0 NONPASS** plus **20/20 v3.2 structural acceptance checks**.
+- Replaces v3.2.3 as the recommended build.
+- Keeps the fully unified dark-cyan UI; no old Decision Desk/sidebar/native-table product surface returns.
+- Adds leakage-safe outcome clocks and comparator anchors.
+- Adds label-availability embargo to chronological walk-forward.
+- Makes missing relative labels truly unknown.
+- Makes terminal opportunity episodes immutable and recurring setups new episodes.
+- Adds fair bounded outcome scheduling.
+- Hard-gates action/expression by market-specific readiness.
+- Requires economic capture for Opportunity Score.
+- Removes evidence-free archetype inference.
+- Removes fabricated valuation dispersion.
+- Fails macro risk closed when critical stress/credit families are missing.
+- Fixes IHSG negotiated-market denominator accounting.
+- Deduplicates/freshness-gates scenario news.
+- Collapses correlated fundamentals into one evidence family and related crypto supply metrics into one family.
+- Adds current US/IHSG issuer-catalog rotation + prospective catalog memory.
+- Adds prospective simple baselines and future baseline outcomes.
+- Adds prospectively frozen runner cohorts + scanned-universe runner recall.
+- Adds US sector-relative outcome where sector ETF mapping is defensible.
+- Expands daily/weekly learning reports with worked/failed/missed/baseline sections.

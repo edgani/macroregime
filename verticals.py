@@ -37,12 +37,15 @@ def feature_specs_for_market(market: str) -> List[FeatureSpec]:
 
 def available_families_from_row(row: Mapping[str, Any]) -> List[str]:
     market = str(row.get("market", ""))
-    out = {"memory"}
+    out = set()
     if market in {"US", "IHSG", "HK", "Hong Kong", "China", "Europe", "Taiwan"}:
         if any(pd.notna(row.get(k)) for k in ["revenue_growth_yoy", "eps_growth_yoy", "fcf_growth_yoy"]): out.add("fundamentals")
         if pd.notna(row.get("expectation_gap")): out.add("valuation")
     if market in {"US", "HK", "Hong Kong", "China", "Europe", "Taiwan"}:
-        if str(row.get("expectation_revision_state", "")) != "DATA GATED": out.add("estimate_revisions")
+        rev_state=str(row.get("expectation_revision_state", "") or "").strip().upper()
+        if rev_state and rev_state not in {"DATA GATED","N/A","NA","UNKNOWN","NONE"}: out.add("estimate_revisions")
+        if bool(row.get("capital_flow_evidence")) or pd.notna(row.get("institutional_flow_score")): out.add("capital_flow")
+        if bool(row.get("causal_chain_verified")) or str(row.get("chain_evidence","")).upper()=="MAPPED": out.add("causal_chain")
         if pd.notna(row.get("expectation_optionality_score")): out.add("expectation_optionality")
     if market == "IHSG":
         if "READY" in str(row.get("transaction_status", "")).upper() or pd.notna(row.get("transaction_score")): out.add("broker_flow")
@@ -72,6 +75,8 @@ def enrich_with_memory(df: pd.DataFrame, memory: Any) -> pd.DataFrame:
         agg = aggregate_change(readings)
         states = memory.states(entity, market, limit=12)
         available = available_families_from_row(r)
+        if len(hist) > 0:
+            available = sorted(set(available) | {"memory"})
         ready = vertical_readiness(market, available)
         d = dict(r)
         d.update(agg)

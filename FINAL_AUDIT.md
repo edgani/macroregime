@@ -1,41 +1,48 @@
+# Final Audit — Market Opportunity OS v3.2.6
 
-## v3.2.2 — Unified UI replacement
-- Removed the legacy Decision Desk from the exposed product surface.
-- Removed the old sidebar scanner UI; market scope/search/refresh now live in the unified top shell.
-- All exposed workspaces use one dark-neon visual system: Control Room, Opportunities, Verticals, Macro & Events, Learning / Replay.
-- Replaced nested/native tab mazes in exposed vertical/learning surfaces with persistent button sub-navigation.
-- Core causal, macro, valuation, expression, longitudinal-memory and walk-forward logic is preserved; this is a UI/UX replacement, not an engine rewrite.
-- No autotrading and no classic technical-indicator fallback.
+## Verdict
 
-# Final Audit — Market Opportunity OS v3.2.1
+**RELEASED FOR RESEARCH + PROSPECTIVE EVIDENCE COLLECTION.**
 
-## Objective
-Upgrade v3.1 additively with longitudinal opportunity memory, outcome learning, true chronological walk-forward, automatic discovery and a denser reference-style UI.
+The code paths covered by the release suite pass. The system is deliberately not labelled a production-validated alpha engine because multi-year PIT/OOS evidence is still accumulating / incomplete.
 
-## Verified
-- Existing v3.1 core retained; original decision desk remains reachable.
-- New event memory uses a separate SQLite database.
-- First detection timestamp/price immutable under later state updates.
-- Invalidated events remain in history.
-- Forward outcomes include benchmark-relative path metrics and barrier-order success labels.
-- Learning does not modify production weights.
-- Walk-forward code is chronological expanding-window, never random shuffle.
-- New primary discovery layer has no classic technical-indicator dependency.
-- New layer contains no autotrading/order/private-key path.
-- 18/18 packaged tests pass.
-- 20/20 v3.2 structural acceptance checks pass.
+## Defects found and closed after v3.2.3
 
-## Not falsely claimed
-- No claim of already-proven long-run alpha on a fresh longitudinal database.
-- No fabricated historical probabilities/confidence.
-- No claim of full exchange enumeration or complete PIT historical data.
-- No claim that sector-relative outcomes exist when a real sector benchmark is unavailable.
+1. Walk-forward label look-ahead across year boundaries.
+2. Missing alpha treated as false loss.
+3. Outcome-update starvation of newer events.
+4. Weekend/holiday horizon endpoint error.
+5. Comparator availability timing mismatch.
+6. Daily OHLC session-date leakage risk.
+7. Terminal opportunity episode resurrection.
+8. Empty memory/revision placeholders counted as evidence.
+9. Action/lifecycle could outrun vertical readiness.
+10. Narrative/revenue presence could manufacture capture/score.
+11. Valuation scenario dispersion could be invented from insufficient inputs.
+12. Archetypes inferred from market membership or unrelated capex/supply proxies.
+13. Syndicated/stale news double counting.
+14. Missing macro stress/credit inputs could look benign.
+15. IHSG negotiated-market gross/net denominator mismatch.
+16. Correlated fundamental metrics could count as multiple independent families.
+17. Crypto supply metrics could double vote.
+18. Benchmark start could use a future observation.
+19. Missed-runner records could be rewritten instead of immutable.
+20. Missed-runner recall denominator was not prospectively frozen.
 
-## Remaining risk
-The dominant risk is data coverage: broad PIT analyst/ownership/corporate-action history, dead/delisted universes, full market enumeration, physical commodity data, FX causal positioning data and timestamped catalyst histories.
+## New prospective validation infrastructure
 
+- current issuer-catalog snapshots for US/IHSG when providers respond;
+- deterministic rotating breadth beyond the seed universe;
+- one-per-market-day PIT baseline selections;
+- baseline outcome maturation using the same horizon clock as the engine;
+- daily scanned-universe runner anchors;
+- automatic 3M `+25%` runner audit after the cohort matures;
+- FOUND vs DISCOVERY_MISS / RANKING_MISS / DATA_MISS / CAUSAL_MODEL_MISS classification;
+- runner recall reported only from audited cohorts;
+- US sector ETF relative-alpha path where sector mapping exists.
 
-## v3.2.1 UI audit
-- Workspace navigation hotfix: PASS structurally; native buttons route all six workspaces and render before scanner refresh.
-- CONTROL ROOM dense dashboard contract: PASS structurally.
-- Real browser smoke: NOT VERIFIED in build container because Streamlit package is not installed; no false claim.
+## Release tests
+
+See `TEST_MATRIX.md` and `VALIDATION_RESULTS.md`.
+
+The final ZIP must also pass the complete suite after fresh extraction. Browser pixel-level Streamlit smoke is a separate verification boundary because Streamlit is not installed in the build container.

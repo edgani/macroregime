@@ -78,11 +78,29 @@ div.stButton>button[kind="primary"]{background:#09302f!important;color:#10f4cd!i
 .mq-list{border:1px solid var(--mq-line);border-radius:8px;overflow:hidden}.mq-lrow{display:grid;grid-template-columns:80px 1.2fr .8fr .8fr .9fr;gap:7px;padding:7px 9px;border-bottom:1px solid rgba(18,53,65,.7);font-size:9px;align-items:center}.mq-lrow:last-child{border-bottom:0}.mq-lhead{color:#6f929c;font-size:8px;text-transform:uppercase;letter-spacing:.06em;background:#071923}.mq-strong{font-weight:900;color:#dff8fb}
 @media(max-width:1100px){.mq-scope,.mq-vgrid{grid-template-columns:1fr 1fr}.mq-lrow{grid-template-columns:70px 1fr 1fr}.mq-lrow>*:nth-child(n+4){display:none}}
 
+
+/* v3.2.3: one visual system across every workspace; native dataframe skin removed from product surfaces */
+.mq-table-wrap{border:1px solid var(--mq-line);border-radius:8px;overflow:auto;background:#04131b;scrollbar-color:#0e4d5b #04131b}
+.mq-table{width:100%;border-collapse:collapse;min-width:760px;font-size:9px;color:#dff8fb}.mq-table thead th{position:sticky;top:0;z-index:2;background:#071923;color:#6f929c;text-transform:uppercase;letter-spacing:.055em;font-size:8px;text-align:left;padding:8px 9px;border-bottom:1px solid #123541;white-space:nowrap}.mq-table td{padding:7px 9px;border-bottom:1px solid rgba(18,53,65,.68);white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis}.mq-table tr:last-child td{border-bottom:0}.mq-table tbody tr:hover{background:#07212a}.mq-cell-up{color:var(--mq-green)!important;font-weight:850}.mq-cell-down{color:var(--mq-red)!important;font-weight:850}.mq-cell-amber{color:var(--mq-amber)!important;font-weight:800}
+.mq-three{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:8px}.mq-statline{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.mq-stat{border:1px solid var(--mq-line2);border-radius:7px;background:#05141c;padding:8px}.mq-stat small{font-size:8px;color:#73959f}.mq-stat strong{display:block;font-size:12px;margin-top:2px;color:#e4ffff}
+.mq-proof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.mq-proof{border:1px solid var(--mq-line);border-radius:8px;background:#05151e;padding:10px}.mq-proof small{font-size:8px;color:#70949d}.mq-proof strong{display:block;font-size:11px;color:var(--mq-cyan);margin-top:3px}.mq-proof p{font-size:8px;color:#7899a2;line-height:1.4;margin:5px 0 0}
+[data-testid="stDataFrame"],[data-testid="stMetric"]{display:none!important}
+@media(max-width:1100px){.mq-three,.mq-proof-grid,.mq-statline{grid-template-columns:1fr}}
+
+
+/* control normalization: interactive native widgets keep functionality but visually belong to the same shell */
+[data-testid="stMultiSelect"] [data-baseweb="tag"], [data-testid="stMultiSelect"] span[data-baseweb="tag"], div[data-baseweb="tag"], span[data-baseweb="tag"]{background:#073338!important;color:#bffff4!important;border:1px solid #0e756e!important;border-radius:6px!important}
+[data-testid="stMultiSelect"] [data-baseweb="tag"] *{color:#bffff4!important}
+[data-testid="stMultiSelect"] [data-baseweb="tag"] svg{fill:#10f4cd!important}
+[data-baseweb="select"] svg,[data-baseweb="input"] svg{fill:#10f4cd!important;color:#10f4cd!important}
+[data-testid="stSpinner"]{color:#8fb7bf!important;font-size:10px!important}
+[data-testid="stTextInput"] input::placeholder{color:#638994!important}
+
 </style>
 """,unsafe_allow_html=True)
 
 
-def render_global_header(st, *, scan_count: int=0, event_count: int=0, active_count: int=0, outcome_count: int=0, macro_regime: str="GATED", engine_version: str="v3.2.2") -> None:
+def render_global_header(st, *, scan_count: int=0, event_count: int=0, active_count: int=0, outcome_count: int=0, macro_regime: str="GATED", engine_version: str="v3.2.6") -> None:
     st.markdown(f"""
 <div class='mq-top'>
  <div class='mq-brand'><div class='mq-logo'>◢◣</div><div><div class='mq-name'>Opportunity<span>OS</span></div><div class='mq-tag'>SCAN EARLY · FILTER NOISE · EXPLAIN ALPHA</div></div></div>
@@ -102,6 +120,58 @@ def _score_cards(scores: Mapping[str,Any]) -> str:
     return "".join(f"<div class='mq-score'><small>{k}</small><strong>{_num(v,0)}</strong></div>" for k,v in items)
 
 
+
+def _cell_class(v: Any) -> str:
+    s=str(v or "").upper()
+    if any(k in s for k in ["READY","ACTIVE","HIGH CONVICTION","BUILD CANDIDATE","SELECTIVE ADD","PROVING","EMERGING","SUPPORTIVE","CALM","TAILWIND"]):
+        return "mq-cell-up"
+    if any(k in s for k in ["GATED","INVALIDATED","SELL","BEARISH","SHORT","POWDER KEG","DEFENSIVE","RISK OFF"]):
+        return "mq-cell-down"
+    if any(k in s for k in ["PARTIAL","WATCH","MIXED","BASELINE BUILDING","NEEDS MORE EVIDENCE","NEEDS BETTER PRICE"]):
+        return "mq-cell-amber"
+    return ""
+
+def _display_value(v: Any) -> str:
+    if v is None: return "—"
+    try:
+        if pd.isna(v): return "—"
+    except Exception:
+        pass
+    if isinstance(v,float):
+        if not math.isfinite(v): return "—"
+        av=abs(v)
+        if av>=1_000_000_000: return f"{v/1_000_000_000:,.2f}B"
+        if av>=1_000_000: return f"{v/1_000_000:,.2f}M"
+        if av>=1000: return f"{v:,.0f}"
+        if av>=10: return f"{v:,.2f}"
+        return f"{v:,.4f}".rstrip('0').rstrip('.')
+    if isinstance(v,(dict,list,tuple)):
+        try: return json.dumps(v,ensure_ascii=False,separators=(",",":"))
+        except Exception: return str(v)
+    return str(v)
+
+def dense_table_html(df: pd.DataFrame, columns=None, *, max_rows: int=40, height: int=420, labels: Optional[Mapping[str,str]]=None) -> str:
+    if df is None or df.empty:
+        return "<div class='mq-empty'>No rows available for this view.</div>"
+    cols=list(columns) if columns else list(df.columns)
+    cols=[c for c in cols if c in df.columns]
+    labels=dict(labels or {})
+    head=''.join(f"<th>{html.escape(str(labels.get(c,c)).replace('_',' '))}</th>" for c in cols)
+    rows=[]
+    for _,r in df.head(max_rows).iterrows():
+        cells=[]
+        for c in cols:
+            val=_display_value(r.get(c))
+            cls=_cell_class(val)
+            title=html.escape(val)
+            short=val if len(val)<=78 else val[:75]+"…"
+            cells.append(f"<td class='{cls}' title='{title}'>{html.escape(short)}</td>")
+        rows.append('<tr>'+''.join(cells)+'</tr>')
+    return f"<div class='mq-table-wrap' style='max-height:{int(height)}px'><table class='mq-table'><thead><tr>{head}</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+
+def render_dense_table(st, df: pd.DataFrame, columns=None, *, max_rows: int=40, height: int=420, labels: Optional[Mapping[str,str]]=None) -> None:
+    st.markdown(dense_table_html(df,columns,max_rows=max_rows,height=height,labels=labels),unsafe_allow_html=True)
+
 def render_opportunity_tracker(st, ranked: pd.DataFrame, memory: OpportunityMemory, macro: Mapping[str,Any]) -> None:
     install_memequant_style(st)
     counts=memory.counts(); active=memory.events_frame(active_only=True,limit=200); alerts=memory.alerts_frame(limit=30); states=memory.states_frame(limit=80)
@@ -111,6 +181,7 @@ def render_opportunity_tracker(st, ranked: pd.DataFrame, memory: OpportunityMemo
 <div class='mq-kpirow'><div class='mq-kpi'><b>ACTIVE</b><strong>{counts['active']}</strong><small>persistent</small></div><div class='mq-kpi'><b>HIGH DATA</b><strong>{int(quality)}</strong><small>current scan</small></div><div class='mq-kpi'><b>FAILURES</b><strong>{counts['failures']}</strong><small>kept for learning</small></div><div class='mq-kpi'><b>MISSED</b><strong>{counts['missed']}</strong><small>no hindsight claims</small></div></div>
 """
     st.markdown(top_html,unsafe_allow_html=True)
+    st.markdown("<div class='mq-note'><b>LIFECYCLE</b> · DISCOVER → STARTER → CORE → ADD/HOLD → NO CHASE → TRIM/EXIT · invalidated ideas remain in memory for learning.</div>",unsafe_allow_html=True)
 
     # Build left entities from active memory; fall back to current scan without fabricating events.
     if not active.empty:
@@ -161,31 +232,33 @@ def render_opportunity_tracker(st, ranked: pd.DataFrame, memory: OpportunityMemo
 
     st.markdown(f"<div class='mq-grid'><div class='mq-panel'><div class='mq-ph'>Tracked Opportunities <span>{len(left)}</span></div><div class='mq-body'>{left_rows}</div></div><div><div class='mq-panel'><div class='mq-ph'>Opportunity Detail <span>{html.escape(str(er.get('last_state','')) if er is not None else '')}</span></div><div class='mq-body'>{hero}<div class='mq-section'>Causal transmission chain</div>{chain}<div class='mq-section'>Live context at first detection</div>{mini}</div></div><div class='mq-panel' style='margin-top:8px'><div class='mq-ph'>Lifecycle Activity Feed</div><div class='mq-body mq-feed'>{feed}</div></div></div><div class='mq-panel'><div class='mq-ph'>Memory & Risk</div><div class='mq-body'>{right}</div></div></div>",unsafe_allow_html=True)
 
-    # Native tables below the dense visual shell keep the page actually interactive/searchable.
-    st.markdown("<div class='mq-bottom-grid'>",unsafe_allow_html=True)
+    outs=memory.outcomes_frame(selected_event) if selected_event else memory.outcomes_frame()
+    st.markdown("<div class='mq-three'>",unsafe_allow_html=True)
+    # Streamlit does not permit nesting markdown containers around later widgets, so each visual block is rendered independently.
     st.markdown("</div>",unsafe_allow_html=True)
-    c1,c2,c3=st.columns([1.25,1,1])
+    c1,c2,c3=st.columns([1.25,1,1],gap="small")
     with c1:
         st.markdown("<div class='mq-section'>Opportunity Radar · current scan</div>",unsafe_allow_html=True)
-        if ranked.empty: st.info("Current scan is empty / gated.")
-        else:
-            cols=[c for c in ["market","symbol","stage","research_action","change_state","evidence_families","deterioration_families","expectation_gap","data_quality"] if c in ranked]
-            st.dataframe(ranked[cols].head(30),use_container_width=True,hide_index=True,height=390)
+        cols=[c for c in ["market","symbol","stage","research_action","change_state","expectation_gap","data_quality"] if c in ranked]
+        render_dense_table(st,ranked,cols,max_rows=30,height=350)
     with c2:
         st.markdown("<div class='mq-section'>Outcome Memory</div>",unsafe_allow_html=True)
-        outs=memory.outcomes_frame(selected_event) if selected_event else memory.outcomes_frame()
-        if outs.empty: st.caption("No mature forward horizon yet. This is correct on a fresh v3.2 database; the engine will not invent performance.")
+        if outs.empty:
+            st.markdown("<div class='mq-empty'>No mature forward horizon yet. Fresh memory stays blank rather than inventing performance.</div>",unsafe_allow_html=True)
         else:
             cols=[c for c in ["horizon","absolute_return","alpha_vs_benchmark","alpha_vs_sector","mfe","mae","completed"] if c in outs]
-            st.dataframe(outs[cols],use_container_width=True,hide_index=True,height=390)
+            render_dense_table(st,outs,cols,max_rows=24,height=350)
     with c3:
-        st.markdown("<div class='mq-section'>Alerts / proof tape</div>",unsafe_allow_html=True)
-        if alerts.empty: st.caption("No deduplicated state alerts yet.")
-        else: st.dataframe(alerts[[c for c in ["observed_at_utc","alert_type","message"] if c in alerts]].head(20),use_container_width=True,hide_index=True,height=390)
+        st.markdown("<div class='mq-section'>Alerts / Proof Tape</div>",unsafe_allow_html=True)
+        if alerts.empty:
+            st.markdown("<div class='mq-empty'>No deduplicated state alerts yet.</div>",unsafe_allow_html=True)
+        else:
+            cols=[c for c in ["observed_at_utc","alert_type","message"] if c in alerts]
+            render_dense_table(st,alerts,cols,max_rows=20,height=350)
 
-    st.markdown("<div class='mq-section'>Theme clusters · best expression first</div>",unsafe_allow_html=True)
+    st.markdown("<div class='mq-section'>Theme Clusters · Best Expression First</div>",unsafe_allow_html=True)
     if active.empty:
-        st.caption("No active theme cluster yet.")
+        st.markdown("<div class='mq-empty'>No active theme cluster yet.</div>",unsafe_allow_html=True)
     else:
         tmp=active.copy()
         tmp["opportunity_score"]=tmp["scores_json"].map(lambda x:_f(_safe_json(x).get("opportunity_score")))
@@ -194,15 +267,16 @@ def render_opportunity_tracker(st, ranked: pd.DataFrame, memory: OpportunityMemo
             g=g.sort_values("opportunity_score",ascending=False,na_position="last")
             syms=g["symbol"].astype(str).tolist()
             cluster.append({"Theme":theme,"Best expression":syms[0] if syms else "—","Second-best":syms[1] if len(syms)>1 else "—","Alternative":syms[2] if len(syms)>2 else "—","Candidates":len(g),"Best score":g.iloc[0].get("opportunity_score") if len(g) else math.nan})
-        st.dataframe(pd.DataFrame(cluster).sort_values("Best score",ascending=False,na_position="last"),use_container_width=True,hide_index=True)
+        cdf=pd.DataFrame(cluster).sort_values("Best score",ascending=False,na_position="last")
+        render_dense_table(st,cdf,list(cdf.columns),max_rows=30,height=320)
 
 
-def render_learning_lab(st, memory: OpportunityMemory) -> None:
+def render_learning_lab(st, memory: OpportunityMemory, baseline_outcomes: pd.DataFrame | None = None) -> None:
     install_memequant_style(st)
-    rep=learning_report(memory)
+    rep=learning_report(memory, baseline_outcomes=baseline_outcomes)
     counts=memory.counts()
     st.markdown(f"""<div class='mq-pagehead'><div><h1>Learning / Replay Lab</h1><p>Chronological outcome learning, false-positive memory and missed-runner audits. Production weights never self-mutate.</p></div><div class='mq-pagebadge'>{counts.get('outcomes',0)} MATURE OUTCOMES</div></div>""",unsafe_allow_html=True)
-    keys=[("PATTERN EXPECTANCY","patterns"),("TRUE WALK-FORWARD","walk_forward"),("BASELINES","baselines"),("FAILURES","failures"),("MISSED WINNERS","missed")]
+    keys=[("PATTERN EXPECTANCY","patterns"),("TRUE WALK-FORWARD","walk_forward"),("BASELINES","baselines"),("RUNNER RECALL","runner_recall"),("FAILURES","failures"),("MISSED WINNERS","missed")]
     if st.session_state.get("mq_learning_view") not in [x[1] for x in keys]:
         st.session_state["mq_learning_view"]="patterns"
     def setv(v): st.session_state["mq_learning_view"]=v
@@ -215,13 +289,14 @@ def render_learning_lab(st, memory: OpportunityMemory) -> None:
         "patterns":"Historical expectancy is shown only when enough matured, comparable observations exist.",
         "walk_forward":"Training/calibration observations must precede each test window. No random shuffle.",
         "baselines":"Complex opportunity logic must beat transparent simple baselines OOS before promotion.",
+        "runner_recall":"Recall is computed only from prospectively frozen cohorts whose future runner outcome has matured.",
         "failures":"Invalidated opportunities stay in memory and are classified by causal failure mode.",
         "missed":"Runner reconstruction is allowed only from information observable at the historical timestamp."
     }
     st.markdown(f"<div class='mq-note'><b>{html.escape(view.replace('_',' ').upper())}</b><br>{html.escape(notes[view])}</div>",unsafe_allow_html=True)
     df=rep.get(view,pd.DataFrame())
     if df is None or df.empty:
-        msg={"patterns":"Insufficient mature stored outcomes. No confidence number is manufactured.","walk_forward":"Not enough chronological event/outcome history for a valid expanding walk-forward yet.","baselines":"No comparable baseline result is available yet.","failures":"No explicit false-positive reason has matured yet.","missed":"No PIT-reconstructable missed-runner case is available yet."}[view]
+        msg={"patterns":"Insufficient mature stored outcomes. No confidence number is manufactured.","walk_forward":"Not enough chronological event/outcome history for a valid expanding walk-forward yet.","baselines":"No comparable baseline result is available yet.","runner_recall":"No prospectively audited runner cohort has matured yet.","failures":"No explicit false-positive reason has matured yet.","missed":"No PIT-reconstructable missed-runner case is available yet."}[view]
         st.markdown(f"<div class='mq-empty' style='margin-top:8px'>{html.escape(msg)}</div>",unsafe_allow_html=True)
     else:
-        st.dataframe(df,use_container_width=True,hide_index=True,height=520)
+        render_dense_table(st,df,list(df.columns),max_rows=80,height=520)

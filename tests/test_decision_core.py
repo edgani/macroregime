@@ -14,7 +14,7 @@ assert_close(neutral_percentile_rank([10,10,10,10],10),0.5)
 assert neutral_percentile_rank([1,2,3,4],4) > 0.8
 
 # detection != entry when valuation is gated
-row={"market":"US","research_action":"BUILD CANDIDATE","market_model_status":"RESEARCH READY / FUNDAMENTALS","data_quality":"HIGH","evidence_families":4,"deterioration_families":0,"price":50}
+row={"market":"US","research_action":"BUILD CANDIDATE","market_model_status":"RESEARCH READY / FUNDAMENTALS","data_quality":"HIGH","vertical_status":"READY","evidence_families":4,"deterioration_families":0,"price":50}
 r=entry_decision(row,{"valuation_confidence":"GATED"},{"action_label":"SELECTIVE RISK-ON","crash_state":"RESILIENT"})
 assert r["entry_stage"]=="DISCOVER" and "valuation" in " ".join(r["gates"]).lower()
 
@@ -42,7 +42,7 @@ assert "MACRO" in r["entry_stage"] and "NO LEVERAGE" in r["entry_action"]
 
 # IHSG never leverage/options
 entry={"entry_stage":"CORE"}
-e=expression_decision({"market":"IHSG","symbol":"BBCA.JK","data_quality":"HIGH","evidence_families":4,"research_action":"BUILD CANDIDATE","market_model_status":"RESEARCH READY"},entry,{})
+e=expression_decision({"market":"IHSG","symbol":"BBCA.JK","data_quality":"HIGH","evidence_families":4,"research_action":"BUILD CANDIDATE","market_model_status":"RESEARCH READY","vertical_status":"READY"},entry,{})
 assert not e["leverage_allowed"] and not e["option_allowed"] and "CASH" in e["best_expression"]
 
 # FX/commodity fail closed until dedicated model says ready
@@ -51,12 +51,12 @@ for m in ("FX","Commodity"):
     assert not e["leverage_allowed"],(m,e)
 
 # US leverage when earned
-us=expression_decision({"market":"US","symbol":"MU","data_quality":"HIGH","evidence_families":4,"research_action":"BUILD CANDIDATE","market_model_status":"RESEARCH READY / FUNDAMENTALS"},entry,{"action_label":"SELECTIVE RISK-ON","crash_state":"RESILIENT"})
+us=expression_decision({"market":"US","symbol":"MU","data_quality":"HIGH","evidence_families":4,"research_action":"BUILD CANDIDATE","market_model_status":"RESEARCH READY / FUNDAMENTALS","vertical_status":"READY"},entry,{"action_label":"SELECTIVE RISK-ON","crash_state":"RESILIENT"})
 assert us["leverage_allowed"]
 
 # crypto options only BTC/ETH and only after live option check passes
 for sym,expected in [("BTC-USD",True),("ETH-USD",True),("ZEC-USD",False)]:
-    x=expression_decision({"market":"Crypto","symbol":sym,"data_quality":"HIGH","evidence_families":4,"research_action":"BUILD CANDIDATE","market_model_status":"RESEARCH READY / VALUE CAPTURE"},entry,{}, {"iv":0.6,"spread":0.05,"liquidity":"GOOD"})
+    x=expression_decision({"market":"Crypto","symbol":sym,"data_quality":"HIGH","evidence_families":4,"research_action":"BUILD CANDIDATE","market_model_status":"RESEARCH READY / VALUE CAPTURE","vertical_status":"READY"},entry,{}, {"iv":0.6,"spread":0.05,"liquidity":"GOOD"})
     assert x["option_allowed"] is expected,(sym,x)
 
 # checkpoint state isolation and previous revision memory

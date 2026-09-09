@@ -769,68 +769,7 @@ def next_data_decision_grid() -> list[dict]:
     ]
 
 # ----------------------------- UI -----------------------------
-COLORS = {
-    "green": ("#20d58b", "rgba(32,213,139,.12)"),
-    "amber": ("#f4b45f", "rgba(244,180,95,.12)"),
-    "red": ("#ff6d74", "rgba(255,109,116,.12)"),
-    "blue": ("#75a9ff", "rgba(117,169,255,.12)"),
-    "gray": ("#8e9bad", "rgba(142,155,173,.10)"),
-}
-
-st.markdown(
-    """
-<style>
-:root{--bg:#070b11;--panel:#0f1621;--border:#202b3b;--muted:#8e9bad;--text:#edf3fb}
-.stApp{background:var(--bg);color:var(--text)}
-.block-container{max-width:1540px;padding-top:.7rem;padding-bottom:1.2rem}
-header[data-testid="stHeader"]{background:transparent}
-.hero{border:1px solid var(--border);border-radius:15px;padding:12px 15px;background:linear-gradient(180deg,#111a27,#0c121b)}
-.hero-title{font-size:1.65rem;font-weight:840;letter-spacing:-.035em}.sub{font-size:.75rem;color:var(--muted);margin-top:2px}
-.legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.badge{display:inline-block;padding:4px 7px;border-radius:999px;font-size:.59rem;font-weight:820;letter-spacing:.035em}
-.section{font-size:.66rem;font-weight:820;letter-spacing:.11em;text-transform:uppercase;color:#91a4bc;margin:.55rem 0 .3rem}
-.panel{border:1px solid var(--border);border-radius:13px;background:linear-gradient(180deg,#111925,#0c121b);padding:10px 11px}.ptitle{font-size:.74rem;font-weight:830;margin-bottom:6px}
-.summary-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.summary{border:1px solid var(--border);border-radius:11px;background:#0c131d;padding:8px 9px;min-height:78px}.kicker{font-size:.54rem;letter-spacing:.08em;text-transform:uppercase;color:#8090a4;font-weight:810}.svalue{font-size:.80rem;font-weight:830;margin-top:3px;line-height:1.12}.snum{font-size:1.14rem;font-weight:850;margin-top:2px}.snote{font-size:.60rem;color:#8f9cac;margin-top:3px;line-height:1.25}
-.matrix{width:100%;border-collapse:separate;border-spacing:4px}.matrix th{font-size:.56rem;color:#8393a7;text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:2px}.matrix td{padding:7px;border:1px solid var(--border);border-radius:8px;background:#0c131c;vertical-align:top}.rowname{font-size:.64rem;font-weight:820;color:#dbe5ef}.cellv{font-size:.66rem;font-weight:830;line-height:1.15}.celln{font-size:.55rem;color:#8c99aa;margin-top:2px;line-height:1.2}
-.quad{position:relative;height:190px;border:1px solid var(--border);border-radius:11px;overflow:hidden;background:linear-gradient(90deg,rgba(32,213,139,.05) 0 50%,rgba(255,109,116,.055) 50% 100%),linear-gradient(0deg,rgba(32,213,139,.05) 0 50%,rgba(255,109,116,.04) 50% 100%)}.qv{position:absolute;width:1px;top:0;bottom:0;left:50%;background:#2a3748}.qh{position:absolute;height:1px;left:0;right:0;top:50%;background:#2a3748}.qlabel{position:absolute;font-size:.53rem;font-weight:810;letter-spacing:.04em;text-transform:uppercase;color:#8090a4}.dot{position:absolute;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 4px rgba(255,255,255,.05)}
-.scenario-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.scenario{border:1px solid var(--border);border-radius:10px;background:#0c131d;padding:8px;min-height:104px}.scenario-title{font-size:.70rem;font-weight:830;margin-top:4px}.scenario-note{font-size:.60rem;color:#92a0b0;line-height:1.25;margin-top:4px}
-.rowline{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(255,255,255,.055);padding:5px 0;font-size:.64rem}.rowline:last-child{border-bottom:none}.muted{color:#8997a8}.right{text-align:right}
-.constraint-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.constraint{border:1px solid var(--border);border-radius:9px;background:#0c131d;padding:7px}.ctitle{font-size:.59rem;color:#8d9bad;text-transform:uppercase;font-weight:810}.cval{font-size:.75rem;font-weight:840;margin-top:3px}.cnote{font-size:.56rem;color:#8997a8;margin-top:2px;line-height:1.18}
-.chain{font-size:.62rem;color:#c8d3df;line-height:1.45;padding:7px 8px;background:#0c131d;border:1px solid var(--border);border-radius:9px}.gate{border:1px solid #38465a;border-radius:9px;background:rgba(74,90,117,.10);padding:7px 8px;font-size:.60rem;color:#aeb9c8;line-height:1.28}.watch-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.watch{border:1px solid var(--border);border-radius:9px;background:#0c131d;padding:7px}.watch-title{font-size:.63rem;font-weight:820}.watch-note{font-size:.57rem;color:#8e9bac;margin-top:2px;line-height:1.2}
-div[data-baseweb="tab-list"]{gap:6px}button[data-baseweb="tab"]{height:34px;font-size:.72rem}
-@media(max-width:1000px){.summary-grid{grid-template-columns:1fr 1fr}.scenario-grid,.constraint-grid{grid-template-columns:1fr}.matrix{font-size:.8rem}}
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
-
-def badge(text: str, tone: str) -> str:
-    c, bg = COLORS[tone]
-    return f"<span class='badge' style='color:{c};background:{bg};border:1px solid {c}33'>{text}</span>"
-
-
-def state_cell(value: str, note: str, tone: str) -> str:
-    c, bg = COLORS[tone]
-    return f"<td style='background:{bg};border-color:{c}2f'><div class='cellv' style='color:{c}'>{value}</div><div class='celln'>{note}</div></td>"
-
-
-def summary_card(kicker: str, value: str, number: str, note: str, tone: str) -> str:
-    c, bg = COLORS[tone]
-    return f"<div class='summary' style='background:linear-gradient(180deg,{bg},#0c131d)'><div class='kicker'>{kicker}</div><div class='svalue' style='color:{c}'>{value}</div><div class='snum'>{number}</div><div class='snote'>{note}</div></div>"
-
-
-def scenario_card(tag: str, name: str, note: str, tone: str) -> str:
-    c, _ = COLORS[tone]
-    return f"<div class='scenario'>{badge(tag,tone)}<div class='scenario-title' style='color:{c}'>{name}</div><div class='scenario-note'>{note}</div></div>"
-
-
-def constraint_card(title: str, value: str, note: str, tone: str) -> str:
-    c, bg = COLORS[tone]
-    return f"<div class='constraint' style='background:{bg}'><div class='ctitle'>{title}</div><div class='cval' style='color:{c}'>{value}</div><div class='cnote'>{note}</div></div>"
-
-
-
-
+# v3.2.3: legacy macro-specific CSS/UI removed. The application renders macro data through the unified OpportunityOS shell.
 
 def compute_macro_gate_snapshot(refresh: bool=False):
     """Compute the compact macro gate without rendering the full macro dashboard."""
@@ -863,12 +802,22 @@ def compute_macro_gate_snapshot(refresh: bool=False):
             if len(fc): fcig=float(fc.iloc[-1][fcol])
     growth,growth_tone=growth_state(bbk_gdp,bbk_co,wei); lead,lead_tone=lead_state(bbk_lead); inflation,inflation_tone,inflation_dir=inflation_state(trimmed,core_pce,trimmed_3m,core_3m); regime=regime_name(growth,inflation_dir)
     lead_delta=bbk_lead-lag_value(data.get("BBKMLEIX"),1) if np.isfinite(bbk_lead) and np.isfinite(lag_value(data.get("BBKMLEIX"),1)) else np.nan
-    credit_tone="red" if (np.isfinite(ebp_prob) and ebp_prob>=35) else ("amber" if np.isfinite(hy) and np.isfinite(hy_3m) and hy>hy_3m else "green")
-    credit_state="STRESS" if credit_tone=="red" else ("WIDENING / WATCH" if credit_tone=="amber" else "CALM")
-    stress_score=np.nanmean([hist_pct(data.get("VIXCLS")),hist_pct(data.get("NFCIRISK")),hist_pct(data.get("BAMLH0A0HYM2"))]); fragility_score=np.nanmean([hist_pct(data.get("DGS10")),hist_pct(data.get("THREEFYTP10")),hist_pct(data.get("BAMLH0A0HYM2"))])
-    if not np.isfinite(stress_score): stress_score=50.0
-    if not np.isfinite(fragility_score): fragility_score=50.0
-    crash_state,crash_tone,crash_explain=crash_state_name(stress_score,fragility_score)
+    credit_available = bool(np.isfinite(ebp_prob) or np.isfinite(hy))
+    if not credit_available:
+        credit_tone="gray"; credit_state="GATED"
+    else:
+        credit_tone="red" if (np.isfinite(ebp_prob) and ebp_prob>=35) else ("amber" if np.isfinite(hy) and np.isfinite(hy_3m) and hy>hy_3m else "green")
+        credit_state="STRESS" if credit_tone=="red" else ("WIDENING / WATCH" if credit_tone=="amber" else "CALM")
+    stress_parts=[hist_pct(data.get("VIXCLS")),hist_pct(data.get("NFCIRISK")),hist_pct(data.get("BAMLH0A0HYM2"))]
+    fragility_parts=[hist_pct(data.get("DGS10")),hist_pct(data.get("THREEFYTP10")),hist_pct(data.get("BAMLH0A0HYM2"))]
+    stress_valid=[x for x in stress_parts if np.isfinite(x)]; fragility_valid=[x for x in fragility_parts if np.isfinite(x)]
+    stress_score=float(np.mean(stress_valid)) if stress_valid else np.nan
+    fragility_score=float(np.mean(fragility_valid)) if fragility_valid else np.nan
+    risk_overlay_complete = len(stress_valid)>=2 and len(fragility_valid)>=2
+    if risk_overlay_complete:
+        crash_state,crash_tone,crash_explain=crash_state_name(stress_score,fragility_score)
+    else:
+        crash_state,crash_tone,crash_explain="GATED","gray","Stress/fragility inputs are incomplete; no benign state is imputed."
     fiscal_score=fiscal_constraint_score(debt_gdp,deficit_gdp,interest_gdp,term_premium)
     energy_score=energy_pressure_score(hist_pct(data.get("DCOILWTICO")),oil_chg_3m,hist_pct(data.get("T5YIE")))
     rates_score=np.nanmean([hist_pct(data.get("DGS10")),hist_pct(data.get("THREEFYTP10"))]); credit_score=np.nanmean([hist_pct(data.get("BAMLH0A0HYM2")),ebp_prob]); funding_score=np.nanmean([hist_pct(data.get("NFCIRISK")),hist_pct(data.get("VIXCLS"))]); geo_score=np.nanmean([gpr.get("gpr_pct",np.nan),hist_pct(data.get("USEPUINDXD"),10)])
@@ -887,22 +836,28 @@ def compute_macro_gate_snapshot(refresh: bool=False):
     critical_macro = [bbk_gdp, bbk_lead, trimmed, core_pce, sahm, claims, hy, nfci, vix, d10, term_premium]
     critical_available = sum(1 for x in critical_macro if np.isfinite(x))
     macro_data_coverage = critical_available / len(critical_macro)
-    if macro_data_coverage < 0.55:
+    if macro_data_coverage < 0.55 or not risk_overlay_complete or not credit_available:
+        reasons=[]
+        if macro_data_coverage < 0.55: reasons.append("macro data coverage below safety threshold")
+        if not risk_overlay_complete: reasons.append("stress/fragility overlay incomplete")
+        if not credit_available: reasons.append("credit state unavailable")
+        label="HOLD / MACRO GATED" if macro_data_coverage < 0.55 else "HOLD / RISK OVERLAY GATED"
         action_now = {
-            "score":50.0,"label":"HOLD / MACRO GATED","tone":"gray",
-            "headline":"Critical macro families are incomplete. Keep sizing conservative and disable leverage upgrades until the feeds recover.",
+            "score":np.nan,"label":label,"tone":"gray",
+            "headline":"Critical risk inputs are incomplete. Keep sizing conservative and disable leverage upgrades until the feeds recover.",
             "leverage":"NO NEW LEVERAGE","cash":"KEEP DRY POWDER","beta":"NO UPGRADE",
-            "credit":"GATED","duration":"GATED","hedge":"MAINTAIN",
-            "risk_reasons":["macro data coverage below safety threshold"],"buffers":[],
+            "credit":credit_state,"duration":"GATED","hedge":"MAINTAIN",
+            "risk_reasons":reasons,"buffers":[],
         }
-        plain_state = "MACRO GATED"
-        plain_explain = f"Only {critical_available}/{len(critical_macro)} critical macro readings are available."
+        if macro_data_coverage < 0.55:
+            plain_state = "MACRO GATED"
+            plain_explain = f"Only {critical_available}/{len(critical_macro)} critical macro readings are available."
         crash_state, crash_tone = "GATED", "gray"
-        credit_state = "GATED"
+        if not credit_available: credit_state = "GATED"
         event_override = None
     horizon_actions=horizon_action_plan(current=action_now,growth=growth,lead_value=bbk_lead,inflation_dir=inflation_dir,credit_tone=credit_tone)
-    if macro_data_coverage < 0.55:
-        horizon_actions=[{"horizon":"NOW","state":"MACRO GATED","tone":"gray","action":"No leverage upgrade until critical feeds recover.","status":"GATED"},
+    if macro_data_coverage < 0.55 or not risk_overlay_complete or not credit_available:
+        horizon_actions=[{"horizon":"NOW","state":"RISK OVERLAY GATED","tone":"gray","action":"No leverage upgrade until critical feeds recover.","status":"GATED"},
                          {"horizon":"+1Q","state":"NOT RELEASED","tone":"gray","action":"Projection gated by incomplete data.","status":"GATED"},
                          {"horizon":"+2Q","state":"NOT RELEASED","tone":"gray","action":"Projection gated by incomplete data.","status":"GATED"},
                          {"horizon":"+4Q","state":"NOT RELEASED","tone":"gray","action":"Projection model not validated.","status":"GATED"}]
@@ -917,7 +872,7 @@ def compute_macro_gate_snapshot(refresh: bool=False):
         {"engine":"Growth","now":plain_state,"q1":lead,"q2":lead if np.isfinite(bbk_lead) else "GATED","q4":"GATED","confidence":"MEDIUM" if np.isfinite(bbk_lead) else "LOW"},
         {"engine":"Inflation","now":inflation,"q1":inflation_one_q,"q2":"GATED","q4":"GATED","confidence":"MEDIUM"},
         {"engine":"Labor","now":labor_now,"q1":claims_direction,"q2":"GATED","q4":"GATED","confidence":"MEDIUM"},
-        {"engine":"Credit","now":credit_state,"q1":"WIDENING" if credit_tone=="amber" else ("STRESS" if credit_tone=="red" else "CALM"),"q2":"GATED","q4":"GATED","confidence":"MEDIUM"},
+        {"engine":"Credit","now":credit_state,"q1":"WIDENING" if credit_tone=="amber" else ("STRESS" if credit_tone=="red" else ("CALM" if credit_tone=="green" else "GATED")),"q2":"GATED","q4":"GATED","confidence":"MEDIUM" if credit_tone!="gray" else "LOW"},
         {"engine":"Financial conditions","now":fc_state,"q1":fc_state,"q2":"GATED","q4":"GATED","confidence":"MEDIUM"},
     ]
     attention_raw = [
@@ -968,80 +923,5 @@ def compute_macro_gate_snapshot(refresh: bool=False):
 
 
 def render_macro_control_room():
-    """Beginner-first macro page. The model internals remain available under one expander."""
-    c1,c2=st.columns([1,4])
-    with c1:
-        refresh=st.button("Refresh macro", use_container_width=True, key="macro_refresh_final")
-    snap=compute_macro_gate_snapshot(refresh=refresh)
-    with c2:
-        st.caption("Latest public macro/event feeds. Grey means not validated/unavailable — never neutral. Numerical macro/crash/event probabilities remain locked until PIT/OOS validation passes.")
-
-    event=snap.get("event_override") or "NONE ACTIVE"
-    tone=snap.get("action_tone","gray")
-    st.markdown("<div class='section'>Macro decision board</div>",unsafe_allow_html=True)
-    cards="<div class='summary-grid' style='grid-template-columns:repeat(5,minmax(0,1fr))'>"
-    cards+=summary_card("ACTION NOW",str(snap.get("action_label","—")),"",str(snap.get("headline","")),tone)
-    cards+=summary_card("ECONOMY",str(snap.get("regime","—")),"",str(snap.get("regime_explain","")),"blue")
-    cards+=summary_card("CRASH SETUP",str(snap.get("crash_state","—")),"",f"Stress {fmt(snap.get('crash_stress',np.nan),0,'/100')} · fragility {fmt(snap.get('crash_fragility',np.nan),0,'/100')}",str(snap.get("crash_tone","gray")))
-    cards+=summary_card("CREDIT",str(snap.get("credit_state","—")),"","Key escalation gate before a financial cascade.","red" if snap.get("credit_state")=="STRESS" else ("amber" if "WATCH" in str(snap.get("credit_state")) else "green"))
-    cards+=summary_card("EVENT OVERRIDE",event,"","Only material live transmission is promoted here.","amber" if event!="NONE ACTIVE" else "green")
-    cards+="</div>"
-    st.markdown(cards,unsafe_allow_html=True)
-    st.markdown(f"<div class='panel' style='margin-top:7px'><div class='ptitle'>Plain English</div><div style='font-size:.76rem;line-height:1.45'>{snap.get('headline','')} <b>Portfolio implication:</b> {snap.get('action_label','—')}. Macro changes sizing/expression; it should not automatically kill a strong secular bottom-up thesis.</div></div>",unsafe_allow_html=True)
-
-    st.markdown("<div class='section'>What matters most now</div>",unsafe_allow_html=True)
-    att=snap.get("attention",[]) or []
-    if att:
-        cols=st.columns(min(3,len(att)))
-        for col,item in zip(cols,att[:3]):
-            with col:
-                sc=item.get("score",np.nan); t=tone_from_score(sc)
-                st.markdown(summary_card(item.get("name","Driver"),"WATCH",fmt(sc,0,"/100"),item.get("note","")+" · attention, not probability",t),unsafe_allow_html=True)
-
-    st.markdown("<div class='section'>Where the economy is going</div>",unsafe_allow_html=True)
-    left,right=st.columns([1.65,1])
-    with left:
-        proj=pd.DataFrame(snap.get("projection_rows",[]))
-        if not proj.empty:
-            proj=proj.rename(columns={"engine":"Engine","now":"NOW","q1":"+1Q","q2":"+2Q","q4":"+4Q","confidence":"Confidence"})
-            st.dataframe(proj,use_container_width=True,hide_index=True)
-        st.caption("Future cells stay GATED when the proprietary path is not validated. Supporting benchmarks are not mislabeled as forecasts.")
-    with right:
-        stress=safe_float(snap.get("crash_stress")); frag=safe_float(snap.get("crash_fragility"))
-        state=snap.get("crash_state","GATED")
-        meaning=("Vulnerable, but no active cascade." if state=="POWDER KEG" else ("Stress and fragility are both elevated; prioritize liquidity." if "DANGER" in str(state) else "No crash conclusion from a single gauge."))
-        st.markdown(f"<div class='panel'><div class='ptitle'>Crash setup · {state}</div><div class='rowline'><div>Immediate stress</div><div class='right'><b>{fmt(stress,0,'/100')}</b></div></div><div class='rowline'><div>Fragility</div><div class='right'><b>{fmt(frag,0,'/100')}</b></div></div><div class='rowline'><div>Credit</div><div class='right'><b>{snap.get('credit_state','—')}</b></div></div><div class='gate' style='margin-top:6px'>{meaning} Exact drawdown probability remains gated.</div></div>",unsafe_allow_html=True)
-
-    st.markdown("<div class='section'>Most supported paths · next 1–2 quarters</div>",unsafe_allow_html=True)
-    paths=snap.get("top_paths",[]) or []
-    if paths:
-        cols=st.columns(min(3,len(paths)))
-        for col,sc in zip(cols,paths[:3]):
-            with col:
-                t=sc.get("tone","blue")
-                st.markdown(f"<div class='scenario'><div>{badge(sc.get('family','PATH'),t)}</div><div class='scenario-title'>{sc.get('name','')}</div><div class='scenario-note'><b>Transmission:</b> {sc.get('transmission','')}<br><br><b>If confirmed → {sc.get('action_state','WATCH')}</b><br>{sc.get('action','')}<br><br><b>Confirms:</b> {sc.get('confirms','')}<br><b>Breaks if:</b> {sc.get('invalidates','')}</div></div>",unsafe_allow_html=True)
-    else:
-        st.info("No scenario currently clears the live evidence gate; the base macro path dominates.")
-
-    st.markdown("<div class='section'>What would change the action?</div>",unsafe_allow_html=True)
-    ncs=snap.get("next_confirmations",[]) or []
-    cols=st.columns(2)
-    for i,item in enumerate(ncs):
-        with cols[i%2]:
-            st.markdown(f"<div class='watch'><div class='watch-title'>{item.get('name','')}</div><div class='watch-note'>{item.get('watch','')}</div></div>",unsafe_allow_html=True)
-
-    with st.expander("Technical evidence / next-data decision grid / raw readings", expanded=False):
-        dg=pd.DataFrame(snap.get("decision_grid",[]))
-        if not dg.empty:
-            st.markdown("**Next economic-data decision grid**")
-            st.dataframe(dg,use_container_width=True,hide_index=True)
-        raw=snap.get("raw_readings",{}) or {}
-        if raw:
-            st.markdown("**Raw latest readings**")
-            st.dataframe(pd.DataFrame([{"Series":k,"Latest":v} for k,v in raw.items()]),use_container_width=True,hide_index=True)
-        errs=snap.get("data_errors",{}) or {}
-        if errs:
-            st.markdown("**Feed errors / unavailable optional data**")
-            st.dataframe(pd.DataFrame([{"Source":k,"Error":v} for k,v in errs.items()]),use_container_width=True,hide_index=True)
-
-    st.caption("Macro page is deliberately compact: action → projection → crash setup → top scenarios → confirmations. Research internals stay hidden unless requested.")
+    """Compatibility entry point. Legacy macro UI was retired in v3.2.3; return the shared snapshot only."""
+    return compute_macro_gate_snapshot(refresh=False)

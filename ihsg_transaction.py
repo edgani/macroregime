@@ -452,8 +452,13 @@ def eod_transaction_snapshot(
 
     ng_df = broker_frame(ng_rows)
     rg_transfer = _f(conc.get("transfer_intensity_value"))
+    # Compare negotiated and regular-market activity on the same accounting basis.
+    # Broker-summary buy+sell gross double-counts each matched trade, so divide both
+    # markets by two.  The prior denominator incorrectly used positive broker net RG
+    # imbalance, which is not comparable to NG gross traded value.
+    rg_gross = float(df["gross_value"].sum() / 2.0) if not df.empty else 0.0
     ng_gross = float(ng_df["gross_value"].sum() / 2.0) if not ng_df.empty else 0.0
-    denom = max(0.0, rg_transfer) + max(0.0, ng_gross)
+    denom = max(0.0, rg_gross) + max(0.0, ng_gross)
     ng_share = ng_gross / denom if denom > 0 else math.nan
     cross_risk = ng_share if math.isfinite(ng_share) else math.nan
 
@@ -471,6 +476,7 @@ def eod_transaction_snapshot(
         "eod_status": "READY · EOD BROKER ATTRIBUTION",
         "eod_from": first, "eod_to": last, "eod_days": len(daily), "eod_errors": errors,
         **conc, **pers,
+        "rg_gross_value": rg_gross, "ng_gross_value": ng_gross,
         "ng_share": ng_share, "crossing_transfer_risk": cross_risk,
         "foreign_buy": ff_buy, "foreign_sell": ff_sell, "net_foreign": ff_net,
         "foreign_flow_intensity": ff_intensity,

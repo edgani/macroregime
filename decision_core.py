@@ -81,6 +81,7 @@ def entry_decision(
     market = str(row.get("market", ""))
     research_action = str(row.get("research_action", "WATCH")).upper()
     model_status = str(row.get("market_model_status", "")).upper()
+    readiness = str(row.get("vertical_status", "GATED")).upper()
     quality = str(row.get("data_quality", "LOW")).upper()
     ev = int(safe_float(row.get("evidence_families")) if math.isfinite(safe_float(row.get("evidence_families"))) else 0)
     det = int(safe_float(row.get("deterioration_families")) if math.isfinite(safe_float(row.get("deterioration_families"))) else 0)
@@ -109,6 +110,8 @@ def entry_decision(
             **rev,
         }
 
+    if readiness != "READY":
+        gates.append("market-specific core evidence incomplete: " + (readiness or "GATED"))
     if market in ("FX", "Commodity") and "RESEARCH READY" not in model_status:
         gates.append("dedicated asset-class causal model incomplete")
     if market == "Crypto" and "RESEARCH READY" not in model_status:
@@ -197,6 +200,7 @@ def expression_decision(
     stage = str(entry.get("entry_stage", "DISCOVER")).upper()
     research_action = str(row.get("research_action", "")).upper()
     status = str(row.get("market_model_status", "")).upper()
+    readiness = str(row.get("vertical_status", "GATED")).upper()
     q = str(row.get("data_quality", "LOW")).upper()
     ev = int(safe_float(row.get("evidence_families")) if math.isfinite(safe_float(row.get("evidence_families"))) else 0)
 
@@ -208,10 +212,10 @@ def expression_decision(
 
     bearish = any(k in research_action for k in ("SHORT", "SELL", "BEARISH"))
     direction = "SHORT" if bearish else "LONG"
-    leverage_ready = q == "HIGH" and ev >= 3 and "RESEARCH READY" in status and not (_macro_risk_off(macro) and direction == "LONG")
+    leverage_ready = readiness == "READY" and q == "HIGH" and ev >= 3 and "RESEARCH READY" in status and not (_macro_risk_off(macro) and direction == "LONG")
 
     # US model_status may be RESEARCH READY / FUNDAMENTALS; crypto requires its own ready status.
-    if market == "US" and q == "HIGH" and ev >= 3:
+    if market == "US" and readiness == "READY" and q == "HIGH" and ev >= 3:
         leverage_ready = not (_macro_risk_off(macro) and direction == "LONG")
 
     if market in ("FX", "Commodity") and "RESEARCH READY" not in status:
@@ -219,7 +223,7 @@ def expression_decision(
 
     option_allowed = False
     option_why = "option market/model not ready"
-    if market == "US" or (market == "Crypto" and str(row.get("symbol", "")).upper() in ("BTC-USD", "ETH-USD")):
+    if readiness == "READY" and (market == "US" or (market == "Crypto" and str(row.get("symbol", "")).upper() in ("BTC-USD", "ETH-USD"))):
         err = option.get("error")
         liq = str(option.get("liquidity", "")).upper()
         spread = safe_float(option.get("spread"))

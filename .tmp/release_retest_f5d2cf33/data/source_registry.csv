@@ -1,0 +1,27 @@
+family,source,coverage,role,status
+US fundamentals,Yahoo Finance / company public financial metadata,US equities,current quarterly fundamentals + price context,WIRED
+US primary filings,SEC EDGAR / company filings,US equities,point-in-time primary-source fundamentals and filing dates,PIT PARSER WIRED · FULL HISTORY DOWNLOAD REQUIRED FOR EMPIRICAL OOS
+IHSG fundamentals,Yahoo Finance / public issuer data,IHSG,current fundamentals + price context,WIRED PARTIAL
+IHSG primary filings,IDX / issuer filings,IHSG,point-in-time financials corporate actions ownership dilution,DISCOVERY/PIT ADAPTER WIRED · NORMALIZED HISTORY REQUIRED FOR EMPIRICAL OOS
+Market data,Yahoo Finance via yfinance,US/IHSG/FX/commodities,price/history context only; never a classic technical signal,WIRED
+Crypto economics,DefiLlama,Crypto,protocol fees/revenue acceleration,WIRED PARTIAL
+Crypto supply,CoinGecko,Crypto,market cap FDV circulating/max-supply context,WIRED
+Crypto holder capture / usage,Protocol-specific primary/on-chain feeds,Crypto,holder revenue buybacks burns unlock schedules real usage,REQUIRED FOR HIGH CONVICTION
+US options,Yahoo Finance listed option chains,US equities,expiry strike IV spread OI liquidity expression check,WIRED
+Crypto options,Deribit public API,BTC/ETH,liquid BTC/ETH call/put IV spread OI expression check,WIRED ADAPTER / THESIS GATED
+Macro,FRED / Federal Reserve,Cross-asset,growth inflation labor credit rates financial conditions,WIRED
+Fiscal,US Treasury FiscalData,Cross-asset,fiscal/debt constraints,WIRED
+Geopolitical / supply,AI-GPR GSCPI EPU public feeds,Cross-asset,event transmission sensors,WIRED
+Scenario discovery,Google News RSS broad queries,Cross-asset,novel event/theme discovery; evidence ranking not probability,WIRED
+FX causal data,BIS/FRED/CFTC/central banks/BoP sources,FX,rate differential REER BoP positioning intervention reaction,REQUIRED BEFORE LEVERAGE
+Commodity physical data,EIA/USDA/IEA/exchange/public agency feeds,Commodities,inventory production consumption spare capacity curve/carry,REQUIRED BEFORE LEVERAGE
+Industry / primary sources,Company IR / IEA / agencies,Cross-asset,causal validation bottleneck evidence and normalization,PARTIAL / EVENT-DRIVEN
+Macro vintages,ALFRED / FRED vintage CSV,US macro,point-in-time macro observations as known on historical vintage dates,VINTAGE ADAPTER WIRED · FULL HISTORICAL PANEL REQUIRED FOR EMPIRICAL OOS
+IHSG transaction EOD,Index Alpha API,IHSG,daily broker buy/sell value volume frequency average price; RG/NG; foreign flow; broker persistence and concentration,WIRED OPTIONAL · REQUIRES INDEX_ALPHA_API_KEY · DATA FROM 2025-01-01 · EOD ~19:00 WIB
+IHSG microstructure,Invezgo API,IHSG,intraday price/value/frequency + real-time order-book depth; optional HAKA/HAKI fields when exposed by provider,WIRED OPTIONAL · REQUIRES INVEZGO_API_KEY · LIVE LAYER FAILS CLOSED WITHOUT KEY
+IHSG ownership confirmation,IDX / KSEI disclosures,IHSG,large-holder insider ownership and corporate-action confirmation for inferred transaction states,PRIMARY-SOURCE CONFIRMATION LAYER · NORMALIZED AUTOMATION STILL PARTIAL
+On-chain ecosystem,DefiLlama Free API,Selected chains,chain TVL + stablecoin supply + DEX volume + fees + revenue as separate confirmation families,WIRED · NO AUTH · FAIL-CLOSED
+Market Memory,Local SQLite append-only store,All verticals,timestamped snapshots + state sequence + future outcome store; current observation excluded from its own baseline,WIRED
+US analyst expectations,Yahoo Finance via yfinance,US equities,+1y EPS trend 30d/current + EPS revision breadth + next-year revenue estimate growth,WIRED CURRENT SNAPSHOT · MARKET MEMORY CREATES PIT HISTORY GOING FORWARD
+Story optionality,Public company financial statements via current adapters,US/IHSG,loss classification + revenue/margin/FCF inflection + investment intensity + financing runway/dilution risk,WIRED · DESCRIPTIVE · LOSS ALONE NEVER POSITIVE EVIDENCE
+Loss-making valuation,Same-sector Price/Sales cross-section,US/IHSG,valuation fallback only when positive EPS P/E model is invalid; requires >=4 valid same-sector peers,WIRED · FAIL-CLOSED IF PEERS INSUFFICIENT

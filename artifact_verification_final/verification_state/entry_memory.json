@@ -1,0 +1,14 @@
+{
+  "ABC": {
+    "entry_stage": "STARTER",
+    "fv_base": 12.0,
+    "previous": {
+      "entry_stage": "CORE",
+      "fv_base": 15.0,
+      "price": 11.0,
+      "updated_at_utc": "2026-09-09T11:04:22Z"
+    },
+    "price": 10.0,
+    "updated_at_utc": "2026-09-09T11:04:56Z"
+  }
+}

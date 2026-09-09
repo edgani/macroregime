@@ -1,0 +1,42 @@
+# Opportunity Learning WEEKLY
+
+As of: 2026-09-09T11:13:10.447309+00:00
+
+- Active opportunities: 0
+- Total frozen events: 0
+- Mature outcomes: 0
+- Stored failures: 0
+- Missed/runner audits: 0
+
+## State changes
+
+No stored state changes in this window.
+
+## Learning status
+
+Historical expectancy: insufficient mature samples; no confidence number produced.
+Walk-forward: insufficient chronological history for a valid test window.
+Runner recall: insufficient audited runner cohorts.
+
+## What worked
+
+No mature pattern has enough sample support yet.
+
+## What failed
+
+No explicit matured failure taxonomy records in this window.
+
+## Missed winners / runner audit
+
+No prospectively audited runner case has matured yet.
+
+## Baseline comparison
+
+- Opportunity Engine: NO MATURE OUTCOMES · N=0 · median alpha=nan
+- Strongest 6M performer: PROSPECTIVE PIT SCANNED-UNIVERSE DATA ACCUMULATING / GATED · N=0 · median alpha=nan
+- Highest earnings growth: PROSPECTIVE PIT SCANNED-UNIVERSE DATA ACCUMULATING / GATED · N=0 · median alpha=nan
+- Cheapest valuation: PROSPECTIVE PIT SCANNED-UNIVERSE DATA ACCUMULATING / GATED · N=0 · median alpha=nan
+- Highest analyst revisions: PROSPECTIVE PIT SCANNED-UNIVERSE DATA ACCUMULATING / GATED · N=0 · median alpha=nan
+- Sector momentum: PROSPECTIVE PIT SCANNED-UNIVERSE DATA ACCUMULATING / GATED · N=0 · median alpha=nan
+
+Production weights are unchanged. Any challenger requires chronological OOS promotion.

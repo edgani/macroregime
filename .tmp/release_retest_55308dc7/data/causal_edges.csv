@@ -1,0 +1,144 @@
+source,target,mechanism,sign,lag,role,validation,condition
+AI adoption,Data-center capex,AI workloads require more compute capacity,+,0-4Q,DIRECT,CORE,Hyperscaler/enterprise AI demand
+Data-center capex,Accelerated compute,New clusters require GPUs/accelerators,+,0-4Q,DIRECT,CORE,Capex actually converts into equipment orders
+Data-center capex,Servers / racks,Capacity build requires servers and rack systems,+,0-4Q,DIRECT,CORE,Projects funded and permitted
+Accelerated compute,HBM / DRAM demand,Accelerators require high-bandwidth memory,+,0-2Q,DIRECT,CORE,Architecture remains memory-intensive
+Accelerated compute,NAND / enterprise SSD demand,Training/inference raises storage and checkpoint demand,+,0-4Q,DIRECT,CORE,Storage intensity rises with workload
+Accelerated compute,Networking bandwidth,Larger clusters require scale-up/scale-out fabrics,+,0-2Q,DIRECT,CORE,Cluster sizes/network traffic rise
+Networking bandwidth,Optical transceivers,Higher bandwidth/distance increases optical links,+,0-4Q,DIRECT,CORE,Copper reach/power limits bind
+Optical transceivers,Lasers / photonics,Optical modules need lasers and photonic components,+,0-4Q,SECOND,CORE,Optical architecture expands
+Optical transceivers,DSP / optical semis,Higher-speed modules need DSP/driver/TIA silicon,+,0-4Q,SECOND,CORE,Module speeds increase
+Lasers / photonics,Silicon photonics,Integration shifts more optical functions onto silicon,+,1-8Q,SECOND,CONDITIONAL,CPO/silicon photonics adoption
+Optical transceivers,Fiber / connectors,More optical links consume fiber and connectors,+,0-4Q,SECOND,CORE,Port counts/fiber runs rise
+Lasers / photonics,Advanced packaging,Photonic integration raises packaging/alignment demand,+,0-6Q,SECOND,CONDITIONAL,Packaging is not vertically integrated
+Advanced packaging,Test / metrology,Tighter tolerances increase test/inspection demand,+,0-6Q,THIRD,CORE,Yield management remains critical
+Data-center capex,Electrical load,New capacity raises firm electricity demand,+,0-8Q,DIRECT,CORE,Projects energize
+Electrical load,Grid interconnection,Large loads require transmission/distribution connection,+,1-12Q,DIRECT,CORE,Grid-tied model
+Grid interconnection,Transformers,Substations/data centers require power transformers,+,1-12Q,SECOND,CORE,Transformer lead times/capacity constrained
+Grid interconnection,Switchgear,Power distribution requires switchgear/busway,+,0-8Q,SECOND,CORE,Projects proceed
+Grid interconnection,Cables / conductors,Transmission/distribution build uses cable and conductors,+,1-12Q,SECOND,CORE,Copper/aluminum intensity stays high
+Cables / conductors,Copper demand,Electrical infrastructure raises copper consumption,+,1-12Q,THIRD,CORE,Substitution/recycling does not fully offset
+Transformers,Electrical steel / copper,Transformer production consumes grain-oriented steel/copper,+,1-12Q,THIRD,CORE,Input intensity persists
+Electrical load,Power generation,Incremental load requires more generation capacity/dispatch,+,1-12Q,DIRECT,CORE,Grid cannot meet load via efficiency alone
+Power generation,Natural gas generation,Fast firm generation can favor gas in some regions,+,1-12Q,SECOND,CONDITIONAL,Gas infrastructure/permitting available
+Natural gas generation,Gas turbines,New gas plants require turbine capacity,+,2-16Q,THIRD,CORE,Gas chosen as marginal firm supply
+Power generation,Nuclear / SMR,24/7 low-carbon demand can support nuclear contracts,+,4-40Q,SECOND,CONDITIONAL,Licensing/financing/project execution
+Power generation,Renewables,New load can support utility-scale renewable build,+,1-16Q,SECOND,CORE,Interconnection/storage available
+Renewables,Battery storage,Variable generation and AI load swings increase storage need,+,1-12Q,THIRD,CORE,Storage economics remain viable
+Electrical load,On-site generation / backup,Reliability requirements support backup/on-site power,+,0-8Q,DIRECT,CORE,Grid reliability/interconnection delays
+On-site generation / backup,Commercial generators,Backup/bridge power increases generator demand,+,0-8Q,SECOND,CORE,Data-center redundancy standards persist
+Electrical load,Cooling demand,High rack density raises heat-removal load,+,0-4Q,DIRECT,CORE,Power density rises
+Cooling demand,Liquid cooling,Higher-density racks favor liquid cooling,+,0-6Q,SECOND,CORE,Air cooling becomes insufficient
+Cooling demand,Chillers / HVAC,Facilities require heat rejection and HVAC infrastructure,+,0-6Q,SECOND,CORE,Architecture includes chilled water/air systems
+Liquid cooling,Pumps / heat exchangers,Liquid loops require pumps/CDUs/heat exchangers,+,0-6Q,THIRD,CORE,Direct-liquid cooling adoption
+Cooling demand,Water treatment,Water-cooled facilities can raise treatment/water demand,+,0-8Q,SECOND,CONDITIONAL,Water-based cooling/local resource constraints
+Data-center capex,Construction / EPC,Facilities require civil/electrical/mechanical construction,+,0-8Q,DIRECT,CORE,Project pipeline proceeds
+Construction / EPC,Steel / concrete,Facility construction raises material demand,+,0-8Q,SECOND,CORE,Build intensity remains high
+Data-center capex,Land / permitting,Site scarcity and approvals can become bottlenecks,+,0-12Q,DIRECT,CORE,Local opposition/grid limits
+Land / permitting,Construction delays,Permitting/community constraints delay energization,+,0-12Q,LOSER,CORE,Approvals tighten
+Construction delays,Stranded AI capex risk,Equipment/orders can be delayed if power/site unavailable,+,1-8Q,LOSER,CONDITIONAL,Capex committed before power secured
+Electrical load,Wholesale power prices,Local scarcity can raise power prices,+,0-8Q,MACRO,CORE,Transmission/generation constrained
+Wholesale power prices,Power-intensive industry margins,Higher electricity costs pressure non-AI heavy users,-,0-8Q,LOSER,CORE,Pass-through limited
+AI adoption,Data-center efficiency,Chip/software efficiency lowers energy per task,-,0-8Q,BUFFER,CORE,Efficiency gains materialize
+Data-center efficiency,Electrical load,Efficiency reduces load per unit compute,-,0-8Q,BUFFER,CORE,Jevons/rebound does not dominate
+Memory supply cuts,NAND supply availability,Production discipline tightens available bits,-,0-2Q,DIRECT,CORE,Cuts are real and inventories normalize
+AI / cloud storage demand,NAND / enterprise SSD demand,Cloud/AI workloads increase flash demand,+,0-4Q,DIRECT,CORE,Storage intensity rises
+NAND / enterprise SSD demand,NAND pricing,Demand above available supply lifts pricing,+,0-2Q,DIRECT,CORE,Supply elasticity low
+NAND supply availability,NAND pricing,Lower supply availability lifts pricing,-,0-2Q,DIRECT,CORE,Inventories not excessive
+NAND pricing,Memory producer gross margin,Pricing power expands producer margin,+,0-2Q,DIRECT,CORE,Costs stable / mix supportive
+Memory producer gross margin,Memory producer EPS / FCF,Operating leverage boosts earnings/cash flow,+,0-2Q,DIRECT,CORE,No offsetting capex/cost shock
+Memory producer EPS / FCF,Memory producer valuation,Higher normalized earnings can raise fair value,+,0-4Q,DIRECT,CORE,Market does not fully price duration
+Memory producer EPS / FCF,Memory capex response,High profits attract/restart capacity,+,2-12Q,SECOND,CORE,Capital available and tech ramps work
+Memory capex response,NAND supply availability,New capacity eventually increases supply,+,4-16Q,THIRD,CORE,Yield/ramp succeeds
+NAND supply availability,NAND pricing,Supply catch-up normalizes pricing,-,4-16Q,NORMALIZATION,CORE,Demand growth not faster
+NAND pricing,SSD / device customer costs,Higher flash prices raise downstream BOM costs,+,0-2Q,LOSER,CORE,Customers cannot fully hedge/pass through
+War escalation,Oil supply disruption,Production/export infrastructure can be disrupted,-,0-2Q,DIRECT,CONDITIONAL,Conflict touches producing/transit regions
+War escalation,Shipping-lane disruption,Chokepoints/ports/sanctions disrupt routes,+,0-2Q,DIRECT,CONDITIONAL,Relevant maritime routes exposed
+Oil supply disruption,Crude oil price,Physical shortage raises crude prices,+,0-2Q,DIRECT,CORE,Spare capacity/SPR not fully offset
+Crude oil price,Upstream oil producer cash flow,Higher realized prices improve upstream cash flow,+,0-2Q,DIRECT,CORE,Production volumes maintained
+Crude oil price,Airline fuel cost,Jet fuel input costs rise,+,0-2Q,LOSER,CORE,Hedges/pass-through limited
+Crude oil price,Petrochemical feedstock cost,Feedstock costs rise,+,0-2Q,LOSER,CORE,Product pricing lags
+Shipping-lane disruption,Voyage distance / rerouting,Avoided routes lengthen voyages,+,0-2Q,DIRECT,CORE,Alternative routes used
+Voyage distance / rerouting,Effective tanker supply,Longer voyages tie up vessel-days,-,0-2Q,SECOND,CORE,Cargo volumes persist
+Effective tanker supply,Tanker freight rates,Tighter vessel availability raises rates,-,0-2Q,SECOND,CORE,Demand remains
+Tanker freight rates,Tanker operator earnings,Higher spot/charter rates raise earnings,+,0-2Q,DIRECT,CORE,Fleet exposure captures rates
+War escalation,War-risk insurance,Insurance premia rise,+,0-2Q,SECOND,CORE,Routes remain insurable
+War escalation,Defense replenishment,Munitions/platform usage raises replenishment demand,+,0-8Q,DIRECT,CORE,Budgets/appropriations follow
+Defense replenishment,Munitions / drones / electronics,Orders rise for consumed systems,+,1-12Q,SECOND,CORE,Procurement capacity available
+War escalation,Cybersecurity demand,State-linked cyber risk raises security spend,+,0-8Q,SECOND,CONDITIONAL,Cyber threat activity rises
+War escalation,Satellite / ISR demand,Conflict raises demand for sensing/communications,+,0-8Q,SECOND,CORE,Budgets available
+Crude oil price,Inflation pressure,Energy raises headline/input inflation,+,0-4Q,MACRO,CORE,Pass-through significant
+Inflation pressure,Long yields / policy constraint,Sticky inflation can delay easing / lift yields,+,0-4Q,MACRO,CORE,Growth does not collapse first
+Long yields / policy constraint,Equity duration valuation,Higher discount rates pressure long-duration assets,-,0-4Q,LOSER,CORE,Earnings revisions do not offset
+War escalation,Ceasefire / de-escalation pressure,Economic/fiscal/political costs can raise de-escalation incentive,+,1-8Q,POLICY,CONDITIONAL,Costs become material; diplomacy feasible
+Ceasefire / de-escalation pressure,Geopolitical risk premium,De-escalation lowers risk premium,-,0-2Q,MACRO,CORE,Ceasefire credible/durable
+Geopolitical risk premium,Crude oil price,Lower risk premium can reduce oil price,+,0-2Q,NORMALIZATION,CONDITIONAL,No lasting physical shortage
+Palm oil supply disruption,CPO availability,Weather/export/biological constraints reduce supply,-,0-4Q,DIRECT,CORE,Shock hits output/export
+Biodiesel mandate,CPO domestic demand,Mandate raises feedstock demand,+,0-8Q,DIRECT,CORE,Mandate implemented
+CPO availability,CPO price,Lower availability lifts price,-,0-4Q,DIRECT,CORE,Inventories not excessive
+CPO domestic demand,CPO price,Higher demand lifts price,+,0-4Q,DIRECT,CORE,Supply response limited
+CPO price,Plantation producer cash flow,Higher realized prices lift producer cash flow,+,0-4Q,DIRECT,CORE,Yields/costs stable
+CPO price,Refining spread,Feedstock inflation can compress refiners,-,0-2Q,LOSER,CONDITIONAL,Pass-through/spreads weak
+CPO price,Soy / sunflower substitution demand,Higher palm prices shift demand to substitutes,+,0-4Q,SECOND,CORE,Substitution feasible
+Plantation producer cash flow,Fertilizer / plantation capex,Higher cash flow can lift farm input/capex demand,+,1-8Q,SECOND,CONDITIONAL,Producers reinvest
+CPO exports,Indonesia / Malaysia trade balance,Higher export value can support trade balance,+,0-4Q,MACRO,CONDITIONAL,Volumes not offset
+Indonesia / Malaysia trade balance,IDR / MYR support,Stronger external balance can support currencies,+,0-4Q,MACRO,CONDITIONAL,Other flows not dominant
+CPO price,Food manufacturer input cost,Higher edible-oil input cost pressures margins,+,0-4Q,LOSER,CORE,Pass-through limited
+Protocol usage,Protocol fees,More economic activity raises fees,+,0-2Q,DIRECT,CORE,Usage organic
+Protocol fees,Protocol revenue,Fee economics create protocol/company revenue,+,0-2Q,DIRECT,CORE,Revenue retained
+Protocol revenue,Tokenholder value capture,Buyback/burn/distribution shares value with token,+,0-2Q,DIRECT,CONDITIONAL,Mechanism is real and funded externally
+Tokenholder value capture,Net token accrual,Holder economics improve,+,0-2Q,DIRECT,CORE,Dilution controlled
+Token emissions / unlocks,Net token accrual,Dilution reduces holder accrual,-,0-8Q,LOSER,CORE,Unlocks hit circulating supply
+Net token accrual,Token fair value,Higher durable accrual can raise value,+,0-8Q,DIRECT,CONDITIONAL,Market not fully priced
+Privacy UX / integration,Private asset usage,Better UX/access increases real usage,+,0-8Q,DIRECT,CORE,Integrations used
+Private asset usage,Effective liquid float,More shielded/locked usage can reduce effective float,-,0-8Q,SECOND,CONDITIONAL,Coins remain economically sequestered
+Issuance reduction,Effective liquid float,Lower issuance reduces new supply,-,0-8Q,DIRECT,CORE,No offsetting unlocks
+Effective liquid float,Scarcity pressure,Tighter float can amplify demand shocks,-,0-8Q,DIRECT,CONDITIONAL,Demand persists
+Scarcity pressure,Token fair value,Scarcity with usage can support valuation,+,0-8Q,DIRECT,CONDITIONAL,Narrative not sole driver
+Currency depreciation,Import inflation pain,Weaker currency raises import prices,+,0-4Q,MACRO,CORE,Import share/material pass-through
+Currency depreciation speed,Policy intervention hazard,Rapid/disorderly moves raise intervention risk,+,0-1Q,POLICY,CORE,Authorities care about speed/volatility
+Import inflation pain,Policy intervention hazard,Political/economic pain raises intervention incentive,+,0-2Q,POLICY,CORE,Inflation sensitivity high
+Official verbal escalation,Policy intervention hazard,Stronger official language raises hazard,+,0-1Q,POLICY,CORE,Statements credible
+Speculative one-way positioning,Policy intervention hazard,Crowding can make intervention more effective/likely,+,0-1Q,POLICY,CONDITIONAL,Authorities have firepower
+International coordination,Policy intervention hazard,Coordination raises capacity/credibility,+,0-1Q,POLICY,CONDITIONAL,Partners cooperate
+Policy intervention hazard,Intervention / FX reversal,Actual intervention can trigger sharp reversal,+,0-1Q,EVENT,CORE,Intervention executed
+Intervention / FX reversal,Carry-trade deleveraging,FX reversal can force carry unwind,+,0-1Q,SECOND,CORE,Leverage/crowding high
+Carry-trade deleveraging,Risk-asset volatility,Forced deleveraging can spill across assets,+,0-1Q,THIRD,CONDITIONAL,Cross-asset leverage material
+Electrical load,Utility load growth,Large new loads expand utility sales and rate-base needs,+,1-12Q,SECOND,CORE,Regulators allow investment recovery
+Utility load growth,Transmission capex,Utilities invest in lines/substations to serve load,+,1-16Q,THIRD,CORE,Projects approved and financed
+Transmission capex,Grid equipment backlog,Transformer/switchgear/cable demand outruns factory capacity,+,1-12Q,THIRD,CORE,Lead times remain long
+Grid equipment backlog,Electrical equipment pricing,Scarcity supports pricing and backlog quality,+,0-8Q,DIRECT,CORE,Customers cannot easily substitute
+Electrical equipment pricing,Electrical equipment margins,Higher pricing and factory utilization can expand margins,+,0-8Q,DIRECT,CORE,Input inflation does not offset
+Power generation,Gas demand,Incremental dispatch/new plants can raise gas burn,+,1-12Q,SECOND,CONDITIONAL,Gas is marginal source
+Gas demand,Gas pipeline / midstream throughput,Higher power-sector gas use can lift pipeline demand,+,1-16Q,THIRD,CONDITIONAL,Pipeline geography matches new generation
+Gas turbines,Turbine component suppliers,Long turbine backlogs pull through blades/castings/services,+,1-16Q,FOURTH,CORE,OEM outsourcing persists
+Natural gas generation,Air emissions / permitting,New gas capacity can face permitting constraints,+,2-16Q,BOTTLENECK,CONDITIONAL,Local rules restrictive
+Nuclear / SMR,Nuclear fuel demand,More reactor operation/new build raises fuel-cycle demand,+,4-40Q,THIRD,CORE,Projects proceed
+Nuclear fuel demand,Uranium demand,Higher reactor requirements support uranium demand,+,4-40Q,FOURTH,CORE,Secondary supplies do not offset
+Nuclear / SMR,Nuclear engineering / components,Long-lead reactor components and services gain demand,+,4-40Q,THIRD,CONDITIONAL,New-build pipeline becomes firm
+Battery storage,Power electronics,Storage deployment raises inverter/converter demand,+,1-12Q,FOURTH,CORE,Storage build proceeds
+Power electronics,SiC / power semiconductors,Higher-voltage efficient conversion can raise wide-bandgap demand,+,1-12Q,FOURTH,CONDITIONAL,Architecture favors SiC/GaN
+Data-center capex,Colocation / data-center REIT demand,Hyperscalers/enterprises lease scarce powered shells,+,0-8Q,DIRECT,CONDITIONAL,Lease economics remain attractive
+Grid interconnection,Powered-land scarcity,Sites with secured power/interconnection gain scarcity value,+,0-12Q,BOTTLENECK,CORE,Interconnection remains binding
+Powered-land scarcity,Data-center development margins,Scarce entitled power can improve economics for owners,+,0-12Q,SECOND,CONDITIONAL,Capex/financing manageable
+Cooling demand,Water scarcity / local opposition,Water-intensive cooling can create local constraints,+,1-12Q,BOTTLENECK,CONDITIONAL,Region water-stressed
+Water scarcity / local opposition,Dry cooling / closed-loop demand,Constraints can shift designs toward lower-water systems,+,1-12Q,SECOND,CONDITIONAL,Alternative designs economic
+AI adoption,Inference intensity,More deployed agents/models increase always-on inference,+,0-8Q,DIRECT,CORE,Usage expands beyond training
+Inference intensity,Data-center electricity load,Inference at scale raises persistent power demand,+,0-8Q,DIRECT,CORE,Efficiency gains do not fully offset
+Inference intensity,Enterprise storage demand,Retrieval/logging/vector/data pipelines expand storage,+,0-8Q,SECOND,CONDITIONAL,Architectures remain storage intensive
+AI adoption,Network traffic,Distributed inference/training increases east-west bandwidth,+,0-8Q,DIRECT,CORE,Cluster/network architecture scales
+Network traffic,Copper reach constraint,Higher speeds/rack density shorten practical copper reach,+,0-4Q,BOTTLENECK,CORE,SerDes power/reach limits bind
+Copper reach constraint,CPO / photonics adoption,Optical integration moves closer to package/switch,+,1-12Q,DIRECT,CONDITIONAL,CPO economics/reliability mature
+CPO / photonics adoption,Optical engines / lasers,Demand rises for integrated optical engines/laser sources,+,1-12Q,SECOND,CORE,CPO architecture chosen
+CPO / photonics adoption,Advanced packaging / co-packaging,Optics near ASIC raises packaging complexity,+,1-12Q,SECOND,CORE,Manufacturing yields manageable
+CPO / photonics adoption,Copper cable demand,Optical substitution can reduce some high-speed copper content,-,1-12Q,LOSER,CONDITIONAL,CPO displaces copper links
+Consumer mobility recovery,Bottled water demand,Out-of-home mobility raises packaged-water consumption,+,0-4Q,DIRECT,CORE,Consumer spending stable
+Health / hydration preference,Bottled water demand,Preference for convenient hydration supports category growth,+,0-8Q,DIRECT,CONDITIONAL,Brand/category share stable
+Bottled water demand,ADES beverage revenue,Higher category demand can lift beverage sales,+,0-4Q,DIRECT,CONDITIONAL,Distribution/brand execution works
+Beauty / hair-care distribution expansion,ADES cosmetics revenue,More points of sale/products increase cosmetics sales,+,0-8Q,DIRECT,CORE,Products retain demand
+Product portfolio expansion,ADES revenue,Food/beauty/beverage portfolio adds growth vectors,+,0-8Q,DIRECT,CORE,New products scale economically
+Operating efficiency,ADES operating margin,Fixed-cost discipline/procurement/product mix lift margins,+,0-4Q,DIRECT,CORE,Cost savings durable
+ADES operating margin,ADES EPS / FCF,Higher margin converts revenue growth into faster earnings,+,0-4Q,DIRECT,CORE,Working capital/capex controlled
+Low financial leverage,ADES downside resilience,Low debt reduces financing drag and preserves optionality,+,0-8Q,BUFFER,CORE,Balance sheet remains conservative
+ADES EPS / FCF,ADES fair value,Higher durable earnings can justify rerating,+,0-8Q,DIRECT,CONDITIONAL,Market has not fully priced durability
+Packaging resin / transport inflation,ADES gross margin,Higher packaging/logistics cost pressures margin,-,0-4Q,LOSER,CORE,Pass-through insufficient

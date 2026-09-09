@@ -1,0 +1,6 @@
+source,target,mechanism,sign,lag,role,validation,condition
+Protocol usage,Protocol fees,More economic activity raises fees,+,0-2Q,DIRECT,CORE,Usage organic
+Protocol fees,Protocol revenue,Fee economics create protocol/company revenue,+,0-2Q,DIRECT,CORE,Revenue retained
+Protocol revenue,Tokenholder value capture,Buyback/burn/distribution shares value with token,+,0-2Q,DIRECT,CONDITIONAL,Mechanism is real and funded externally
+Tokenholder value capture,Net token accrual,Holder economics improve,+,0-2Q,DIRECT,CORE,Dilution controlled
+Net token accrual,Token fair value,Higher durable accrual can raise value,+,0-8Q,DIRECT,CONDITIONAL,Market not fully priced

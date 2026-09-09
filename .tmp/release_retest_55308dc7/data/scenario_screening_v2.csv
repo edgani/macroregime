@@ -1,0 +1,16 @@
+Scenario,Decision,Evidence strength,Why
+ATH alone,REJECT STANDALONE,HIGH,"ATH is context, not a crash trigger."
+Russell / IWM ATH alone,REJECT STANDALONE,MEDIUM,"Condition on breadth, rates, credit and earnings."
+Breadth strength / failure,KEEP CORE STATE,HIGH,Use as market-state confirmation.
+Credit widening / EBP,KEEP CORE,HIGH,Forward downturn / transmission information.
+ATH + credit deterioration,KEEP CONDITIONAL,MED-HIGH,High-priority divergence; bespoke OOS test still required.
+Rate / term-premium shock + rich valuation,KEEP CORE,HIGH,Fragility through discount rates and liquidity.
+Low VIX alone,REJECT STANDALONE,HIGH,Calm volatility alone is not a crash signal.
+Low VIX + high leverage,KEEP FRAGILITY,HIGH,Volatility-paradox / deleveraging vulnerability.
+High leverage alone,SUPPORTING ONLY,HIGH,"Vulnerability, not timing."
+Funding stress + leverage,KEEP CORE,HIGH,Key crash-amplification channel.
+Momentum melt-up -> crash,REVISE,HIGH,Simple ATH melt-up formulation is not supported.
+Failed ATH breakout,RESEARCH ONLY,LOW-MED,Do not promote without stronger evidence.
+Concentration + narrowing breadth,KEEP CONDITIONAL,MED-HIGH,Needs credit/liquidity/earnings context.
+Energy shock + sticky inflation + yields,KEEP EVENT,HIGH,Clear macro transmission channel.
+Fiscal-forced de-escalation,KEEP AS CONDITIONAL SCENARIO,MEDIUM,"Economic constraint can raise de-escalation pressure, but cannot determine political choice alone."

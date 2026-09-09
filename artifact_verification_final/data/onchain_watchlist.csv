@@ -1,0 +1,8 @@
+entity,entity_type,defillama_id,notes
+Ethereum,chain,Ethereum,core settlement / DeFi
+Solana,chain,Solana,high-velocity onchain ecosystem
+Base,chain,Base,consumer / app ecosystem
+Arbitrum,chain,Arbitrum,L2 ecosystem
+Robinhood Chain,chain,Robinhood Chain,new ecosystem / activity migration
+Hyperliquid L1,chain,Hyperliquid L1,perps-native ecosystem
+Ink,chain,Ink,emerging L2 ecosystem

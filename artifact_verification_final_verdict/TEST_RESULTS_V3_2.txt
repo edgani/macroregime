@@ -1,0 +1,19 @@
+PASS      0.63s tests/self_test.py
+PASS      0.70s tests/final_contract.py
+PASS      0.71s tests/test_static_contract.py
+PASS      0.65s tests/test_decision_core.py
+PASS      0.70s tests/test_data_adapters.py
+PASS      0.65s tests/test_ihsg_transaction.py
+PASS      0.63s tests/test_story_optionality.py
+PASS      0.73s tests/test_opportunity_kernel.py
+PASS      0.65s tests/test_defillama_adapter.py
+PASS      0.74s tests/test_macro_logic.py
+PASS      0.67s tests/test_macro_snapshot.py
+PASS      0.61s tests/test_replay_timestamps.py
+PASS      0.62s tests/test_negative_controls.py
+PASS      0.93s tests/test_fuzz.py
+PASS      0.68s tests/test_walkforward.py
+PASS      0.68s tests/test_visual_contract.py
+PASS      0.82s tests/test_longitudinal_opportunity.py
+PASS      0.69s tests/test_v32_acceptance.py
+AGGREGATE: 18 PASS / 0 NONPASS / 18 TOTAL

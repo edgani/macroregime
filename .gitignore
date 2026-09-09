@@ -1,0 +1,43 @@
+# Python caches and test output
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+pytest-cache-files-*/
+
+# Virtual environments and generated dependencies
+.venv/
+venv/
+env/
+.tmp/
+
+# Runtime state
+*.sqlite
+*.sqlite3
+*.db
+runtime_state/
+verification_state/
+
+# Local verification and release artifacts
+codex_runs/
+artifacts/
+release/
+artifact_verification*/
+*.zip
+*.zip.sha256.txt
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Editor / OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.bak
+*.tmp
+*~

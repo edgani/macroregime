@@ -1,8 +1,0 @@
-source,target,mechanism,sign,lag,role,validation,condition
-Biodiesel mandate,CPO domestic demand,Mandate raises feedstock demand,+,0-8Q,DIRECT,CORE,Mandate implemented
-CPO domestic demand,CPO price,Higher demand lifts price,+,0-4Q,DIRECT,CORE,Supply response limited
-CPO price,Plantation producer cash flow,Higher realized prices lift producer cash flow,+,0-4Q,DIRECT,CORE,Yields/costs stable
-CPO price,Refining spread,Feedstock inflation can compress refiners,-,0-2Q,LOSER,CONDITIONAL,Pass-through/spreads weak
-CPO price,Soy / sunflower substitution demand,Higher palm prices shift demand to substitutes,+,0-4Q,SECOND,CORE,Substitution feasible
-CPO price,Food manufacturer input cost,Higher edible-oil input cost pressures margins,+,0-4Q,LOSER,CORE,Pass-through limited
-Plantation producer cash flow,Fertilizer / plantation capex,Higher cash flow can lift farm input/capex demand,+,1-8Q,SECOND,CONDITIONAL,Producers reinvest

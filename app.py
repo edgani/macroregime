@@ -2206,15 +2206,41 @@ def _render_macro_visual_room() -> None:
 # UI — persistent native navigation
 # -----------------------------
 NAV_ITEMS=["CONTROL ROOM","OPPORTUNITIES","VERTICALS","MACRO & EVENTS","LEARNING / REPLAY"]
+ROUTE_QUERY_VALUES={
+    "CONTROL_ROOM":"CONTROL ROOM",
+    "OPPORTUNITIES":"OPPORTUNITIES",
+    "VERTICALS":"VERTICALS",
+    "MACRO_EVENTS":"MACRO & EVENTS",
+    "LEARNING_REPLAY":"LEARNING / REPLAY",
+}
+ROUTE_TO_QUERY={label:slug for slug,label in ROUTE_QUERY_VALUES.items()}
+
+def _query_workspace() -> str | None:
+    """Return a validated deep-linked workspace without trusting arbitrary input."""
+    try:
+        raw=st.query_params.get("route")
+    except Exception:
+        raw=None
+    if isinstance(raw,list):
+        raw=raw[0] if raw else None
+    return ROUTE_QUERY_VALUES.get(str(raw or "").strip().upper())
 
 def _set_workspace(target: str) -> None:
     st.session_state["decision_nav_v322"] = target
+    try:
+        st.query_params["route"] = ROUTE_TO_QUERY[target]
+    except Exception:
+        pass
     # A page change must never feel dead because a stale 30-minute scan starts first.
     # The next periodic tick can refresh after navigation has rendered.
     st.session_state["_skip_auto_scan_once"] = True
 
 def _render_workspace_nav() -> str:
-    current=st.session_state.get("decision_nav_v322","CONTROL ROOM")
+    linked=_query_workspace()
+    if linked and st.session_state.get("_applied_route_query") != linked:
+        st.session_state["decision_nav_v322"]=linked
+        st.session_state["_applied_route_query"]=linked
+    current=st.session_state.get("decision_nav_v322",linked or "CONTROL ROOM")
     if current not in NAV_ITEMS:
         current="CONTROL ROOM"; st.session_state["decision_nav_v322"]=current
     st.markdown("<div class='nav-caption'>Workspace</div>",unsafe_allow_html=True)
@@ -2222,6 +2248,12 @@ def _render_workspace_nav() -> str:
     for col,item in zip(cols,NAV_ITEMS):
         with col:
             st.button(item,key=f"navbtn_{item}",use_container_width=True,type="primary" if item==current else "secondary",on_click=_set_workspace,args=(item,))
+    try:
+        expected=ROUTE_TO_QUERY[current]
+        if st.query_params.get("route") != expected:
+            st.query_params["route"]=expected
+    except Exception:
+        pass
     return st.session_state.get("decision_nav_v322",current)
 
 # -----------------------------

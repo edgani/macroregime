@@ -1,18 +1,12 @@
-# Known Limitations — v3.2.6
+# Known Limitations
 
-These are explicit gates, not hidden assumptions.
-
-1. **No historical alpha claim yet.** The system has leakage-safe prospective learning machinery, but not a complete multi-year PIT dataset proving outperformance.
-2. **Historical universe is not fully survivorship-safe.** Current US SEC reporting-issuer and IDX catalogs can be frozen prospectively. Historical delisted/bankrupt/dead-token membership is not reconstructed completely.
-3. **US core evidence is often PARTIAL.** Full PIT institutional capital-flow and analyst-revision history is not universally available from the free/current adapters.
-4. **IHSG core evidence is often PARTIAL/GATED.** Broker/foreign flow needs configured providers; complete corporate-action history is not yet a universal PIT adapter.
-5. **Crypto leverage thesis remains gated** without reliable spot-flow, OI, funding, liquidations and liquidity evidence.
-6. **FX and commodities remain data-gated** until dedicated relative-macro / physical-balance evidence exists. Price history does not substitute.
-7. **Sector-relative outcome is strongest for US equities.** Other markets remain benchmark-relative unless a defensible sector index is available.
-8. **Catalyst calibration is incomplete.** Catalyst text is stored, but sell-the-news/failure statistics require reliable PIT catalyst timestamps and mature cohorts.
-9. **Baseline A–E are prospective scanned-universe baselines**, not claims about an exhaustive historical exchange universe.
-10. **Runner recall is scanned-universe recall.** It cannot measure names the system never placed into a prospectively frozen scan cohort.
-11. **Current issuer catalog is not identical to exchange membership.** SEC company tickers include reporting issuers; the app does not label this as a complete US exchange list.
-12. **Third-party APIs can fail/rate-limit/change schema.** Such failures must remain visible/gated.
-13. **No browser pixel-level smoke was run in the build container** because Streamlit is unavailable there. Static UI contract tests and source-level route checks pass.
-14. **No autotrading.** The engine is research/decision support only.
+- Public and locally supplied feeds do not provide complete historical point-in-time fundamentals, estimates, constituents, positioning, or survivorship-safe universes. Missing evidence remains `UNKNOWN` or `GATED`.
+- Daily-bar point-in-time mapping uses conservative market-close availability. It cannot reconstruct every vendor's original publication latency.
+- A fresh memory database has no mature forward outcomes. Expectancy, runner recall, and superiority claims remain unavailable until prospective labels mature.
+- Macro, credit, options, crypto usage/leverage, FX external-balance, commodity physical, and IHSG broker evidence are feed-dependent and fail closed when absent.
+- Catalog accumulation is prospective and bounded; it is not a complete historical delisting or constituent-membership database.
+- Forward endpoints use the first observable bar on or after each horizon, so calendar horizons can differ from exact trading-day counts.
+- Walk-forward and baseline outputs are diagnostics, not proof of causal alpha. Small samples and regime changes remain material risks.
+- Third-party APIs can fail, rate-limit, or change schema. Those failures must remain visible and gated.
+- Browser screenshots require an OS environment that permits launching Chromium; run `tests/browser_smoke.py` against a live app.
+- The engine is research software only: no autotrading, broker execution, wallets, or private keys.

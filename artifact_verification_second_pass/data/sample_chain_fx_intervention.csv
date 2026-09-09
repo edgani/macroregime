@@ -1,5 +1,0 @@
-source,target,mechanism,sign,lag,role,validation,condition
-Currency depreciation speed,Policy intervention hazard,Rapid/disorderly moves raise intervention risk,+,0-1Q,POLICY,CORE,Authorities care about speed/volatility
-Policy intervention hazard,Intervention / FX reversal,Actual intervention can trigger sharp reversal,+,0-1Q,EVENT,CORE,Intervention executed
-Intervention / FX reversal,Carry-trade deleveraging,FX reversal can force carry unwind,+,0-1Q,SECOND,CORE,Leverage/crowding high
-Carry-trade deleveraging,Risk-asset volatility,Forced deleveraging can spill across assets,+,0-1Q,THIRD,CONDITIONAL,Cross-asset leverage material
